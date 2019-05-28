@@ -1,0 +1,13 @@
+# Results
+
+```{r child = 'results_1_behavior.Rmd'}
+```
+
+```{r child = 'results_2_classification_LDA.Rmd'}
+```
+
+```{r child = 'results_3_classifier_localization_clustering.Rmd'}
+```
+
+```{r child = 'results_4_parametric_ERP.Rmd'}
+```

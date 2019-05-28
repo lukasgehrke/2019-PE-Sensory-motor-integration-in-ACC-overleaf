@@ -1,0 +1,23 @@
+## Classifier Localization and BCI weighted clustering
+
+Several IC source clusters showed event-related changes in power. The numbers of subjects contained in each cluster as well as Tailarach coordinates of the cluster centroids are given in Table 1.
+
+```{r read_mat_locs, echo=F, results='asis'}
+
+clust_locs <- round(as.data.frame(read.mat(paste(working_folder, "loc.mat", sep = ""))),0)
+clust_locs <- unite(clust_locs, "locs", c("loc.1", "loc.2", "loc.3"), sep = ", ")
+
+# add Brodmann and cortical location by hand
+c_loc <- c("Parietal cortex", "Occipital cortex", "Parietal cortex", "Medial Frontal Gyrus", "WM", "Inferior Parietal cortex", "Posterior cingulate")
+ba <- c("BA7", "BA18", "BA31", "BA6", "none", "BA40", "BA29")
+
+clust_locs <- cbind(clust_locs, c_loc, ba)
+names(clust_locs) <- c("Talairach coordinates", "Nr. of subjects", "Cluster", "Cortical location", "Brodmann area")
+
+table_locs <- kable(clust_locs, caption = "IC clusters and cluster centroid locations")
+clust_dips <- ggdraw() + draw_image(paste(working_folder, "graphics\\cluster_dipoles.png", sep = ""), scale = 0.9)
+
+table_locs
+clust_dips
+
+```
