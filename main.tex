@@ -1,0 +1,29 @@
+% document format and style
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{lineno}
+
+% title, authors, orcid
+\title{Sensory-motor integration in ACC: understanding visuo-haptic mismatches}
+\author{Lukas Gehrke,}
+\date{May 2019}
+
+\begin{document}
+\maketitle
+\linenumbers
+
+% add abstract
+\input{chapters/0_abstract.tex}
+
+% add main content
+\input{chapters/1_introduction.tex}
+\input{chapters/2_results.tex}
+\input{chapters/3_discussion.tex}
+\input{chapters/4_methods.tex}
+
+% add bibliography
+\bibliographystyle{plain}
+\bibliography{references}
+\end{document}
