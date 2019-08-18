@@ -63,16 +63,6 @@ savefig(fullfile(output_filepath,'brain_dipoles'))
 % single trials
 % - extract velocity at box touched for all the n clean difference trials
 % - run 1st level analysis fitting lm at each point of the ERP post event
-% - 
-
-
-
-
-
-
-
-
-
 
 %% Clustering?
 
