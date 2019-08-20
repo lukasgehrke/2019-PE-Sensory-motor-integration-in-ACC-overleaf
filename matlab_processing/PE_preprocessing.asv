@@ -292,10 +292,10 @@ for subject = subjects
         close(h)
     end
     
+    figure;plot(squeeze(EEG.etc.analysis.results.effect_erp_chans(25,:,3)'))
+    
     % add parameter names
     EEG.etc.analysis.results.parameter_names = mdl.CoefficientNames;
-    
-%     figure;plot(squeeze(EEG.etc.analysis.results.effect_erp_chans(:,:,3)'))
 
 end
 

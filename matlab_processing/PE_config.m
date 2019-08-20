@@ -2,11 +2,10 @@
 
 subjects = 2:20;
 
-bemobil_config.PE = 1;
-
 bemobil_config.study_folder = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\';
 bemobil_config.filename_prefix = 's';
 bemobil_config.filenames = {'PredError_block_TestVibro' 'PredError_block_TestVisual'};
+bemobil_config.filenames_s3 = {'PredError_block_TestVibro_erste100' 'PredError_block_TestVibro_101bis300' 'PredError_block_TestVisual'};
 
 % be as specific as possible (uses regexp)
 bemobil_config.unprocessed_data_streams = {'brainvision_rda_bpn-c012'};
@@ -81,10 +80,8 @@ bemobil_config.rename_channels = {'brainvision_rda_bpn-c012_Fp1' 'Fp1';
     'brainvision_rda_bpn-c012_PO3' 'PO3';
     'brainvision_rda_bpn-c012_POz' 'POz';
     'brainvision_rda_bpn-c012_PO4' 'PO4';
-    'brainvision_rda_bpn-c012_PO8' 'PO8'
-    'E65' 'FCz'};
-    
-bemobil_config.ref_channel = {'FCz'};
+    'brainvision_rda_bpn-c012_PO8' 'PO8'}; % 'E65' 'FCz'    
+bemobil_config.ref_channel = 'FCz';
 
 % leave this empty if you have standard channel names that should use standard locations:
 % the standard .elc file can be found at "M:\BrainVision Stuff\Cap Layouts\standard_MoBI_channel_locations" and must
@@ -117,6 +114,9 @@ bemobil_config.warped_dipfitted_filename = 'warped_dipfitted.set';
 bemobil_config.copy_weights_interpolate_avRef_filename = 'interp_avRef_ICA.set';
 bemobil_config.single_subject_cleaned_ICA_filename = 'cleaned_with_ICA.set';
 bemobil_config.ssd_frontal_parietal_filename = 'ssd_frontal_parietal.set';
+bemobil_config.epochs_filename = 'epochs.set';
+
+bemobil_config.merged_filename_mocap = 'merged_mocap.set';
 
 % preprocessing
 bemobil_config.mocap_lowpass = 6;

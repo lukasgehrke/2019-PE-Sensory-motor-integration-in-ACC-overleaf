@@ -1,8 +1,10 @@
-function [ EEG ] = parseEventsPredError( EEG )
+function [ EEG ] = parse_events_PE( EEG )
 %parseEventsPredError Parses long EEG.event.type string into separate
 %EEG.event fields and their value. Long EEG.event.type string means string
 %of the kind "ke1:value1;key2:value2;key3:value3...". This function catches
 %some specifics in the event generation of PredError Experiment Ver1.0 (08/2018)
+
+EEG.event = EEG.urevent;
 
 % delete duplicate events in EMS condition
 for i = 1:length(EEG.event)

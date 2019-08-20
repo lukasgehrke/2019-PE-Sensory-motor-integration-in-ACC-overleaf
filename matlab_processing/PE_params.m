@@ -4,15 +4,20 @@ cfg.subjects = 2:20;
 %%% Filename and folder structure informations. folders will be created automatically!
 cfg.folders.study_folder = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\';
 
+%% mocap processing
 
+cfg.epoching.event_epochs_boundaries_mocap = [0 1];
 
+%% EEG processing
+cfg.epoching.event_epochs_boundaries = [-.3  1];
+cfg.epoching.event_epoching_event = {'box:touched'}; 
 
+cfg.epoching.base_epochs_boundaries = [-2  0];
+cfg.epoching.base_epoching_event = {'box:spawned'}; 
 
-
-%% TODO adapt below
-% study2_folders_touch_ERSP
-cfg.epoching.epochs_boundaries = [-1  2];
-cfg.epoching.epoching_event = {''}; 
+% filtering
+cfg.filter_plot_low = 1;
+cfg.filter_plot_high = 15;
 
 % study parameters
 % single subject final datasets and epochs
@@ -27,7 +32,7 @@ cfg.study.STUDY_clustering_freqrange = [3 60];
 cfg.ersp.baseline = [-300 -100];
 cfg.ersp.n_times = 300;
 cfg.ersp.trial_normalization = true;
-cfg.ersp.baseline_start_end = baseline;
+cfg.ersp.baseline_start_end = cfg.ersp.baseline;
 
 % fft options
 cfg.ersp.fft_cycles = [3 0.5];
