@@ -92,6 +92,82 @@ bemobil_config.channel_locations_filename = '';
 bemobil_config.frontal_channames = {'Fz','FCz','F1','F2'};
 bemobil_config.parietal_channames = {'Pz','P1','P2','P3','P4'};
 
+% Prediction Error (2019) Study parameters and folder structure
+bemobil_config.subjects = 2:20;
+
+%%% Filename and folder structure informations. folders will be created automatically!
+bemobil_config.folders.study_folder = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\';
+
+%% mocap processing
+
+bemobil_config.epoching.event_epochs_boundaries_mocap = [-1 1];
+bemobil_config.epoching.vel_ts = (.5:.1:1)*250; % time points at which to extract vel and acc params * EEG.srate
+
+%% EEG processing
+bemobil_config.epoching.event_epochs_boundaries = [-.3  1];
+bemobil_config.epoching.event_epoching_event = {'box:touched'}; 
+
+bemobil_config.epoching.base_epochs_boundaries = [-1  0];
+bemobil_config.epoching.base_epoching_event = {'box:spawned'}; 
+bemobil_config.epoching.base_win = [.6 .9]; % baseline window in s BEFORE epoching event, 1 being the epoching event
+
+% filtering
+bemobil_config.filter_plot_low = 1;
+bemobil_config.filter_plot_high = 15;
+
+% ERSPs
+% baseline
+bemobil_config.ersp.baseline = [-300 -100];
+bemobil_config.ersp.n_times = 300;
+bemobil_config.ersp.trial_normalization = true;
+bemobil_config.ersp.baseline_start_end = bemobil_config.ersp.baseline;
+
+% fft options
+bemobil_config.ersp.fft_cycles = [3 0.5];
+bemobil_config.ersp.fft_freqrange = [3 100];
+bemobil_config.ersp.fft_padratio = 2;
+bemobil_config.ersp.fft_freqscale = 'log';
+bemobil_config.ersp.fft_alpha = NaN;
+bemobil_config.ersp.fft_powbase = NaN;
+bemobil_config.ersp.fft_c_type   = 'ersp'; % 'itc' 'both'
+bemobil_config.ersp.n_freqs = 98;
+
+%% study parameters
+
+% single subject final datasets and epochs
+bemobil_config.study_filename = 'PE_reg_vel.study';
+bemobil_config.STUDY_components_to_use = 1:65;
+% precluster
+bemobil_config.STUDY_clustering_weights = struct('dipoles', 6, 'scalp_topographies', 1, 'spectra', 1);
+
+% repeated clustering, TODO set Talairach of peak interest
+% % RSC Spot Rotation
+bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 34, 'z', 28);
+% % RSC more posterior
+% % MNI ('x', 0, 'y', -55, 'z', 10)
+% % https://www.biorxiv.org/content/biorxiv/early/2017/10/09/200576.full.pdf
+% % https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5321500/
+% STUDY_cluster_ROI_talairach = struct('x', 0, 'y', -55, 'z', 10);
+
+%     quality_measure_weights         - vector of weights for quality measures. 6 entries: subjects, ICs/subjects, normalized
+%                                     spread, mean RV, distance from ROI, mahalanobis distance from median of multivariate
+%                                     distribution (put this very high to get the most "normal" solution)
+% STUDY_quality_measure_weights = [3,-1,-2,-1,-2,-1];
+bemobil_config.STUDY_quality_measure_weights = [3,-2,-1,-1,-1,-1];
+
+% calculate how many ICs remain in the STUDY and take 70% of that for the k
+% clusters
+bemobil_config.IC_percentage = .7;
+bemobil_config.outlier_sigma = 3;
+bemobil_config.n_iterations = 10;
+
+bemobil_config.do_clustering = 1;
+bemobil_config.do_multivariate_data = 1;
+bemobil_config.STUDY_filepath_clustering_solutions = 'clustering_solutions\';
+bemobil_config.filename_clustering_solutions = 'solutions';
+bemobil_config.filepath_multivariate_data = '';
+bemobil_config.filename_multivariate_data = 'multivariate_data';
+
 %% everything from here is according to the general pipeline, changes only recommended if you know the whole structure
 
 % general foldernames and filenames
@@ -102,6 +178,7 @@ bemobil_config.spatial_filters_folder = '3_spatial-filters\';
 bemobil_config.spatial_filters_folder_AMICA = '3-1_AMICA\';
 bemobil_config.spatial_filters_folder_SSD = '3-2_SSD\';
 bemobil_config.single_subject_analysis_folder = '4_single-subject-analysis\';
+bemobil_config.study_level = '5_study_level\';
 
 bemobil_config.merged_filename = 'merged.set';
 bemobil_config.preprocessed_filename = 'preprocessed.set';
