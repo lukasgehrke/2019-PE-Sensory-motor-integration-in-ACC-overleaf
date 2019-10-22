@@ -1,17 +1,67 @@
-% document format and style
-\documentclass{article}
-\usepackage[utf8]{inputenc}
-\usepackage{natbib}
-\usepackage{graphicx}
-\usepackage{lineno}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% A template for Wiley article submissions.
+% Developed by Overleaf. 
+%
+% Please note that whilst this template provides a 
+% preview of the typeset manuscript for submission, it 
+% will not necessarily be the final publication layout.
+%
+% Usage notes:
+% The "blind" option will make anonymous all author, affiliation, correspondence and funding information.
+% Use "num-refs" option for numerical citation and references style.
+% Use "alpha-refs" option for author-year citation and references style.
+\PassOptionsToPackage{author-year,initials,nobysame}{amsrefs}
+\documentclass[ams-refs]{wiley-article}
+% \documentclass[blind,ams-refs]{wiley-article}
 
-% title, authors, orcid
-\title{Sensory-motor integration in ACC: understanding visuo-haptic mismatches}
-\author{Lukas Gehrke,}
-\date{May 2019}
+% Add additional packages here if required
+\usepackage{siunitx}
+
+% added LG
+\usepackage{lineno}
+\usepackage{todonotes}
+\usepackage{verbatim}
+
+% Update article type if known
+\papertype{Original Article}
+% Include section in journal if known, otherwise delete
+\paperfield{Journal Section}
+
+\title{Sensory-motor integration in anterior cingulate cortex: visuo-haptic mismatches and the impact of hand movement speed}
+% alternative titles
+%mobi using motion parameters to inform brain dynamic analysis
+
+% List abbreviations here, if any. Please note that it is preferred that abbreviations be defined at the first instance they appear in the text, rather than creating an abbreviations list.
+%\abbrevs{ABC, a black cat; DEF, doesn't ever fret; GHI, goes home immediately.}
+
+% Include full author names and degrees, when required by the journal.
+% Use the \authfn to add symbols for additional footnotes and present addresses, if any. Usually start with 1 for notes about author contributions; then continuing with 2 etc if any author has a different present address.
+\author[1\authfn{1}]{Lukas Gehrke}
+\author[1]{Sezen Akman}
+\author[1]{Marius Klug}
+\author[2]{Pedro Lopes PhD}
+\author[1,3,4,5]{Klaus Gramann PhD}
+
+%\contrib[\authfn{1}]{Equally contributing authors.}
+
+% Include full affiliation details for all authors
+\affil[1]{Biopsychology and Neuroergonomics, Institute of Psychology and Ergonomics, TU Berlin, Berlin, Berlin, 10623, Germany}
+\affil[2]{Department, Institution, City, State or Province, Postal Code, Country}
+
+\corraddress{Lukas Gehrke, Biopsychology and Neuroergonomics, TU Berlin, Berlin, Berlin, 10623, Germany}
+\corremail{lukas.gehrke@tu-berlin.de}
+
+\presentadd[\authfn{1}]{Biopsychology and Neuroergonomics, Institute of Psychology and Ergonomics, TU Berlin, Berlin, Berlin, 10623, Germany}
+
+\fundinginfo{Funder One, Funder One Department, Grant/Award Number: 123456, 123457 and 123458; Funder Two, Funder Two Department, Grant/Award Number: 123459}
+
+% Include the name of the author that should appear in the running header
+\runningauthor{Gehrke et al.}
 
 \begin{document}
 \maketitle
+
+% added LG
 \linenumbers
 
 % add abstract
@@ -19,11 +69,12 @@
 
 % add main content
 \input{chapters/1_introduction.tex}
-\input{chapters/2_results.tex}
-\input{chapters/3_discussion.tex}
-\input{chapters/4_methods.tex}
+\input{chapters/2_methods.tex}
+\input{chapters/3_results.tex}
+\input{chapters/4_discussion.tex}
 
-% add bibliography
-\bibliographystyle{plain}
+
+% Submissions are not required to reflect the precise reference formatting of the journal (use of italics, bold etc.), however it is important that all key elements of each reference are included.
 \bibliography{references}
+
 \end{document}
