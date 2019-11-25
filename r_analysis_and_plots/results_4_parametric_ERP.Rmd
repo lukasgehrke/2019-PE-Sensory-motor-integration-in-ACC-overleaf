@@ -1,3 +1,0 @@
-## Parametric ERP of classifier weighted cluster with velocity
-
-parametric ERSP regressing velocity on both, mismatch and match trials.
