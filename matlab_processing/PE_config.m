@@ -2,7 +2,9 @@
 
 subjects = 2:20;
 
-bemobil_config.study_folder = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\';
+
+
+bemobil_config.study_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/';
 bemobil_config.filename_prefix = 's';
 bemobil_config.filenames = {'PredError_block_TestVibro' 'PredError_block_TestVisual'};
 bemobil_config.filenames_s3 = {'PredError_block_TestVibro_erste100' 'PredError_block_TestVibro_101bis300' 'PredError_block_TestVisual'};
@@ -84,7 +86,7 @@ bemobil_config.rename_channels = {'brainvision_rda_bpn-c012_Fp1' 'Fp1';
 bemobil_config.ref_channel = 'FCz';
 
 % leave this empty if you have standard channel names that should use standard locations:
-% the standard .elc file can be found at "M:\BrainVision Stuff\Cap Layouts\standard_MoBI_channel_locations" and must
+% the standard .elc file can be found at "M:/BrainVision Stuff/Cap Layouts/standard_MoBI_channel_locations" and must
 % be copied into every subject's data folder (where the .xdf files are)
 bemobil_config.channel_locations_filename = '';
 
@@ -96,20 +98,14 @@ bemobil_config.parietal_channames = {'Pz','P1','P2','P3','P4'};
 bemobil_config.subjects = 2:20;
 
 %%% Filename and folder structure informations. folders will be created automatically!
-bemobil_config.folders.study_folder = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\';
+bemobil_config.folders.study_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/';
 
-%% mocap processing
-
-bemobil_config.epoching.event_epochs_boundaries_mocap = [-1 1];
-bemobil_config.epoching.vel_ts = (.5:.1:1)*250; % time points at which to extract vel and acc params * EEG.srate
-
-%% EEG processing
-bemobil_config.epoching.event_epochs_boundaries = [-.3  1];
+%% EEG and MOCAP epochs processing
+bemobil_config.epoching.event_epochs_boundaries = [-2.3  1]; % was -.3
 bemobil_config.epoching.event_epoching_event = {'box:touched'}; 
 
-bemobil_config.epoching.base_epochs_boundaries = [-1  0];
+bemobil_config.epoching.base_epochs_boundaries = [-.3  0];
 bemobil_config.epoching.base_epoching_event = {'box:spawned'}; 
-bemobil_config.epoching.base_win = [.6 .9]; % baseline window in s BEFORE epoching event, 1 being the epoching event
 
 % filtering
 bemobil_config.filter_plot_low = 1;
@@ -163,7 +159,7 @@ bemobil_config.n_iterations = 10;
 
 bemobil_config.do_clustering = 1;
 bemobil_config.do_multivariate_data = 1;
-bemobil_config.STUDY_filepath_clustering_solutions = 'clustering_solutions\';
+bemobil_config.STUDY_filepath_clustering_solutions = 'clustering_solutions/';
 bemobil_config.filename_clustering_solutions = 'solutions';
 bemobil_config.filepath_multivariate_data = '';
 bemobil_config.filename_multivariate_data = 'multivariate_data';
@@ -171,14 +167,14 @@ bemobil_config.filename_multivariate_data = 'multivariate_data';
 %% everything from here is according to the general pipeline, changes only recommended if you know the whole structure
 
 % general foldernames and filenames
-bemobil_config.raw_data_folder = '0_raw-data\';
-bemobil_config.mobilab_data_folder = '1_mobilab-data\';
-bemobil_config.raw_EEGLAB_data_folder = '2_basic-EEGLAB\';
-bemobil_config.spatial_filters_folder = '3_spatial-filters\';
-bemobil_config.spatial_filters_folder_AMICA = '3-1_AMICA\';
-bemobil_config.spatial_filters_folder_SSD = '3-2_SSD\';
-bemobil_config.single_subject_analysis_folder = '4_single-subject-analysis\';
-bemobil_config.study_level = '5_study_level\';
+bemobil_config.raw_data_folder = '0_raw-data/';
+bemobil_config.mobilab_data_folder = '1_mobilab-data/';
+bemobil_config.raw_EEGLAB_data_folder = '2_basic-EEGLAB/';
+bemobil_config.spatial_filters_folder = '3_spatial-filters/';
+bemobil_config.spatial_filters_folder_AMICA = '3-1_AMICA/';
+bemobil_config.spatial_filters_folder_SSD = '3-2_SSD/';
+bemobil_config.single_subject_analysis_folder = '4_single-subject-analysis/';
+bemobil_config.study_level = '5_study_level/';
 
 bemobil_config.merged_filename = 'merged.set';
 bemobil_config.preprocessed_filename = 'preprocessed.set';

@@ -26,8 +26,8 @@ for subject = subjects
     
     % create a merged mocap files
     STUDY = []; CURRENTSTUDY = 0; ALLEEG = []; EEG=[]; CURRENTSET=[];
-    input_filepath = [bemobil_config_folder bemobil_config.raw_EEGLAB_data_folder bemobil_config.filename_prefix num2str(subject)];
-	output_filepath = [bemobil_config_folder bemobil_config.single_subject_analysis_folder bemobil_config.filename_prefix num2str(subject)];
+    input_filepath = [bemobil_config.study_folder bemobil_config.raw_EEGLAB_data_folder bemobil_config.filename_prefix num2str(subject)];
+	output_filepath = [bemobil_config.study_folder bemobil_config.single_subject_analysis_folder bemobil_config.filename_prefix num2str(subject)];
     for filename = bemobil_config.filenames
         EEG = pop_loadset('filename',[ bemobil_config.filename_prefix num2str(subject) '_'...
             filename{1} '_MOCAP.set' ], 'filepath', input_filepath);
@@ -52,11 +52,12 @@ pop_editoptions( 'option_storedisk', 0, 'option_savetwofiles', 1, 'option_saveve
 
 for subject = subjects
     
+    %% load data and filter EEG
 	disp(['Subject #' num2str(subject)]);
     
     % filepaths
-	input_filepath = [bemobil_config_folder bemobil_config.single_subject_analysis_folder bemobil_config.filename_prefix num2str(subject)];
-	output_filepath = [bemobil_config_folder bemobil_config.single_subject_analysis_folder bemobil_config.filename_prefix num2str(subject)];
+	input_filepath = [bemobil_config.study_folder bemobil_config.single_subject_analysis_folder bemobil_config.filename_prefix num2str(subject)];
+	output_filepath = [bemobil_config.study_folder bemobil_config.single_subject_analysis_folder bemobil_config.filename_prefix num2str(subject)];
 	
     %EEG: load data
 	EEG = pop_loadset('filename',[ bemobil_config.filename_prefix num2str(subject) '_'...
@@ -70,14 +71,26 @@ for subject = subjects
     %EEG: filter for ERP analysis
     EEG = pop_eegfiltnew(EEG, bemobil_config.filter_plot_low, bemobil_config.filter_plot_high);
 	
-    %BOTH
-    % epoching
+    %% BOTH: obtaining clean epoch indices
+    % get latencies of boundaries
+    boundaries_lats = EEG.urevent(find(strcmp({EEG.urevent.type}, 'boundary'))).latency;
+    
     % parse events from urevent structure 
     EEG = parse_events_PE(EEG);
     mocap = parse_events_PE(mocap);
     touch_ixs = find(strcmp({EEG.event.type}, 'box:touched'));
+    spawn_ixs = find(strcmp({EEG.event.type}, 'box:spawned'));
+    
+    % get event indices
+    mismatch_ixs = find(strcmp({EEG.event.normal_or_conflict}, 'conflict'));
+    mis_touch_ixs = intersect(touch_ixs, mismatch_ixs);
+    mis_spawn_ixs = intersect(spawn_ixs, mismatch_ixs);
+    
     % check data consistency
-    if size(touch_ixs,2) ~= 600
+    if ~isequal(size(mis_touch_ixs), size(mis_spawn_ixs))
+        error('Number of touch and spawn events is not the same!')
+    end
+    if size(mis_touch_ixs,2) ~= 150
         warning('Not exactly 600 events in dataset!')
     end
     if ~(size(EEG.times,2)==size(mocap.times,2))
@@ -87,14 +100,46 @@ for subject = subjects
         error('mocap and eeg have differing number of events!');
     end
     
+    % 1. remove all trials that have a distance greater than 2s between 
+    % spawn and touch
+    latency_diff = (cell2mat({EEG.event(touch_ixs).latency}) - cell2mat({EEG.event(spawn_ixs).latency})) / EEG.srate;
+    slow_rt_ix = find(latency_diff>2);
+    rm_ixs = slow_rt_ix;
+    
+    % 2. remove all trials with less than 300 ms of data before
+    % box:spawned, this will be used for baseline!
+    % check first trial and at boundaries
+    if EEG.event(spawn_ixs(1)).latency < abs(bemobil_config.epoching.base_epochs_boundaries(1) * 250)
+        % remove first mismatch trial because not enough data before the touch event
+        rm_ixs = [rm_ixs, 1];
+    end
+    for b = boundaries_lats
+        dist = cell2mat({EEG.event(mis_spawn_ixs).latency}) - b;
+        post_b_ix = find(dist>0, 1, 'first'); % index of post boundary spawn event
+        ev_dist = EEG.event(mis_spawn_ixs(post_b_ix)).latency - b;
+        
+        if ev_dist < abs(bemobil_config.epoching.base_epochs_boundaries(1) * EEG.srate)
+            % no data for baseline, remove post boundary event
+            rm_ixs = [rm_ixs, post_b_ix];
+        end
+    end
+    
     %TO SAVE: find indeces of mismatch trials in both visual and visual+vibro condition
-    box_touched_events = EEG.event(touch_ixs);
-    EEG.etc.epoching.mismatch = find(strcmp({box_touched_events.normal_or_conflict}, 'conflict'));
+    EEG.etc.epoching.mismatch_touch_ixs = mis_touch_ixs;
+    EEG.etc.epoching.mismatch_spawn_ixs = mis_spawn_ixs;
+    EEG.etc.epoching.rm_ixs = rm_ixs;
+    EEG.etc.epoching.latency_diff = cell2mat({EEG.event(mis_touch_ixs).latency}) - cell2mat({EEG.event(mis_spawn_ixs).latency});
             
-    %BOTH: epoch around box:touched event
+    %% BOTH: epoching
     % duplicate EEG set for epoching twice (on events and baseline)
-    oriEEG = EEG;
+    baseEEG = EEG;
+    
+    % overwrite events with clean epoch events
+    EEG.event = EEG.event(EEG.etc.epoching.mismatch_touch_ixs); % touches
     mocap.event = EEG.event;
+    baseEEG.event = baseEEG.event(EEG.etc.epoching.mismatch_spawn_ixs); % spawns
+    
+    % ERPs: both EEG and mocap
     EEG = pop_epoch( EEG, bemobil_config.epoching.event_epoching_event, bemobil_config.epoching.event_epochs_boundaries, 'newname',...
         'epochs', 'epochinfo', 'yes');
     mocap = pop_epoch( mocap, bemobil_config.epoching.event_epoching_event, bemobil_config.epoching.event_epochs_boundaries, 'newname',...
@@ -102,154 +147,85 @@ for subject = subjects
         
     %EEG: find ~10% noisiest epoch indices by searching for large amplitude
     % fluctuations on the channel level using eeglab auto_rej function
-    % search only mismatch epochs
-    EEG = pop_select(EEG, 'trial', EEG.etc.epoching.mismatch);
-    [~, EEG.etc.epoching.rmepochs] = pop_autorej(EEG, 'maxrej', [1],'nogui','on','eegplot','off');
-    % ignore rejected epochs
-    ep_conds = cellfun(@(v)v(1), {EEG.epoch.eventcondition}); % extract epoch condition
+    [~, rmepochs] = pop_autorej(EEG, 'maxrej', [1],'nogui','on','eegplot','off');
+    EEG.etc.epoching.rm_ixs = [EEG.etc.epoching.rm_ixs, rmepochs];
+    
     %TO SAVE: find indeces of visual and vibro trials after epoch rejection
-    EEG.etc.epoching.visual = find(strcmp(ep_conds, 'visual'));
-    EEG.etc.epoching.visual(find(ismember(EEG.etc.epoching.visual, EEG.etc.epoching.rmepochs))) = [];
-    EEG.etc.epoching.vibro = find(strcmp(ep_conds, 'vibro'));
-    EEG.etc.epoching.vibro(find(ismember(EEG.etc.epoching.vibro, EEG.etc.epoching.rmepochs))) = [];
-            
-    %EEG: epochs around box:spawned event, [-1 0], use isiTime (time from starting trial to box:spawned) 600 to 900 as
-    % baseline interval
-    EEG_base = pop_epoch( oriEEG, bemobil_config.epoching.base_epoching_event, bemobil_config.epoching.base_epochs_boundaries, 'newname',...
+    EEG.etc.epoching.visual = find(strcmp({EEG.event.condition}, 'visual'));
+    EEG.etc.epoching.vibro = find(strcmp({EEG.event.condition}, 'vibro'));
+    EEG.etc.epoching.good_visual = setdiff(EEG.etc.epoching.visual, EEG.etc.epoching.rm_ixs);
+    EEG.etc.epoching.good_vibro = setdiff(EEG.etc.epoching.vibro, EEG.etc.epoching.rm_ixs);
+    
+    %EEG: epochs around box:spawned event for baseline
+    EEG_base = pop_epoch( baseEEG, bemobil_config.epoching.base_epoching_event, bemobil_config.epoching.base_epochs_boundaries, 'newname',...
         'epochs', 'epochinfo', 'yes');
-    if size(EEG_base.data,3) ~= 600
-        warning('Not exactly 600 events in dataset')
-    end
-    % manually handle missing data
-    switch subject
-        case 14
-            % the baseline for the first trial in visual condition is missing
-            % copy baseline win from subsequent trial
-            EEG_base.data(:,:,301:600) = EEG_base.data(:,:,end-299:end);
-            EEG_base.data(:,:,300) = EEG_base.data(:,:,301); % copy baseline for one trial from the succeeding trial            
-            EEG_base.icaact(:,:,301:600) = EEG_base.icaact(:,:,end-299:end);
-            EEG_base.icaact(:,:,300) = EEG_base.icaact(:,:,301); % copy baseline for one trial from the succeeding trial            
-    end
     
-    %EEG: Baseline corrected ERPs of mismatch trials
-    EEG_base.data = EEG_base.data(:,:,EEG.etc.epoching.mismatch);
-    EEG_base.icaact = EEG_base.icaact(:,:,EEG.etc.epoching.mismatch);
-    % get baseline windows in epochs
-    base_start_ix = bemobil_config.epoching.base_win(1) * EEG_base.srate;
-    base_end_ix = bemobil_config.epoching.base_win(2) * EEG_base.srate;
-    % baseline chans
-    EEG.etc.epoching.baseline_chans_visual = mean(EEG_base.data(:, base_start_ix:base_end_ix, EEG.etc.epoching.visual), 2);
-    EEG.etc.epoching.baseline_chans_vibro = mean(EEG_base.data(:, base_start_ix:base_end_ix, EEG.etc.epoching.vibro), 2);
-    % baseline comps
-    EEG.etc.epoching.baseline_comps_visual = mean(EEG_base.icaact(:, base_start_ix:base_end_ix, EEG.etc.epoching.visual), 2);
-    EEG.etc.epoching.baseline_comps_vibro = mean(EEG_base.icaact(:, base_start_ix:base_end_ix, EEG.etc.epoching.vibro), 2);
-    % baseline corrected ERPs
-    EEG.etc.analysis.erp.base_corrected_erps_chans_visual(:,:,:) = EEG.data(:,:,EEG.etc.epoching.visual) - EEG.etc.epoching.baseline_chans_visual;
-    EEG.etc.analysis.erp.base_corrected_erps_chans_vibro(:,:,:) = EEG.data(:,:,EEG.etc.epoching.vibro) - EEG.etc.epoching.baseline_chans_vibro;
-    EEG.etc.analysis.erp.base_corrected_erps_comps_visual(:,:,:) = EEG.icaact(:,:,EEG.etc.epoching.visual) - EEG.etc.epoching.baseline_comps_visual;
-    EEG.etc.analysis.erp.base_corrected_erps_comps_vibro(:,:,:) = EEG.icaact(:,:,EEG.etc.epoching.vibro) - EEG.etc.epoching.baseline_comps_vibro;
+%     % manually handle missing data
+%     switch subject
+%         case 14
+%             % the baseline for the first trial in visual condition is missing
+%             % copy baseline win from subsequent trial
+%             EEG_base.data(:,:,301:600) = EEG_base.data(:,:,end-299:end);
+%             EEG_base.data(:,:,300) = EEG_base.data(:,:,301); % copy baseline for one trial from the succeeding trial            
+%             EEG_base.icaact(:,:,301:600) = EEG_base.icaact(:,:,end-299:end);
+%             EEG_base.icaact(:,:,300) = EEG_base.icaact(:,:,301); % copy baseline for one trial from the succeeding trial            
+%     end
     
-    %MOCAP: Velocity at time points before events of interest
+    %% EEG: Baseline corrected ERPs of mismatch trials
+    
     % select clean epochs within all mismatch epochs
-    mocap = pop_select(mocap, 'trial', EEG.etc.epoching.mismatch);
-    mocap_vis = pop_select(mocap, 'trial', EEG.etc.epoching.visual);
-    mocap_vibro = pop_select(mocap, 'trial', EEG.etc.epoching.vibro);
-    % calculate magnitude of velocity in 3D at different time points
-    for t = 1:size(bemobil_config.epoching.vel_ts,2)
-        EEG.etc.analysis.mocap.visual.win(t).mag_vel = squeeze(sqrt(mocap_vis.data(7,bemobil_config.epoching.vel_ts(t),:).^2 +...
-            mocap_vis.data(8,bemobil_config.epoching.vel_ts(t),:).^2 +...
-            mocap_vis.data(9,bemobil_config.epoching.vel_ts(t),:).^2));
-        EEG.etc.analysis.mocap.visual.win(t).mag_acc = squeeze(sqrt(mocap_vis.data(13,bemobil_config.epoching.vel_ts(t),:).^2 +...
-            mocap_vis.data(14,bemobil_config.epoching.vel_ts(t),:).^2 +...
-            mocap_vis.data(15,bemobil_config.epoching.vel_ts(t),:).^2));
-        
-        EEG.etc.analysis.mocap.vibro.win(t).mag_vel = squeeze(sqrt(mocap_vibro.data(7,bemobil_config.epoching.vel_ts(t),:).^2 +...
-            mocap_vibro.data(8,bemobil_config.epoching.vel_ts(t),:).^2 +...
-            mocap_vibro.data(9,bemobil_config.epoching.vel_ts(t),:).^2));
-        EEG.etc.analysis.mocap.vibro.win(t).mag_acc = squeeze(sqrt(mocap_vibro.data(13,bemobil_config.epoching.vel_ts(t),:).^2 +...
-            mocap_vibro.data(14,bemobil_config.epoching.vel_ts(t),:).^2 +...
-            mocap_vibro.data(15,bemobil_config.epoching.vel_ts(t),:).^2));
-    end
-
-    % save epoched datasets with clean trial indices of the 2x2 study design
-    pop_saveset(EEG, 'filename', [bemobil_config.filename_prefix num2str(subject) '_' bemobil_config.epochs_filename] , 'filepath', output_filepath)
-end
-
-%% 1st Level summary statistic ERP (all channels and comps): betas from fit lm at each point of the ERP post event
-% -> effect of hand velocity when box is touched on subsequent feedback processing
-
-if ~exist('ALLEEG','var'); eeglab; end
-pop_editoptions( 'option_storedisk', 0, 'option_savetwofiles', 1, 'option_saveversion6', 0, 'option_single', 0, 'option_memmapdata', 0, 'option_eegobject', 0, 'option_computeica', 1, 'option_scaleicarms', 1, 'option_rememberfolder', 1, 'option_donotusetoolboxes', 0, 'option_checkversion', 1, 'option_chat', 1);
-
-for subject = subjects
-	
-	disp(['Subject #' num2str(subject)]);
-	
-	input_filepath = [bemobil_config_folder bemobil_config.single_subject_analysis_folder bemobil_config.filename_prefix num2str(subject)];
-	output_filepath = [bemobil_config_folder bemobil_config.single_subject_analysis_folder bemobil_config.filename_prefix num2str(subject)];
-	
-	EEG = pop_loadset('filename',[ bemobil_config.filename_prefix num2str(subject) '_'...
-		bemobil_config.epochs_filename], 'filepath', input_filepath);
-
-    % loop through all vels and accs at different time points before the
-    % event
-    model = 'erp_sample ~ predictor_immersion * predictor_vel';
-    for w = 1:size(EEG.etc.analysis.mocap.visual.win,2)
-        %DESIGN make continuous and dummy coded predictors
-        vel_vis = EEG.etc.analysis.mocap.visual.win(w).mag_vel;
-        vel_vibro = EEG.etc.analysis.mocap.vibro.win(w).mag_vel;
-        predictor_vel = [vel_vis; vel_vibro];
-        predictor_immersion = [zeros(size(vel_vis,1),1); ones(size(vel_vibro,1),1)];
-
-        % now fit linear model for each condition and both channels and
-        % components
-        for chan = 1:size(EEG.etc.analysis.erp.base_corrected_erps_chans_visual,1)
-    %         h = waitbar(0, ['Now fitting LM for channel: ' EEG.chanlocs(chan).labels]);
-    %         waitbar(chan/size(EEG.data,1),h)
-
-            for sample = 1:size(EEG.etc.analysis.erp.base_corrected_erps_chans_visual,2)
-
-                erp_sample_vis = squeeze(EEG.etc.analysis.erp.base_corrected_erps_chans_visual(chan,sample,:));
-                erp_sample_vibro = squeeze(EEG.etc.analysis.erp.base_corrected_erps_chans_vibro(chan,sample,:));
-                erp_sample = [erp_sample_vis; erp_sample_vibro];
-
-                design = table(erp_sample, predictor_immersion, predictor_vel);
-
-                mdl = fitlm(design, model);
-                EEG.etc.analysis.statistics.chans.win(w).betas(chan,sample,:) = mdl.Coefficients.Estimate;
-            end
-
-    %         close(h)
-        end
-        for comp = 1:size(EEG.etc.analysis.erp.base_corrected_erps_comps_visual,1)
-    %         h = waitbar(0, ['Now fitting LM for component: ' num2str(comp)]);
-    %         waitbar(comp/size(EEG.icaact,1),h)
-
-            for sample = 1:size(EEG.etc.analysis.erp.base_corrected_erps_comps_visual,2)
-
-                erp_sample_vis = squeeze(EEG.etc.analysis.erp.base_corrected_erps_comps_visual(comp,sample,:));
-                erp_sample_vibro = squeeze(EEG.etc.analysis.erp.base_corrected_erps_comps_vibro(comp,sample,:));
-                erp_sample = [erp_sample_vis; erp_sample_vibro];
-
-                design = table(erp_sample, predictor_immersion, predictor_vel);
-
-                mdl = fitlm(design, model);
-                EEG.etc.analysis.statistics.comps.win(w).betas(comp,sample,:) = mdl.Coefficients.Estimate;
-            end
-
-    %         close(h)
-        end
-    end
+    vis = EEG.etc.epoching.good_visual;
+    vib = EEG.etc.epoching.good_vibro;
     
-    %TO SAVE: statistics and design info
-    % add parameter names
-    EEG.etc.analysis.statistics.timepoints_before_event_in_s = (bemobil_config.epoching.vel_ts - EEG.srate) / EEG.srate;
-    EEG.etc.analysis.statistics.model = model;
-    EEG.etc.analysis.statistics.parameter_names = mdl.CoefficientNames;
+    % baseline chans
+    EEG.etc.analysis.erp.baseline.visual.chans = mean(EEG_base.data(:, :, vis), 2);
+    EEG.etc.analysis.erp.baseline.vibro.chans = mean(EEG_base.data(:, :, vib), 2);
     
-    % save
-    pop_saveset(EEG, 'filename',[ bemobil_config.filename_prefix num2str(subject) '_'...
-            bemobil_config.epochs_filename], 'filepath', output_filepath);
+    % baseline comps
+    EEG.etc.analysis.erp.baseline.visual.comps = mean(EEG_base.icaact(:, :, vis), 2);
+    EEG.etc.analysis.erp.baseline.vibro.comps = mean(EEG_base.icaact(:, :, vib), 2);
+    
+    % baseline corrected ERPs
+    EEG.etc.analysis.erp.base_corrected.visual.chans(:,:,:) = EEG.data(:,:,vis) - EEG.etc.analysis.erp.baseline.visual.chans;
+    EEG.etc.analysis.erp.base_corrected.vibro.chans(:,:,:) = EEG.data(:,:,vib) - EEG.etc.analysis.erp.baseline.vibro.chans;
+    EEG.etc.analysis.erp.base_corrected.visual.comps(:,:,:) = EEG.icaact(:,:,vis) - EEG.etc.analysis.erp.baseline.visual.comps;
+    EEG.etc.analysis.erp.base_corrected.vibro.comps(:,:,:) = EEG.icaact(:,:,vib) - EEG.etc.analysis.erp.baseline.vibro.comps;
+    
+    %% MOCAP: Velocity at time points before events of interest
+    
+    % save (x,y) coordinates for each trial
+    hand_chans_ix = 1:3;
+    EEG.etc.analysis.mocap.visual.x = squeeze(mocap.data(hand_chans_ix(1),:,vis));
+    EEG.etc.analysis.mocap.visual.y = squeeze(mocap.data(hand_chans_ix(2),:,vis));
+    EEG.etc.analysis.mocap.visual.z = squeeze(mocap.data(hand_chans_ix(3),:,vis));
+    EEG.etc.analysis.mocap.vibro.x = squeeze(mocap.data(hand_chans_ix(1),:,vib));
+    EEG.etc.analysis.mocap.vibro.y = squeeze(mocap.data(hand_chans_ix(2),:,vib));
+    EEG.etc.analysis.mocap.vibro.z = squeeze(mocap.data(hand_chans_ix(3),:,vib));
+    
+    % save 3D magnitude of velocity and acceleration
+    EEG.etc.analysis.mocap.visual.mag_vel = squeeze(sqrt(mocap.data(7,:,vis).^2 +...
+            mocap.data(8,:,vis).^2 +...
+            mocap.data(9,:,vis).^2));
+    EEG.etc.analysis.mocap.visual.mag_acc = squeeze(sqrt(mocap.data(13,:,vis).^2 +...
+            mocap.data(14,:,vis).^2 +...
+            mocap.data(15,:,vis).^2));
+    EEG.etc.analysis.mocap.vibro.mag_vel = squeeze(sqrt(mocap.data(7,:,vib).^2 +...
+            mocap.data(8,:,vib).^2 +...
+            mocap.data(9,:,vib).^2));
+    EEG.etc.analysis.mocap.vibro.mag_acc = squeeze(sqrt(mocap.data(13,:,vib).^2 +...
+            mocap.data(14,:,vib).^2 +...
+            mocap.data(15,:,vib).^2));
+
+    %% save epoched datasets with clean trial indices of the 2x2 study design
+    pop_saveset(EEG, 'filename', [bemobil_config.filename_prefix num2str(subject) '_' bemobil_config.epochs_filename] , 'filepath', output_filepath);
+    
+    % also save results struct only, smaller and hence faster to load
+    res.epoching = EEG.etc.epoching;
+    res.erp = EEG.etc.analysis.erp;
+    res.mocap = EEG.etc.analysis.mocap;
+    
+    save([output_filepath '_res'], 'res');
+    
 end
 
 %% build eeglab study and cluster
@@ -312,7 +288,7 @@ for subject = 1:size(STUDY.datasetinfo,2)
 end
 bemobil_config.STUDY_n_clust = round(bemobil_config.IC_percentage * mean(n_clust));
 
-path_clustering_solutions = [bemobil_config.STUDY_filepath_clustering_solutions bemobil_config.study_filename(1:end-6) '\' ...
+path_clustering_solutions = [bemobil_config.STUDY_filepath_clustering_solutions bemobil_config.study_filename(1:end-6) '/' ...
     [num2str(bemobil_config.STUDY_cluster_ROI_talairach.x) '_' num2str(bemobil_config.STUDY_cluster_ROI_talairach.y) '_' num2str(bemobil_config.STUDY_cluster_ROI_talairach.z)] '-location_'...
     num2str(bemobil_config.STUDY_n_clust) '-cluster_' num2str(bemobil_config.outlier_sigma) ...
     '-sigma_' num2str(bemobil_config.STUDY_clustering_weights.dipoles) '-dipoles_' num2str(bemobil_config.STUDY_clustering_weights.spectra) '-spec_'...
@@ -333,123 +309,3 @@ mkdir(output_path)
 CURRENTSTUDY = 1; EEG = ALLEEG; CURRENTSET = [1:length(EEG)];
 eeglab redraw
 disp('...done')
-
-%% per cluster: 2nd Level inference
-
-if ~exist('ALLEEG','var'); eeglab; end
-pop_editoptions( 'option_storedisk', 1, 'option_savetwofiles', 1, 'option_saveversion6', 0, 'option_single', 0, 'option_memmapdata', 0, 'option_eegobject', 0, 'option_computeica', 1, 'option_scaleicarms', 1, 'option_rememberfolder', 1, 'option_donotusetoolboxes', 0, 'option_checkversion', 1, 'option_chat', 1);
-
-% load IMT_v1 EEGLAB study struct, keeping at most 1 dataset in memory
-input_path_STUDY = [bemobil_config.study_folder bemobil_config.study_level];
-if isempty(STUDY)
-    STUDY = []; CURRENTSTUDY = 0; ALLEEG = []; EEG=[]; CURRENTSET=[];
-    [STUDY ALLEEG] = pop_loadstudy('filename', bemobil_config.study_filename, 'filepath', input_path_STUDY);
-    CURRENTSTUDY = 1; EEG = ALLEEG; CURRENTSET = [1:length(EEG)];
-    
-    eeglab redraw
-end
-STUDY_sets = cellfun(@str2num, {STUDY.datasetinfo.subject});
-
-% select subjects out of clusters of int
-clusters_of_int = [24, 14, 9, 21, 22, 28, 35];
-
-%%
-
-% 24 ACC
-% 14 parietal
-
-for cluster = 14%[24, 14] %, 22, 35]%clusters_of_int
-    
-    disp(['Now running analysis for cluster: ' num2str(cluster)]);
-    
-%     % outpath
-%     save_fpath = [cfg.save_fpath '\cluster_' num2str(cluster)];
-%     if ~exist(save_fpath, 'dir')
-%         mkdir(save_fpath);
-%     end        
-    
-    %% get matching datasets from EEGLAB Study struct
-    unique_setindices = unique(STUDY.cluster(cluster).sets);
-    unique_subjects = STUDY_sets(unique_setindices);
-    all_setindices = STUDY.cluster(cluster).sets;
-    all_sets = STUDY_sets(all_setindices);
-    all_comps = STUDY.cluster(cluster).comps;
-    
-    % load IC data
-    for subject = unique_subjects
-        % get IC(s) per subject in cluster
-        IC = all_comps(all_sets==subject);
-        
-        % select EEG dataset
-        [~, ix] = find(subject==subjects);
-        this_subject_eeg = ALLEEG(ix);
-        
-        for win = 1:size(this_subject_eeg.etc.analysis.statistics.comps.win,2)
-            res.betas.ic(win,ix,:,:) = mean(this_subject_eeg.etc.analysis.statistics.comps.win(win).betas(IC,:,:),1);
-%             res.betas.chan(win,ix,:,:) = this_subject_eeg.etc.analysis.statistics.chans.win(win).betas(25,:,:); % PZ
-%             res.betas.chan(win,ix,:,:) = this_subject_eeg.etc.analysis.statistics.chans.win(win).betas(65,:,:); % FCz
-            res.betas.chan(win,ix,:,:) = this_subject_eeg.etc.analysis.statistics.chans.win(win).betas(5,:,:); % Fz
-        end
-        res.parameters = this_subject_eeg.etc.analysis.statistics.parameter_names;
-    end
-    
-    % make average betas/pvals
-    for ef = 4%1:4
-        figure;
-        hold on
-        for i = 6 %1:6
-%             plot(squeeze(mean(res.betas.ic(i,:,75:end,ef),2)));
-            plot(squeeze(mean(res.betas.chan(i,:,75:end,ef),2)));
-        end
-        % legend
-        timepoints = round((bemobil_config.epoching.vel_ts / this_subject_eeg.srate) - 1, 1);
-        legend(string(timepoints));
-        title([res.parameters{ef} ' ' num2str(cluster)]);
-%         ylim([-1 1]*5);
-        xticklabels(xticks/this_subject_eeg.srate);
-    end
-    
-    clear res
-
-end
-
-%% mcc and plot average effect on group level
-
-% - paired t-test effect of hand velocity between visual vs visual-vibro
-% conditions (is the effect of velocity on the error processing ERP moderated by haptic immersion)
-
-
-
-
-
-
-% optional
-
-%% plot brain ICs
-
-if ~exist('ALLEEG','var'); eeglab; end
-pop_editoptions( 'option_storedisk', 0, 'option_savetwofiles', 1, 'option_saveversion6', 0, 'option_single', 0, 'option_memmapdata', 0, 'option_eegobject', 0, 'option_computeica', 1, 'option_scaleicarms', 1, 'option_rememberfolder', 1, 'option_donotusetoolboxes', 0, 'option_checkversion', 1, 'option_chat', 1);
-
-for subject = subjects
-	
-	disp(['Subject #' num2str(subject)]);
-	
-	input_filepath = [bemobil_config_folder bemobil_config.single_subject_analysis_folder bemobil_config.filename_prefix num2str(subject)];
-	output_filepath = [bemobil_config_folder bemobil_config.single_subject_analysis_folder bemobil_config.filename_prefix num2str(subject)];
-	
-	EEG = pop_loadset('filename',[ bemobil_config.filename_prefix num2str(subject) '_'...
-		bemobil_config.copy_weights_interpolate_avRef_filename], 'filepath', input_filepath);
-	[ALLEEG, EEG, CURRENTSET] = pop_newset(ALLEEG, EEG, 0,'study',0);
-	
-	% clean now, save files and figs
-	[ALLEEG, EEG_cleaned, CURRENTSET, ICs_keep, ICs_throw] = bemobil_clean_with_iclabel( EEG , ALLEEG, CURRENTSET, [1], bemobil_config.brain_threshold,...
-		[ bemobil_config.filename_prefix num2str(subject) '_' bemobil_config.single_subject_cleaned_ICA_filename],output_filepath);
-	
-end
-
-% plot dipoles
-pop_dipplot( EEG, ICs_keep,...
-	'mri','P:\\Marius\\toolboxes\\eeglab14_1_0b\\plugins\\dipfit2.3\\standard_BEM\\standard_mri.mat','normlen','on');
-
-% save fig
-savefig(fullfile(output_filepath,'brain_dipoles'))
