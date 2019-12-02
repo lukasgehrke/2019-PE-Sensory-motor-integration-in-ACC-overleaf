@@ -101,10 +101,13 @@ bemobil_config.subjects = 2:20;
 bemobil_config.folders.study_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/';
 
 %% EEG and MOCAP epochs processing
-bemobil_config.epoching.event_epochs_boundaries = [-2.3  1]; % was -.3
+% bemobil_config.epoching.event_epochs_boundaries = [-2.3  1]; % was -.3
+bemobil_config.epoching.event_epochs_boundaries = [-3  2]; % larger window for ERSP computation
+bemobil_config.epoching.event_win = [-.2 .7];
 bemobil_config.epoching.event_epoching_event = {'box:touched'}; 
 
-bemobil_config.epoching.base_epochs_boundaries = [-.3  0];
+bemobil_config.epoching.base_epochs_boundaries = [-1  1];
+bemobil_config.epoching.base_win = [-.3 0];
 bemobil_config.epoching.base_epoching_event = {'box:spawned'}; 
 
 % filtering
