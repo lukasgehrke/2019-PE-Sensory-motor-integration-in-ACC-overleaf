@@ -1,5 +1,5 @@
 %% clear all and load params
-close all; clear
+close all; clear all;
 
 PE_config;
 
@@ -50,7 +50,7 @@ end
 if ~exist('ALLEEG','var'); eeglab; end
 pop_editoptions( 'option_storedisk', 0, 'option_savetwofiles', 1, 'option_saveversion6', 0, 'option_single', 0, 'option_memmapdata', 0, 'option_eegobject', 0, 'option_computeica', 1, 'option_scaleicarms', 1, 'option_rememberfolder', 1, 'option_donotusetoolboxes', 0, 'option_checkversion', 1, 'option_chat', 1);
 
-for subject = subjects
+for subject = subjects(7:end)
     
     %% load data and filter EEG
 	disp(['Subject #' num2str(subject)]);
@@ -367,6 +367,9 @@ for set = 1:length(subjects)
     command{end+1} = {'index' set 'subject' num2str(subjects(set)) };
 end
 
+% add dipselect
+command(end+1) = {{ 'dipselect' 0.15 }};
+
 % create study
 [STUDY ALLEEG] = std_editset( STUDY, ALLEEG, 'name', bemobil_config.study_filename,'commands',command,...
     'updatedat','on','savedat','off','rmclust','on' );
@@ -380,10 +383,10 @@ disp('Precomputing topographies and spectra.')
 
 % create preclustering array that is used for clustering and save study
 [STUDY ALLEEG] = std_preclust(STUDY, ALLEEG, [],...
-                         { 'spec'  'npca' 10 'norm' 1 'weight' 1 'freqrange'  [ 3 25 ] } , ...
-                         { 'erp'   'npca' 10 'norm' 1 'weight' 2 'timewindow' [ -300 1000 ] } ,...
-                         { 'scalp' 'npca' 10 'norm' 1 'weight' 2 'abso' 1 } , ...
-                         { 'dipoles'         'norm' 1 'weight' 15 } , ...
+                         { 'spec'  'npca' 10 'norm' 1 'weight' bemobil_config.STUDY_clustering_weights.spectra 'freqrange'  [ 3 80 ] } , ...
+                         { 'erp'   'npca' 10 'norm' 1 'weight' bemobil_config.STUDY_clustering_weights.erp 'timewindow' [ -200 700 ] } ,...
+                         { 'scalp' 'npca' 10 'norm' 1 'weight' bemobil_config.STUDY_clustering_weights.scalp_topographies 'abso' 1 } , ...
+                         { 'dipoles'         'norm' 1 'weight' bemobil_config.STUDY_clustering_weights.dipoles } , ...
                          { 'finaldim' 'npca' 10 });
 STUDY.bemobil.clustering.preclustparams = STUDY.cluster.preclust.preclustparams;
                      
@@ -399,7 +402,8 @@ path_clustering_solutions = [bemobil_config.STUDY_filepath_clustering_solutions 
     [num2str(bemobil_config.STUDY_cluster_ROI_talairach.x) '_' num2str(bemobil_config.STUDY_cluster_ROI_talairach.y) '_' num2str(bemobil_config.STUDY_cluster_ROI_talairach.z)] '-location_'...
     num2str(bemobil_config.STUDY_n_clust) '-cluster_' num2str(bemobil_config.outlier_sigma) ...
     '-sigma_' num2str(bemobil_config.STUDY_clustering_weights.dipoles) '-dipoles_' num2str(bemobil_config.STUDY_clustering_weights.spectra) '-spec_'...
-    num2str(bemobil_config.STUDY_clustering_weights.scalp_topographies) '-scalp_' num2str(bemobil_config.n_iterations) '-iterations'];
+    num2str(bemobil_config.STUDY_clustering_weights.scalp_topographies) '-scalp_' num2str(bemobil_config.STUDY_clustering_weights.erp) '-erp_'...
+    num2str(bemobil_config.n_iterations) '-iterations'];
 
 % cluster the components repeatedly and use a region of interest and
 % quality measures to find the best fitting solution
@@ -416,3 +420,16 @@ mkdir(output_path)
 CURRENTSTUDY = 1; EEG = ALLEEG; CURRENTSET = [1:length(EEG)];
 eeglab redraw
 disp('...done')
+
+%% save all topos for all subjects
+
+% to fix elocs of one subject
+for s = ALLEEG
+    pop_topoplot(s,0,[1:size(s.icasphere,1)]);
+    saveas(gcf, ['/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/5_study_level/analyses/topomaps/' s.filename(1:3) '.png']);
+    close(gcf);
+    close all;
+end
+
+
+

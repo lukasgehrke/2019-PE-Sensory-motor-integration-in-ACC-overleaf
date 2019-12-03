@@ -2,8 +2,6 @@
 
 subjects = 2:20;
 
-
-
 bemobil_config.study_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/';
 bemobil_config.filename_prefix = 's';
 bemobil_config.filenames = {'PredError_block_TestVibro' 'PredError_block_TestVisual'};
@@ -134,10 +132,13 @@ bemobil_config.ersp.n_freqs = 98;
 %% study parameters
 
 % single subject final datasets and epochs
-bemobil_config.study_filename = 'PE_reg_vel.study';
+% bemobil_config.study_filename = 'PE_reg_vel_new_clustered.study';
+% bemobil_config.study_filename = 'PE_reg_vel.study';
+% bemobil_config.study_filename = 'PE_test.study';
+bemobil_config.study_filename = 'PE.study';
 bemobil_config.STUDY_components_to_use = 1:65;
 % precluster
-bemobil_config.STUDY_clustering_weights = struct('dipoles', 6, 'scalp_topographies', 1, 'spectra', 1);
+bemobil_config.STUDY_clustering_weights = struct('dipoles', 10, 'scalp_topographies', 1, 'spectra', 3, 'erp', 3);
 
 % repeated clustering, TODO set Talairach of peak interest
 % % RSC Spot Rotation
@@ -158,7 +159,7 @@ bemobil_config.STUDY_quality_measure_weights = [3,-2,-1,-1,-1,-1];
 % clusters
 bemobil_config.IC_percentage = .7;
 bemobil_config.outlier_sigma = 3;
-bemobil_config.n_iterations = 10;
+bemobil_config.n_iterations = 1000;
 
 bemobil_config.do_clustering = 1;
 bemobil_config.do_multivariate_data = 1;
