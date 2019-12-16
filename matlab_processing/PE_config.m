@@ -133,12 +133,35 @@ bemobil_config.ersp.n_freqs = 98;
 
 % single subject final datasets and epochs
 % bemobil_config.study_filename = 'PE_reg_vel_new_clustered.study';
+
 % bemobil_config.study_filename = 'PE_reg_vel.study';
+% clusters_of_int = [3, 7, 9, 24, 25, 28, 30, 33, 34];
+% % clusters
+% % 3: right parietal
+% % 7: right motor?
+% % 24: right SMA
+% % 25: left parietal
+% % 28: interesting
+% % 33: ACC
+
 % bemobil_config.study_filename = 'PE_test.study';
-bemobil_config.study_filename = 'PE.study';
+
+% bemobil_config.study_filename = 'PE_rv_15_new.study';
+% clusters_of_int = [4, 7, 9, 13, 15, 18]; % 'PE_rv_15_new.study', 9 ACC, 7/15 PCC
+
+bemobil_config.study_filename = 'PE_rv_15_new_dip_only.study';
+clusters_of_int = [4, 6, 9, 11, 18, 19]; % 'PE_rv_15_new_dip_only.study', 11 ACC, 19 PCC
+
+channels_of_int = [5, 25, 65];
+% channels
+% 5: Fz
+% 25: Pz
+% 65: FCz
+
 bemobil_config.STUDY_components_to_use = 1:65;
 % precluster
-bemobil_config.STUDY_clustering_weights = struct('dipoles', 10, 'scalp_topographies', 1, 'spectra', 3, 'erp', 3);
+% bemobil_config.STUDY_clustering_weights = struct('dipoles', 10, 'scalp_topographies', 1, 'spectra', 3, 'erp', 3); % double dipping
+bemobil_config.STUDY_clustering_weights = struct('dipoles', 1, 'scalp_topographies', 0, 'spectra', 0, 'erp', 0); % no double dipping
 
 % repeated clustering, TODO set Talairach of peak interest
 % % RSC Spot Rotation
@@ -159,7 +182,7 @@ bemobil_config.STUDY_quality_measure_weights = [3,-2,-1,-1,-1,-1];
 % clusters
 bemobil_config.IC_percentage = .7;
 bemobil_config.outlier_sigma = 3;
-bemobil_config.n_iterations = 1000;
+bemobil_config.n_iterations = 10000;
 
 bemobil_config.do_clustering = 1;
 bemobil_config.do_multivariate_data = 1;

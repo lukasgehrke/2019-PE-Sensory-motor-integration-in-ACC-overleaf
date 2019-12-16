@@ -1,221 +1,239 @@
-%% plot result 1:
+%% Params
+PE_config;
 
-event_onset = abs(bemobil_config.epoching.event_epochs_boundaries(1) * 250);
-robustfit = 1;
-
-% shift due to EEG age of sample
-mocap_aos = .011; % age of sample mocap samples = 11 ms
-mocap_aos_samples = ceil(mocap_aos * 250);
-event_onset = abs(bemobil_config.epoching.event_epochs_boundaries(1) * 250);
 robustfit = 0;
 
 % try out several ts prior to event
+event_onset = abs(bemobil_config.epoching.event_epochs_boundaries(1) * 250);
 seconds_before_event = .3;
 samples_before_event = seconds_before_event * 250;
 ts_of_ints = (event_onset-samples_before_event):25:event_onset+50;
 
-eeg_age_of_sample_samples = floor(eeg_age_of_sample * 250);
-plot_s_after_event = .5; % plot 0 to half a second after event
-plot_win = event_onset:event_onset+(plot_s_after_event * 250);
-event_0_ix = (event_onset+eeg_age_of_sample_samples-plot_win(1)) / 250;
+% % shift due to EEG age of sample
+% mocap_aos = .011; % age of sample mocap samples = 11 ms
+% mocap_aos_samples = ceil(mocap_aos * 250);
+% ts_of_ints = ts_of_ints - mocap_aos_samples;
 
-% load
-load_p = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/5_study_level/analyses/erp/cluster_';
-model = 'erp_sample ~ immersion * vel + trial + direction + sequence';
-
+% select best tf_of_ints
+% ts_of_ints = ts_of_ints(4);
 ts_all = (event_onset - ts_of_ints) / 250;
 
-% select best one
-% this_ts = this_ts(end);
+erp_type = 'non_corrected';
 
-
-%% plot results
-
-%% make figure with mean results across all participants, average pvals and
-
+% colors
 cols = brewermap(2, 'Spectral');
-% select subjects out of clusters of int
-clusters_of_int = [3, 7, 9, 24, 25, 28, 30, 33, 34];
-% clusters
-% 3: right parietal
-% 7: right motor?
-% 24: right SMA
-% 25: left parietal
-% 28: interesting
-% 33: ACC
 
-this_ts = ts_all(4);
+% load
+load_p = ['/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/5_study_level/analyses/erp/' bemobil_config.study_filename(1:end-6) '/'];
+model = 'erp_sample ~ immersion * vel + trial + direction + sequence';
 
-load_p = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/5_study_level/analyses/erp/cluster_';
+zero = 3*250; % [-3 2] epoch around event    
+event_win_samples = zero + (bemobil_config.epoching.event_win(1) * 250):zero+(bemobil_config.epoching.event_win(2) * 250);
+event_win_samples = event_win_samples - event_onset;
+event_win_times = event_win_samples / 250;
+event_0_ix = find(event_win_times<0, 1, 'last');
+event_0 = 0;
 
-for c = clusters_of_int
+alpha = .05;
+coeffs_to_plot_names = {'', 'immersion', 'velocity', 'trial number', '', '', 'sequence', 'vel. x immersion'};
+coeff_names =  {'', 'immersion_1', 'vel', 'trial', '', '', 'sequence', 'immersion_1_vel'};
 
-    % best R^2: this_ts(6) 
-    load([load_p num2str(c) '/res_' model '_robust-' num2str(robustfit) '_vel-at-' num2str(this_ts) 'ms-pre-event_cluster-' num2str(c) '.mat']);
+%% plot r^2s for timepoints and channels FZ and PZ
 
-    % do fdr if anything is significant at the uncorrected .05 level
-    figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 400 1200]);
-
-    % plot mean ERP -> sum all betas
-    subplot(5,1,1);
-    data = sum(res.betas(:,plot_win,:),3);
-    ploterp(data, event_0_ix, 1, 'mean amplitude', '', 0, cols);
-
-    % plot r^2
-    subplot(5,1,2);
-    data = res.r2(:,plot_win);
-    ploterp(data, event_0_ix, 1, 'adjusted R^2', '', 1, cols);
-
-    % plot haptics coefficient
-    subplot(5,1,3);
-    data = res.betas(:,plot_win,2);
-    ploterp(data, event_0_ix, 1, 'immersion coeff.', '', 0, cols);
-
-    % plot velocity coefficient
-    subplot(5,1,4);
-    data = res.betas(:,plot_win,3);
-    ploterp(data, event_0_ix, 1, 'velocity coeff.', '', 0, cols);
-
-    % plot haptics * velocity coefficient (= interaction effect of haptic immersion and velocity)
-    subplot(5,1,5);
-    data = res.betas(:,plot_win,4);
-    ploterp(data, event_0_ix, 1, 'vel. x immersion coeff.', 'time in ms', 0, cols);
-
-    tightfig;
-    
-    saveas(gcf, [load_p num2str(c) '/res_robust-' num2str(robustfit) '_vel-at-' num2str(this_ts) 'ms-pre-event_cluster-' num2str(c) '.png'], 'png')
-    close(gcf);
-
-end
-
-%% plot r^2s for many clusters and one vel timepoint
-cols = brewermap(size(clusters_of_int,2), 'Spectral');
-figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 400 600]);
-ylim([0 .6]);
+cols = brewermap(size(channels_of_int,2), 'Accent');
+figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 800 400]);
+ylim([0 .2]);
 hold on;
 
-ix = 1;
-for c = clusters_of_int
-    
-    load([load_p num2str(c) '/res_' model '_robust-' num2str(robustfit) '_vel-at-' num2str(this_ts) 'ms-pre-event_cluster-' num2str(c) '.mat']);
-    data = res.r2(:,plot_win);
-    
-    l = plot(mean(data,1));
-    l.LineWidth = 3;
-    l.Color = cols(ix,:);
-    ix = ix + 1;
-    
-%     subplot(1,4,ix);
-%     ix = ix + 1;
-%     ploterp(data, event_0_ix, 1, 'adjusted R^2', 'time in ms', 1, cols);
-    
-end
-title(model);
-legend(string(clusters_of_int));
+% select -.2 -.1 0
+ts_short = ts_all(2:4);
 
-% format further
-grid on
-set(gca,'FontSize',20)
-
-%% plot r^2s for many timepoints and one cluster
-cols = brewermap(size(clusters_of_int,2), 'Spectral');
-
-for c = clusters_of_int
-    figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 400 600]);
-    ylim([0 .6]);
-    hold on;
+for this_ts = ts_short
     ix = 1;
+    for c = channels_of_int
 
-    for this_ts = ts_all
+        load([load_p 'channel_' num2str(c) '/res_' model '_robust-' num2str(robustfit) '_vel-at-' num2str(this_ts) 'ms-pre-event.mat']);
+        data = res.r2;
+        x_plot = (-event_0_ix:size(data,2)) / 250;
+        x_plot(end-event_0_ix:end) = [];
+        x_plot = x_plot * 1000; % seconds to ms
 
-        load([load_p num2str(c) '/res_' model '_robust-' num2str(robustfit) '_vel-at-' num2str(this_ts) 'ms-pre-event_cluster-' num2str(c) '.mat']);
-        data = res.r2(:,plot_win);
-
-        l = plot(mean(data,1));
+        l = plot(x_plot, mean(data,1));
         l.LineWidth = 3;
         l.Color = cols(ix,:);
         ix = ix + 1;
 
     end
-    title(string(c));
-    legend(string(ts_all));
-    % format further
-    grid on
-    set(gca,'FontSize',20)
+end
+title({'Modelfit of channels of model:',model});
+xlabel('time in ms')
+ylabel('R^2')
+l2 = line([0 0], [0 max(ylim)]);
+l2.LineStyle = '-';
+l2.Color = 'k';
+l2.LineWidth = 4;
+
+legend({'Fz', 'Pz', 'FCz'});
+
+% format further
+grid on
+set(gca,'FontSize',20)
+tightfig;
+
+% save    
+saveas(gcf, [load_p 'r2_res_robust-' num2str(robustfit) '_modelfit_across_timepoints.png'], 'png')
+close(gcf);
+
+%% Channels & Clusters: make figure with mean results across all participants, mark significant pvals and
+
+cols = brewermap(2, 'Spectral');
+
+sensor = 'cluster'; % channel
+cs = clusters_of_int; % channels_of_int
+
+coeffs_to_plot = [2:4, 7:8];
+nr_of_plots = 2 + size(coeffs_to_plot,2);
+subplots = [2, size(coeffs_to_plot,2)];
+
+this_ts = ts_all(4);
+
+for c = cs
+    
+    % subplot ix
+    s_ix = 1;
+
+    % best R^2: this_ts(6) 
+    load([load_p sensor '_' num2str(c) '/res_' model '_robust-' num2str(robustfit) '_vel-at-' num2str(this_ts) 'ms-pre-event.mat']);
+
+    % make figure
+    figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 1800 600]);
+
+    % plot mean ERP -> sum all betas
+    subplot(subplots(1),subplots(2),s_ix);
+    s_ix = s_ix + 1;
+    data = sum(res.betas,3);
+    ploterp_lg(data, [], event_0_ix, 1, 'mean amplitude', '', [], cols);
+
+    % plot r^2
+    subplot(subplots(1),subplots(2),s_ix);
+    s_ix = s_ix + 4;
+    data = res.r2;
+    ploterp_lg(data, [], event_0_ix, 1, 'R^2', '', 1, cols);
+
+    for coeff = coeffs_to_plot
+        
+        % plot coefficient
+        subplot(subplots(1),subplots(2),s_ix);
+        s_ix = s_ix + 1;
+        
+        % get data
+        data = res.betas(:,:,coeff);
+        
+        % make tfce thresh sig mask
+        load([load_p sensor '_' num2str(c) '/ttest_' coeff_names{coeff} '/H0/tfce_H0_one_sample_ttest_parameter_1.mat']); % bootstraps tfce
+        load([load_p sensor '_' num2str(c) '/ttest_' coeff_names{coeff} '/tfce/tfce_one_sample_ttest_parameter_1.mat']); % true tfce
+        for i = 1:size(tfce_H0_one_sample,3)
+            max_i(i) = max(tfce_H0_one_sample(1,event_0_ix:end,i));
+        end
+        thresh = prctile(max_i, (1-alpha)*100);
+        sig_ix = find(tfce_one_sample>thresh);
+        
+        % plot
+        ploterp_lg(data, sig_ix, event_0_ix, 1, coeffs_to_plot_names(coeff), '', [], cols);
+    end
+
+    tightfig;
+    
+    saveas(gcf, [load_p sensor '_' num2str(c) '/res_robust-' num2str(robustfit) '_vel-at-' num2str(this_ts) 'ms-pre-event.png'], 'png')
+    close(gcf);
+
 end
 
-%% where are effects plot mean pvalues per main effect for all clusters
+%% Channels & Clusters: make figure with regression IPQ results, mark significant pvals and
+
+cols = brewermap(2, 'Spectral');
+
+sensor = 'cluster'; % channel
+cs = clusters_of_int; % channels_of_int
+
+coeff_names =  {'mean', 'immersion_1', 'vel', 'trial', 'sequence', 'immersion_1_vel'};
+subplots = [2, 6]; % top coefficient, below R^2
+
+for c = cs
+    
+    % subplot ix
+    s_ix = 1;
+    % make figure
+    figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 1800 600]);
+        
+    for coeff = coeff_names
+
+        subplot(subplots(1),subplots(2),s_ix);
+        s_ix = s_ix + 1;
+        load([load_p sensor '_' num2str(c) '/regress_' coeff{1} '/Betas.mat']);
+        data = squeeze(Betas(1,:,2));
+        
+        % make tfce thresh sig mask
+        load([load_p sensor '_' num2str(c) '/regress_' coeff{1} '/H0/tfce_H0_Covariate_effect_1.mat']); % bootstraps tfce
+        load([load_p sensor '_' num2str(c) '/regress_' coeff{1} '/TFCE/tfce_Covariate_effect_1.mat']); % true tfce
+        for i = 1:size(tfce_H0_score,3)
+            max_i(i) = max(tfce_H0_score(event_0_ix:end,2,i));
+        end
+        thresh = prctile(max_i, (1-alpha)*100);
+        sig_ix = find(tfce_score>thresh);
+        ploterp_lg(data, sig_ix, event_0_ix, 1, ['IPQ: ' coeff{1}], '', [], cols);
+
+        % plot r^2
+        subplot(subplots(1),subplots(2),s_ix + (subplots(2)-1));
+        load([load_p sensor '_' num2str(c) '/regress_' coeff{1} '/R2.mat']);
+        data = squeeze(R2(1,:,1));
+        ploterp_lg(data, [], event_0_ix, 1, 'R^2', '', [0 1], cols);
+    end
+
+    tightfig;
+    
+    saveas(gcf, [load_p sensor '_' num2str(c) '/ipq_res.png'], 'png')
+    close(gcf);
+
+end
+
+%% plot r^2s for many clusters and one vel timepoint
 
 cols = brewermap(size(clusters_of_int,2), 'Spectral');
-% figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 400 600]);
-figure;
-ylim([-.5 .5]);
+figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 800 400]);
+ylim([0 .3]);
 hold on;
-main_effect = '';
-main_effect_ix = 8;
-
-%     {'(Intercept)'     }
-%     {'immersion_1'     }
-%     {'vel'             }
-%     {'trial'           }
-%     {'direction_middle'}
-%     {'direction_right' }
-%     {'sequence'        }
-%     {'immersion_1:vel' }
 
 ix = 1;
 for c = clusters_of_int
     
-    load([load_p num2str(c) '/res_' model '_robust-' num2str(robustfit) '_vel-at-' num2str(this_ts) 'ms-pre-event_cluster-' num2str(c) '.mat']);
-    data = squeeze(res.p(:,plot_win,main_effect_ix));
+    load([load_p 'cluster_' num2str(c) '/res_' model '_robust-' num2str(robustfit) '_vel-at-' num2str(this_ts) 'ms-pre-event.mat']);
+    data = res.r2;
+    x_plot = (-event_0_ix:size(data,2)) / 250;
+    x_plot(end-event_0_ix:end) = [];
     
-    l = plot(mean(data,1));
+    l = plot(x_plot, mean(data,1));
     l.LineWidth = 3;
     l.Color = cols(ix,:);
     ix = ix + 1;
     
-%     subplot(1,4,ix);
-%     ix = ix + 1;
-%     ploterp(data, event_0_ix, 1, 'adjusted R^2', 'time in ms', 1, cols);
-    
 end
-title(['main effect: ' main_effect]);
+title({'Modelfit of clusters of ICs of model:',model});
+xlabel('time in ms')
+ylabel('R^2')
+l2 = line([0 0], [0 max(ylim)]);
+l2.LineStyle = '-';
+l2.Color = 'k';
+l2.LineWidth = 4;
+
 legend(string(clusters_of_int));
 
-% % format further
-% l=hline(.05);
-% l.Color = 'k';
-% l.LineWidth = 2;
-% l.LineStyle = ':';
-
+% format further
 grid on
 set(gca,'FontSize',20)
+tightfig;
 
+% save    
+saveas(gcf, [load_p 'r2_res_robust-' num2str(robustfit) '_vel-at-' num2str(this_ts) 'ms-pre-event.png'], 'png')
+close(gcf);
 
-
-
-
-%% plot r^2s for all clusters and the immersion X vel model
-load_p = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/5_study_level/analyses/cluster_';
-model = 'erp_sample ~ predictor_immersion * predictor_vel';
-robustfit = 0;
-this_ts = 0.0320;
-
-ix = 1;
-clusters_of_int = 1:30;
-
-figure; hold on;
-
-for c = clusters_of_int
-    
-    load([load_p num2str(c) '/res_' model '_robust-' num2str(robustfit) '_vel-at-' num2str(this_ts) 'ms-pre-event_cluster-' num2str(c) '.mat']);
-    data = res.r2(:,plot_win);
-    
-    plot(mean(data,1))
-%     subplot(1,4,ix);
-%     ix = ix + 1;
-%     ploterp(data, event_0_ix, 1, 'adjusted R^2', 'time in ms', 1, cols);
-    
-end
-title(model);
-legend();

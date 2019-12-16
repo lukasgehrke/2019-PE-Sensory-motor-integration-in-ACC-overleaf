@@ -19,22 +19,6 @@ if isempty(STUDY)
 end
 STUDY_sets = cellfun(@str2num, {STUDY.datasetinfo.subject});
 
-% select subjects out of clusters of int
-clusters_of_int = [3, 7, 28, 33];
-% clusters
-% 3: right parietal
-% 7: right motor?
-% 24: right SMA
-% 25: left parietal
-% 28: interesting
-% 33: ACC
-
-channels_of_int = [5, 25, 65];
-% channels
-% 5: Fz
-% 25: Pz
-% 65: FCz
-
 %% IPQ
 T = table2array(readtable('/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/admin/ipq_long.csv'));
 ipq_q1 = T(1:4:end,:,:);
@@ -94,216 +78,137 @@ legend boxoff
 xlabel('ipq q1 score')
 ylabel('frequency')
 
-%% prepare IPQ score regressor for cluster
+%% LIMO regression IPQ
 
-cluster = 33;
+% settings
+alpha = .05;
+measures = {'erp', 'ersp'};
+save_info.robustfit = 0;
+% save_info.parameters = {'vel', 'immersion_1', 'trial', 'sequence', 'immersion_1:vel'};
+save_info.parameters = {'mean'};
+save_info.sensors = {'cluster', 'channel'};
 
-% get matching datasets from EEGLAB Study struct
-unique_setindices = unique(STUDY.cluster(cluster).sets);
-unique_subjects = STUDY_sets(unique_setindices);
-all_setindices = STUDY.cluster(cluster).sets;
-all_sets = STUDY_sets(all_setindices);
-all_comps = STUDY.cluster(cluster).comps;
+% res.parameter_names'
+% 
+% ans =
+% 
+%   8×1 cell array
+% 
+%     {'(Intercept)'     }
+%     {'immersion_1'     }
+%     {'vel'             }
+%     {'trial'           }
+%     {'direction_middle'}
+%     {'direction_right' }
+%     {'sequence'        }
+%     {'immersion_1:vel' }
 
-cluster_ipq = ipq_q1(find(ismember(ipq_q1(:,1), unique_subjects)),:,:);
-cluster_ipq(:,1) = [];
-cluster_ipq = mean(cluster_ipq,2);
+% select time and freq limits
+% load times and freqs
+load_path = [bemobil_config.study_folder bemobil_config.study_level 'analyses/' measure];
 
-%% load EEG ERP data, find name of file
-event_onset = abs(bemobil_config.epoching.event_epochs_boundaries(1) * 250);
-robustfit = 1;
-% shift due to EEG age of sample
-eeg_age_of_sample = .066; % ms age of sample eeg data
-eeg_age_of_sample_samples = floor(eeg_age_of_sample * 250);
-plot_s_after_event = .7; % plot 0 to half a second after event
-plot_win = event_onset:event_onset+(plot_s_after_event * 250);
-event_0_ix = (event_onset+eeg_age_of_sample_samples-plot_win(1)) / 250;
-% load
-load_p = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/5_study_level/analyses/cluster_';
-model = 'erp_sample ~ predictor_immersion * predictor_vel';
-mocap_aos = .011; % age of sample mocap samples = 11 ms
-mocap_aos_samples = ceil(mocap_aos * 250);
-% try out several ts prior to event
-seconds_before_event = .5;
-samples_before_event = seconds_before_event * 250;
-ts_of_ints = event_onset-samples_before_event:20:event_onset;
-ts_of_ints = ts_of_ints - mocap_aos_samples;
-this_ts = (event_onset - ts_of_ints) / 250;
-% select best one
-this_ts = this_ts(end);
-% finally load data
-load([load_p num2str(cluster) '/res_' model '_robust-' num2str(robustfit) '_vel-at-' num2str(this_ts) 'ms-pre-event_cluster-' num2str(cluster) '.mat']);
-
-%% LIMO regression IPQ on cluster ERP
-
-%           limo_random_robust(4,y,X,parameter number,nboot,tfce);
-%                      4 = regression analysis
-%                      y = data (dim electrodes, time or freq, subjects)
-%                        = data (dim electrodes, freq, time, subjects)
-%                      X = continuous regressor(s)
-%                      parameter number = describe which parameter is currently analysed (e.g. 1 - use for maming only)
-%                      nboot = nb of resamples (0 for none)
-%                      tfce = 0/1 to compute tcfe (only if nboot ~=0).
-
-% y = sum(res.betas(:,plot_win,:),3); % mean ERP
-y = res.betas(:,plot_win,3); % velocity
-y = permute(y, [3, 2, 1]);
-X = cluster_ipq;
-
-% build LIMO struct
-LIMO.Level         = 2;
-LIMO.Analysis      = 'ERP';
-LIMO.Type          = 'Components';
-LIMO.design.name   = 'Regression';
-LIMO.data.data_dir = [load_p num2str(cluster) '/'];
-LIMO.data.chanlocs = [];
-
-LIMO.data.sampling_rate = 250;
-LIMO.data.Cat = '';
-LIMO.data.Cont = X;
-LIMO.data.neighbouring_matrix = '';
-LIMO.data.data = '';
-
-LIMO.design.fullfactorial    = 0; % 0/1 specify if interaction should be included
-LIMO.design.zscore           = 0; %/1 zscoring of continuous regressors
-LIMO.design.method           = ''; % actuially no effect because random_robust looks at the design
-LIMO.design.type_of_analysis = 'Mass-univariate'; 
-LIMO.design.bootstrap        = 800; % 0/1 indicates if bootstrap should be performed or not (by default 0 for group studies)
-LIMO.design.tfce             = 1; %0/1 indicates to compute TFCE or not
-
-LIMO.design.nb_categorical = 0;
-LIMO.design.nb_continuous = 1; %scalar that returns the number of continuous variables e.g. [3]
-LIMO.design.name = 'regression'; %name of the design
-LIMO.design.status = 'to do';
-
-% parameter added using debugger due to errors being thrown in limo_random_robust
-LIMO.dir = [LIMO.data.data_dir 'regression_ipq_vel' ];
-LIMO.data.size3D = [size(y,1), size(y,2)*size(y,3), size(y,4)];
-LIMO.data.size4D = [size(y,1), size(y,2) size(y,3) size(y,4)];
-
-% save LIMO.mat
-if exist(LIMO.dir, 'dir')
-    rmdir(LIMO.dir, 's')
+if strcmp(measure, 'ersp')
+    load([load_path, '/times.mat']);
+    load([load_path '/times_all.mat']);
+    load([load_path '/freqs.mat']);
+    first_ix = find(times_all==times(1));
+    last_ix = find(times_all==times(end));
+    times_ixs = [first_ix, last_ix];
+    max_freq_ix = find(freqs>=40,1,'first');
+    freqs = freqs(1:max_freq_ix);
 end
-mkdir(LIMO.dir);
 
-save([LIMO.dir filesep 'Y.mat'], 'y');
-save([LIMO.dir filesep 'LIMO.mat'], 'LIMO');
-current_folder = pwd;
-cd(LIMO.dir)
-
-% run analysis
-limo_random_robust(4, y, LIMO.data.Cont, 'ipq', LIMO, LIMO.design.bootstrap, LIMO.design.tfce);
-close(gcf);
-cd(current_folder);    
-
-%% load EEG ERSP data
-
-% select subjects out of clusters of int
-clusters_of_int = 33; %[3, 7, 9, 24, 25, 28, 30, 33, 34];
-% clusters
-% 3: right parietal
-% 7: right motor?
-% 24: right SMA
-% 25: left parietal
-% 28: interesting
-% 33: ACC
-
-% data settings
-cluster = 33;
-robustfit = 1;
-model = 'ersp_sample ~ immersion * vel + trial + direction + sequence';
+% try out several ts prior to event
 event_onset = abs(bemobil_config.epoching.event_epochs_boundaries(1) * 250);
 seconds_before_event = .3;
 samples_before_event = seconds_before_event * 250;
 ts_of_ints = (event_onset-samples_before_event):25:event_onset+50;
 % ts_of_ints = ts_of_ints - mocap_aos_samples;
-ts_of_ints = ts_of_ints(4); % select best tf_of_ints
-this_ts = (event_onset - ts_of_ints) / 250;
-load_p = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/5_study_level/analyses/ersp/cluster_';
+% select best tf_of_ints
+save_info.this_ts = ts_of_ints(4) - abs(bemobil_config.epoching.event_epochs_boundaries(1) * 250);
 
-% load times and freqs
-load([load_p(1:end-8) 'times.mat']);
-load([load_p(1:end-8) 'freqs.mat']);
+for p = save_info.parameters
+    save_info.parameter = p{1};
+    
+    for m = measures
+        measure = m{1};
+        
+        save_info.model = [measure '_sample ~ immersion * vel + trial + direction + sequence'];
+    
+        for s = save_info.sensors
+            save_info.sensor = s{1};
 
-%% LIMO regression IPQ on cluser ERSP
+            if strcmp(save_info.sensor, 'cluster')
+                cs = clusters_of_int;
+            else
+                cs = channels_of_int;
+            end
 
-%           limo_random_robust(4,y,X,parameter number,nboot,tfce);
-%                      4 = regression analysis
-%                      y = data (dim electrodes, time or freq, subjects)
-%                        = data (dim electrodes, freq, time, subjects)
-%                      X = continuous regressor(s)
-%                      parameter number = describe which parameter is currently analysed (e.g. 1 - use for maming only)
-%                      nboot = nb of resamples (0 for none)
-%                      tfce = 0/1 to compute tcfe (only if nboot ~=0).
+            for c =  cs
 
-% load data
-load([load_p num2str(cluster) '/res_' model '_robust-' num2str(robustfit) '_vel-at-' num2str(this_ts) 'ms-pre-event_cluster-' num2str(cluster) '.mat']);
+                %% get matching datasets from EEGLAB Study struct
 
-disp(res.parameter_names');
-ix_of_effect = 3; % velocity
+                if strcmp(save_info.sensor, 'cluster')
+                    unique_setindices = unique(STUDY.cluster(c).sets);
+                    unique_subjects = STUDY_sets(unique_setindices);
+                    all_setindices = STUDY.cluster(c).sets;
+                    all_sets = STUDY_sets(all_setindices);
+                    all_comps = STUDY.cluster(c).comps;
+                    cluster_ipq = ipq_q1(find(ismember(ipq_q1(:,1), unique_subjects)),:,:);
+                    cluster_ipq(:,1) = [];
+                    cluster_ipq = mean(cluster_ipq,2);
+                else
+                    cluster_ipq = mean_q1;
+                end
 
-% prepare data
-y = res.betas(:,:,:,ix_of_effect);
-y = permute(y, [4, 2, 3, 1]);
+                %% select data
+                save_info.load_p = [bemobil_config.study_folder bemobil_config.study_level 'analyses/' measure '/' bemobil_config.study_filename(1:end-6) '/' save_info.sensor '_' num2str(c)];
+                save_info.c = c;
+                load([save_info.load_p '/res_' save_info.model '_robust-' num2str(save_info.robustfit) '_vel-at-' num2str(save_info.this_ts) 'ms-pre-event.mat'])
 
-X = rand(15,1); %cluster_ipq;
+                %% run limo ttest/regression
+                if strcmp(measure,'ersp')
+                    PE_limo(save_info, res, 1, times, times_ixs, freqs, max_freq_ix, cluster_ipq);
+                else
+                    PE_limo(save_info, res, 0, [], [], [], [], cluster_ipq);
+                end
 
-% build LIMO struct
-LIMO.Level         = 2;
-LIMO.Analysis      = 'Time-Frequency';
-LIMO.Type          = 'Components';
-LIMO.design.name   = 'Regression';
-LIMO.data.data_dir = [load_p num2str(cluster) '/'];
-LIMO.data.chanlocs = [];
+                % load LIMO output: save mean value and sig. mask to res and resave res
+                load([save_info.load_p '/regress_' save_info.parameter '/Betas.mat']);
+                save_name = regexprep(save_info.parameter, ':' , '_');
+                res.regress_IPQ.(save_name).mean_value = squeeze(Betas(1,:,2)); % mean betas in this case
 
-LIMO.data.tf_times = times;
-LIMO.data.start    = LIMO.data.tf_times(1);
-LIMO.data.end      = LIMO.data.tf_times(end);
-LIMO.data.tf_freqs = freqs;
-LIMO.data.lowf     = LIMO.data.tf_freqs(1); 
-LIMO.data.highf    = LIMO.data.tf_freqs(end);
+                % mcc
+                % load bootstrap results
+                load([save_info.load_p '/regress_' save_info.parameter '/H0/tfce_H0_Covariate_effect_1.mat']);
+                % get max dist of tfce
+                for i = 1:size(tfce_H0_score,3)
+                    if strcmp(measure,'ersp')
+                        this_tfce = squeeze(tfce_H0_score(1,:,:,i));
+                    else
+                        this_tfce = squeeze(tfce_H0_score(:,1,i));
+                    end
+                    max_dist(i) = max(this_tfce(:));
+                end
+                % remove NaN
+                max_dist(isnan(max_dist)) = [];
+                % threshold
+                thresh = prctile(max_dist, (1-alpha)*100);
+                % load true result
+                load([save_info.load_p '/regress_' save_info.parameter '/TFCE/tfce_Covariate_effect_1.mat']);
+                % threshold true data with bootstrap prctile thresh
+                if strcmp(measure,'ersp')
+                    res.regress.(save_name).tfce_map = squeeze(tfce_score);
+                    res.regress.(save_name).thresh = prctile(max_dist, (1-alpha)*100);
+                else
+                    res.regress_IPQ.(save_name).sig_mask = find(tfce_score>thresh);
+                end
 
-LIMO.data.sampling_rate = 250;
-LIMO.data.Cat = '';
-LIMO.data.Cont = X;
-LIMO.data.neighbouring_matrix = '';
-LIMO.data.data = '';
+                % resave res
+                save([save_info.load_p '/res_' save_info.model '_robust-' num2str(save_info.robustfit) '_vel-at-' num2str(save_info.this_ts) 'ms-pre-event.mat'], 'res');
 
-LIMO.design.fullfactorial    = 0; % 0/1 specify if interaction should be included
-LIMO.design.zscore           = 0; %/1 zscoring of continuous regressors
-LIMO.design.method           = ''; % actuially no effect because random_robust looks at the design
-LIMO.design.type_of_analysis = 'Mass-univariate'; 
-LIMO.design.bootstrap        = 800; % 0/1 indicates if bootstrap should be performed or not (by default 0 for group studies)
-LIMO.design.tfce             = 1; %0/1 indicates to compute TFCE or not
-
-LIMO.design.nb_categorical = 0;
-LIMO.design.nb_continuous = 1; %scalar that returns the number of continuous variables e.g. [3]
-LIMO.design.name = 'regression'; %name of the design
-LIMO.design.status = 'to do';
-
-% parameter added using debugger due to errors being thrown in limo_random_robust
-LIMO.dir = [LIMO.data.data_dir 'regression_ipq_vel_ersp' ];
-LIMO.data.size3D = [size(y,1), size(y,2)*size(y,3), size(y,4)];
-LIMO.data.size4D = [size(y,1), size(y,2) size(y,3) size(y,4)];
-
-% save LIMO.mat
-if exist(LIMO.dir, 'dir')
-    rmdir(LIMO.dir, 's')
+            end
+        end
+    end
 end
-mkdir(LIMO.dir);
-
-save([LIMO.dir filesep 'Y.mat'], 'y');
-save([LIMO.dir filesep 'LIMO.mat'], 'LIMO');
-current_folder = pwd;
-cd(LIMO.dir)
-
-% run analysis
-limo_random_robust(4, y, LIMO.data.Cont', 'ipq', LIMO, LIMO.design.bootstrap, LIMO.design.tfce);
-close(gcf);
-cd(current_folder);    
-
-
-
-
 

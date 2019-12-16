@@ -50,7 +50,7 @@ end
 if ~exist('ALLEEG','var'); eeglab; end
 pop_editoptions( 'option_storedisk', 0, 'option_savetwofiles', 1, 'option_saveversion6', 0, 'option_single', 0, 'option_memmapdata', 0, 'option_eegobject', 0, 'option_computeica', 1, 'option_scaleicarms', 1, 'option_rememberfolder', 1, 'option_donotusetoolboxes', 0, 'option_checkversion', 1, 'option_chat', 1);
 
-for subject = subjects(7:end)
+for subject = subjects
     
     %% load data and filter EEG
 	disp(['Subject #' num2str(subject)]);
@@ -136,6 +136,13 @@ for subject = subjects(7:end)
     %% BOTH: epoching
     % duplicate EEG set for epoching
     %EEG: epochs around box:spawned event for baseline
+    
+    % copy for ERSP later
+    EEG_ersp = EEG;
+    EEG_ersp_base = EEG;
+    
+    % filter for ERP
+    EEG = pop_eegfiltnew(EEG, bemobil_config.filter_plot_low, bemobil_config.filter_plot_high);
     baseEEG = EEG; % for baseline
     
     % overwrite events with clean epoch events
@@ -180,11 +187,7 @@ for subject = subjects(7:end)
     %EEG: epochs around box:spawned event for baseline
     baseEEG = pop_epoch( baseEEG, bemobil_config.epoching.base_epoching_event, bemobil_config.epoching.base_epochs_boundaries, 'newname',...
         'epochs', 'epochinfo', 'yes');
-    
-    % filter EEG for ERPs
-    baseEEG_erp = pop_eegfiltnew(baseEEG, bemobil_config.filter_plot_low, bemobil_config.filter_plot_high);
-    EEG_erp = pop_eegfiltnew(EEG, bemobil_config.filter_plot_low, bemobil_config.filter_plot_high);
-    
+        
     % get windows of interest
     zero = EEG.srate; % [-1 1] epoch around event
     base_win_samples = zero + (bemobil_config.epoching.base_win(1) * baseEEG.srate):zero+(bemobil_config.epoching.base_win(2) * baseEEG.srate);
@@ -194,29 +197,45 @@ for subject = subjects(7:end)
     %% ERPs comps: Baseline corrected ERPs of mismatch trials
     
     % baseline comps
-    EEG.etc.analysis.erp.baseline.visual.comps = mean(baseEEG_erp.icaact(:, base_win_samples, vis), 2);
-    EEG.etc.analysis.erp.baseline.vibro.comps = mean(baseEEG_erp.icaact(:, base_win_samples, vib), 2);
+    EEG.etc.analysis.erp.baseline.visual.comps = mean(baseEEG.icaact(:, base_win_samples, vis), 2);
+    EEG.etc.analysis.erp.baseline.vibro.comps = mean(baseEEG.icaact(:, base_win_samples, vib), 2);
     
     % baseline corrected ERPs
-    EEG.etc.analysis.erp.base_corrected.visual.comps(:,:,:) = EEG_erp.icaact(:,event_win_samples,vis) - EEG.etc.analysis.erp.baseline.visual.comps;
-    EEG.etc.analysis.erp.base_corrected.vibro.comps(:,:,:) = EEG_erp.icaact(:,event_win_samples,vib) - EEG.etc.analysis.erp.baseline.vibro.comps;
+    EEG.etc.analysis.erp.base_corrected.visual.comps(:,:,:) = EEG.icaact(:,event_win_samples,vis) - EEG.etc.analysis.erp.baseline.visual.comps;
+    EEG.etc.analysis.erp.base_corrected.vibro.comps(:,:,:) = EEG.icaact(:,event_win_samples,vib) - EEG.etc.analysis.erp.baseline.vibro.comps;
+    
+    % non-baseline corrected ERPs
+    EEG.etc.analysis.erp.non_corrected.visual.comps(:,:,:) = EEG.icaact(:,event_win_samples,vis);
+    EEG.etc.analysis.erp.non_corrected.vibro.comps(:,:,:) = EEG.icaact(:,event_win_samples,vib);
     
     %% ERPs chans 
     
     % for channel ERPs project out eye component activation time courses
-    eyes = find(EEG_erp.etc.ic_classification.ICLabel.classifications(:,3) > bemobil_config.eye_threshold);
-    EEG_erp = pop_subcomp(EEG_erp, eyes);
-    baseEEG_erp = pop_subcomp(baseEEG_erp, eyes);
+    eyes = find(EEG.etc.ic_classification.ICLabel.classifications(:,3) > bemobil_config.eye_threshold);
+    EEG_erp_chan = pop_subcomp(EEG, eyes);
+    baseEEG_erp_chan = pop_subcomp(baseEEG, eyes);
     
     % baseline chans
-    EEG.etc.analysis.erp.baseline.visual.chans = mean(baseEEG_erp.data(:, base_win_samples, vis), 2);
-    EEG.etc.analysis.erp.baseline.vibro.chans = mean(baseEEG_erp.data(:, base_win_samples, vib), 2);
+    EEG.etc.analysis.erp.baseline.visual.chans = mean(baseEEG_erp_chan.data(:, base_win_samples, vis), 2);
+    EEG.etc.analysis.erp.baseline.vibro.chans = mean(baseEEG_erp_chan.data(:, base_win_samples, vib), 2);
     
     % base corrected ERPs
-    EEG.etc.analysis.erp.base_corrected.visual.chans(:,:,:) = EEG_erp.data(:,event_win_samples,vis) - EEG.etc.analysis.erp.baseline.visual.chans;
-    EEG.etc.analysis.erp.base_corrected.vibro.chans(:,:,:) = EEG_erp.data(:,event_win_samples,vib) - EEG.etc.analysis.erp.baseline.vibro.chans;
+    EEG.etc.analysis.erp.base_corrected.visual.chans(:,:,:) = EEG_erp_chan.data(:,event_win_samples,vis) - EEG.etc.analysis.erp.baseline.visual.chans;
+    EEG.etc.analysis.erp.base_corrected.vibro.chans(:,:,:) = EEG_erp_chan.data(:,event_win_samples,vib) - EEG.etc.analysis.erp.baseline.vibro.chans;
     
-    %% ERSP comps
+    % non-baseline corrected ERPs
+    EEG.etc.analysis.erp.non_corrected.visual.chans(:,:,:) = EEG_erp_chan.data(:,event_win_samples,vis);
+    EEG.etc.analysis.erp.non_corrected.vibro.chans(:,:,:) = EEG_erp_chan.data(:,event_win_samples,vib);
+    
+    %% ERSP comps and chans
+    
+    % copy over events from EEG set
+    EEG_ersp.event = EEG.event;
+    % epoching
+    EEG_ersp = pop_epoch( EEG_ersp, bemobil_config.epoching.event_epoching_event, bemobil_config.epoching.event_epochs_boundaries, 'newname',...
+        'epochs', 'epochinfo', 'yes');
+    baseEEG_ersp = pop_epoch( EEG_ersp_base, bemobil_config.epoching.base_epoching_event, bemobil_config.epoching.base_epochs_boundaries, 'newname',...
+        'epochs', 'epochinfo', 'yes');
     
     % 1. calculate newtimef for both baseline and event epochs
     % event_win
@@ -224,20 +243,83 @@ for subject = subjects(7:end)
     ersp_win = (zero-EEG.srate):zero+2*EEG.srate; % [-1 2] around event
     ersp_win(end) = [];
     
-    data_for_ersp = EEG.icaact(:,ersp_win,:);
-    data_for_base = baseEEG.icaact;
-    
+    % settings
     fft_options = struct();
     fft_options.cycles = [3 0.5];
     fft_options.freqrange = [3 80];
     fft_options.freqscale = 'log';
-    fft_options.n_freqs = 80;
-    fft_options.timesout = 100;
+    fft_options.n_freqs = 60;
+    fft_options.timesout = 120;
                
-    % do the timefreq analysis without timewarp
-    for comp = 1:size(data_for_ersp,1)
+%     % do the timefreq analysis for ERSP
+%     data_for_ersp = EEG_ersp.icaact(:,ersp_win,:);
+%     data_for_base = baseEEG_ersp.icaact;
+%     for comp = 1:size(data_for_ersp,1)
+%         tic
+%         [~,~,~,ersp_times,ersp_freqs,~,~,tfdata] = newtimef(data_for_ersp(comp,:,:),...
+%             size(data_for_ersp,2),...
+%             [-1 2]*1000,...
+%             EEG.srate,...
+%             'cycles',fft_options.cycles,...
+%             'freqs',fft_options.freqrange,...
+%             'freqscale',fft_options.freqscale,...
+%             'baseline',[NaN],... % no baseline, since that is only a subtraction of the freq values, we do it manually
+%             'nfreqs',fft_options.n_freqs,...
+%             'timesout',fft_options.timesout,...
+%             'plotersp','off',...
+%             'plotitc','off',...
+%             'verbose','off');
+%                     
+%         % select relevant data
+%         event_win_times = bemobil_config.epoching.event_win * 1000;
+%         tfdata = abs(tfdata); % discard phase
+%         tfdata_all = tfdata;
+%         tfdata = tfdata(:,find(ersp_times>event_win_times(1),1,'first'):find(ersp_times<=event_win_times(2),1,'last'),:);
+%         times_win = ersp_times(:,find(ersp_times>event_win_times(1),1,'first'):find(ersp_times<=event_win_times(2),1,'last'));
+%         
+%         % 2. make mean baseline vector across all samples in baseline epoch (ensemble baseline)
+%         % power spectrum of baseline segment
+%         [~,~,~,base_times,freqs,~,~,basedata] = newtimef(data_for_base(comp,:,:),...
+%             size(data_for_base,2),...
+%             [-1 1]*1000,...
+%             EEG.srate,...
+%             'cycles',fft_options.cycles,...
+%             'freqs',fft_options.freqrange,...
+%             'freqscale',fft_options.freqscale,...
+%             'baseline',[NaN],... % no baseline, since that is only a subtraction of the freq values, we do it manually
+%             'nfreqs',fft_options.n_freqs,...
+%             'timesout',fft_options.timesout,...
+%             'plotersp','off',...
+%             'plotitc','off',...
+%             'verbose','off');
+%         
+%         % average across basewin
+%         basedata = abs(basedata); % discard phase
+%         base_win_times = bemobil_config.epoching.base_win * 1000;
+%         ersp_base_power_raw = basedata(:,find(base_times>base_win_times(1),1,'first'):find(base_times<=base_win_times(2),1,'last'),:);
+%         
+%         % save full data
+%         EEG.etc.analysis.ersp.tfdata.visual.comp(comp,:,:,:) = tfdata_all(:,:,vis);
+%         EEG.etc.analysis.ersp.tfdata.vibro.comp(comp,:,:,:) = tfdata_all(:,:,vib);
+%         
+%         % divisive baseline correction with ensemble baseline
+%         EEG.etc.analysis.ersp.baseline.visual.comp(comp,:) = mean(mean(ersp_base_power_raw(:,:,vis),3),2);
+%         EEG.etc.analysis.ersp.baseline.vibro.comp(comp,:) = mean(mean(ersp_base_power_raw(:,:,vib),3),2);
+%         
+%         % apply divisive baseline, convert to dB and save
+%         EEG.etc.analysis.ersp.base_corrected_dB.visual.comp(comp,:,:,:) = 10.*log10(tfdata(:,:,vis) ./ EEG.etc.analysis.ersp.baseline.visual.comp(comp,:)');
+%         EEG.etc.analysis.ersp.base_corrected_dB.vibro.comp(comp,:,:,:) = 10.*log10(tfdata(:,:,vib) ./ EEG.etc.analysis.ersp.baseline.vibro.comp(comp,:)');
+%         
+% %         figure;imagesclogy(times_win, ersp_freqs, base_corrected_ersp_dB_win, max(abs(base_corrected_ersp_dB_win(:)))/2 * [-1 1]);axis xy;cbar;
+%         toc 
+%     end
+
+    % now do timefreq for chans FZ = 5 and PZ = 25 and FCz = 65
+    data_for_ersp = EEG_ersp.data(:,ersp_win,:);
+    data_for_base = baseEEG_ersp.data;
+    for chan = [5, 25, 65]
         tic
-        [~,~,~,ersp_times,ersp_freqs,~,~,tfdata] = newtimef(data_for_ersp(comp,:,:),...
+        [~,~,~,ersp_times,ersp_freqs,~,~,tfdata] = newtimef(data_for_ersp(chan,:,:),...
             size(data_for_ersp,2),...
             [-1 2]*1000,...
             EEG.srate,...
@@ -253,12 +335,14 @@ for subject = subjects(7:end)
                     
         % select relevant data
         event_win_times = bemobil_config.epoching.event_win * 1000;
+        tfdata = abs(tfdata); % discard phase
+        tfdata_all = tfdata;
         tfdata = tfdata(:,find(ersp_times>event_win_times(1),1,'first'):find(ersp_times<=event_win_times(2),1,'last'),:);
         times_win = ersp_times(:,find(ersp_times>event_win_times(1),1,'first'):find(ersp_times<=event_win_times(2),1,'last'));
         
         % 2. make mean baseline vector across all samples in baseline epoch (ensemble baseline)
         % power spectrum of baseline segment
-        [~,~,~,base_times,freqs,~,~,basedata] = newtimef(data_for_base(comp,:,:),...
+        [~,~,~,base_times,freqs,~,~,basedata] = newtimef(data_for_base(chan,:,:),...
             size(data_for_base,2),...
             [-1 1]*1000,...
             EEG.srate,...
@@ -277,20 +361,25 @@ for subject = subjects(7:end)
         base_win_times = bemobil_config.epoching.base_win * 1000;
         ersp_base_power_raw = basedata(:,find(base_times>base_win_times(1),1,'first'):find(base_times<=base_win_times(2),1,'last'),:);
         
-        % divisive baseline correction with ensemble baselin
-        tfdata = abs(tfdata); % discard phase
-        EEG.etc.analysis.ersp.baseline.visual(comp,:,:) = mean(mean(ersp_base_power_raw(:,:,vis),3),2);
-        EEG.etc.analysis.ersp.baseline.vibro(comp,:,:) = mean(mean(ersp_base_power_raw(:,:,vib),3),2);
+        % save full data
+        EEG.etc.analysis.ersp.tfdata.visual.channel(chan,:,:,:) = tfdata_all(:,:,vis);
+        EEG.etc.analysis.ersp.tfdata.vibro.channel(chan,:,:,:) = tfdata_all(:,:,vib);
+        
+        % divisive baseline correction with ensemble baseline
+        EEG.etc.analysis.ersp.baseline.visual.channel(chan,:) = mean(mean(ersp_base_power_raw(:,:,vis),3),2);
+        EEG.etc.analysis.ersp.baseline.vibro.channel(chan,:) = mean(mean(ersp_base_power_raw(:,:,vib),3),2);
         
         % apply divisive baseline, convert to dB and save
-        EEG.etc.analysis.ersp.base_corrected_dB.visual(comp,:,:,:) = 10.*log10(tfdata(:,:,vis) ./ EEG.etc.analysis.ersp.baseline.visual(comp,:,:)');
-        EEG.etc.analysis.ersp.base_corrected_dB.vibro(comp,:,:,:) = 10.*log10(tfdata(:,:,vib) ./ EEG.etc.analysis.ersp.baseline.vibro(comp,:,:)');
+        EEG.etc.analysis.ersp.base_corrected_dB.visual.channel(chan,:,:,:) = 10.*log10(tfdata(:,:,vis) ./ EEG.etc.analysis.ersp.baseline.visual.channel(chan,:)');
+        EEG.etc.analysis.ersp.base_corrected_dB.vibro.channel(chan,:,:,:) = 10.*log10(tfdata(:,:,vib) ./ EEG.etc.analysis.ersp.baseline.vibro.channel(chan,:)');
         
 %         figure;imagesclogy(times_win, ersp_freqs, base_corrected_ersp_dB_win, max(abs(base_corrected_ersp_dB_win(:)))/2 * [-1 1]);axis xy;cbar;
-        toc
-            
+        toc 
     end
+    
+    % save freqs and times
     EEG.etc.analysis.ersp.times = times_win;
+    EEG.etc.analysis.ersp.times_all = ersp_times;
     EEG.etc.analysis.ersp.freqs = ersp_freqs;
     
     %% FC comps, sliding window correlation between 2 sources, do later on second level
@@ -325,13 +414,22 @@ for subject = subjects(7:end)
     %% save epoched datasets with clean trial indices of the 2x2 study design
     pop_saveset(EEG, 'filename', [bemobil_config.filename_prefix num2str(subject) '_' bemobil_config.epochs_filename] , 'filepath', output_filepath);
     
-    % also save results struct only, smaller and hence faster to load
-    res.epoching = EEG.etc.epoching;
-    res.erp = EEG.etc.analysis.erp;
-    res.ersp = EEG.etc.analysis.ersp;
-    res.mocap = EEG.etc.analysis.mocap;
-    
-    save([output_filepath '_res'], 'res');
+%     % also save results struct only, smaller and hence faster to load
+%     res.epoching = EEG.etc.epoching;
+%     res.erp = EEG.etc.analysis.erp;
+%     res.ersp = EEG.etc.analysis.ersp;
+%     res.mocap = EEG.etc.analysis.mocap;
+%     
+%     save([output_filepath '_res'], 'res');
+
+% test ERSP
+% win = [-400 -100];
+% base = EEG.etc.analysis.ersp.tfdata.visual(:,:,find(EEG.etc.analysis.ersp.times_all>win(1),1,'first'):find(EEG.etc.analysis.ersp.times_all<=win(2),1,'last'),:);
+% base = mean(mean(base,4),3);
+% d = squeeze(EEG.etc.analysis.ersp.tfdata.visual(16,:,:,:));
+% test = d ./ base(16,:)';
+% p = 10.*log10(squeeze(mean(test,3)));
+% figure; imagesc(p(:,4:56), [-1 1]);axis xy;cbar;
     
 end
 
@@ -390,13 +488,36 @@ disp('Precomputing topographies and spectra.')
                          { 'finaldim' 'npca' 10 });
 STUDY.bemobil.clustering.preclustparams = STUDY.cluster.preclust.preclustparams;
                      
-% check how many ICs remain and do clustering
-c = 1;
-for subject = 1:size(STUDY.datasetinfo,2)
-    n_clust(c) = size(ALLEEG(subject).icaact,1);
-    c = c+1;
+% % check how many ICs remain and do clustering, adapt to removed RV comps
+% c = 1;
+% for subject = 1:size(STUDY.datasetinfo,2)
+%     n_clust(c) = size(ALLEEG(subject).icaact,1);
+%     c = c+1;
+% end
+% bemobil_config.STUDY_n_clust = round(bemobil_config.IC_percentage * mean(n_clust));
+
+%% alternatively load study
+
+if ~exist('ALLEEG','var'); eeglab; end
+pop_editoptions( 'option_storedisk', 1, 'option_savetwofiles', 1, 'option_saveversion6', 0, 'option_single', 0, 'option_memmapdata', 0, 'option_eegobject', 0, 'option_computeica', 1, 'option_scaleicarms', 1, 'option_rememberfolder', 1, 'option_donotusetoolboxes', 0, 'option_checkversion', 1, 'option_chat', 1);
+
+% load IMT_v1 EEGLAB study struct, keeping at most 1 dataset in memory
+input_path_STUDY = [bemobil_config.study_folder bemobil_config.study_level];
+if isempty(STUDY)
+    STUDY = []; CURRENTSTUDY = 0; ALLEEG = []; EEG=[]; CURRENTSET=[];
+    [STUDY ALLEEG] = pop_loadstudy('filename', bemobil_config.study_filename, 'filepath', input_path_STUDY);
+    CURRENTSTUDY = 1; EEG = ALLEEG; CURRENTSET = [1:length(EEG)];
+    
+    eeglab redraw
 end
-bemobil_config.STUDY_n_clust = round(bemobil_config.IC_percentage * mean(n_clust));
+
+%% repeated clustering
+
+% .7 of mean IC per subject
+bemobil_config.STUDY_n_clust = round(bemobil_config.IC_percentage * (size(STUDY.etc.preclust.preclustdata,1) / size(STUDY.datasetinfo,2)));
+
+input_path = [bemobil_config.study_folder bemobil_config.single_subject_analysis_folder];
+output_path = [bemobil_config.study_folder bemobil_config.study_level];
 
 path_clustering_solutions = [bemobil_config.STUDY_filepath_clustering_solutions bemobil_config.study_filename(1:end-6) '/' ...
     [num2str(bemobil_config.STUDY_cluster_ROI_talairach.x) '_' num2str(bemobil_config.STUDY_cluster_ROI_talairach.y) '_' num2str(bemobil_config.STUDY_cluster_ROI_talairach.z)] '-location_'...

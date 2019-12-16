@@ -19,22 +19,6 @@ if isempty(STUDY)
 end
 STUDY_sets = cellfun(@str2num, {STUDY.datasetinfo.subject});
 
-% select subjects out of clusters of int
-clusters_of_int = [3, 7, 9, 24, 25, 28, 30, 33, 34];
-% clusters
-% 3: right parietal
-% 7: right motor?
-% 24: right SMA
-% 25: left parietal
-% 28: interesting
-% 33: ACC
-
-channels_of_int = [5, 25, 65];
-% channels
-% 5: Fz
-% 25: Pz
-% 65: FCz
-
 %% result 0.0: plot cluster blobs and talairach coordinates
 
 % save dipole location
@@ -45,12 +29,12 @@ for cluster = clusters_of_int
 end
 rem = sum(loc,2) == 0;
 loc(rem, :) = [];
-save('/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/5_study_level/dipole_locs.mat', 'loc');
+save(['/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/5_study_level/clustering_solutions/' bemobil_config.study_filename(1:end-6) '/dipole_locs.mat'], 'loc');
 clear loc
 
 %% plot clusters dipoleclusters
 colors = brewermap(size(clusters_of_int,2),'Set1');
-std_dipoleclusters(STUDY, ALLEEG, 'clusters', 24,...
+std_dipoleclusters(STUDY, ALLEEG, 'clusters', clusters_of_int,...
     'centroid', 'add',...
     'projlines', 'on',...
     'viewnum', 4,...
@@ -61,7 +45,9 @@ voxelSize      = 4;
 FWHM           = 10;
 blobOrVoxelIdx = 1;
 uniformAlpha   = .4;
-optionStr = '''separateColorList'',[0.8941 0.1020 0.1098; 0.2157 0.4941 0.7216; 0.3020 0.6863 0.2902; 0.5961 0.3059 0.6392]';
+optionStr = [];
+% optionStr = '''separateColorList'',[0.8941 0.1020 0.1098; 0.2157 0.4941 0.7216; 0.3020 0.6863 0.2902; 0.5961 0.3059 0.6392]';
+% optionStr = '''separateColorList'',[0.8941 0.1020 0.1098; 0.2157 0.4941 0.7216; 0.3020 0.6863 0.2902; 0.5961 0.3059 0.6392; 1.0000 0.4980 0; 1.0000 1.0000 0.2000]';
 
 % plot NIMAs Blobs
 % Obtain cluster dipoles.
