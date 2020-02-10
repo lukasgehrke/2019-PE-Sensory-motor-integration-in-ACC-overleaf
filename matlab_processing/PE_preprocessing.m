@@ -75,22 +75,32 @@ for subject = subjects
     % parse events from urevent structure 
     EEG = parse_events_PE(EEG);
     mocap = parse_events_PE(mocap);
+    
+    % get event indices
     touch_ixs = find(strcmp({EEG.event.type}, 'box:touched'));
     spawn_ixs = find(strcmp({EEG.event.type}, 'box:spawned'));
     
-    % get event indices
     mismatch_ixs = find(strcmp({EEG.event.normal_or_conflict}, 'conflict'));
     match_ixs = find(strcmp({EEG.event.normal_or_conflict}, 'normal'));
-    match_touch_ixs = intersect(touch_ixs, match_ixs);
-    match_spawn_ixs = intersect(spawn_ixs, match_ixs);
-    mis_touch_ixs = intersect(touch_ixs, mismatch_ixs);
-    mis_spawn_ixs = intersect(spawn_ixs, mismatch_ixs);
+    
+    touch_match_ixs = intersect(touch_ixs, match_ixs);
+    suc_touch_match_ix = []; % succeeding trial
+    touch_mismatch_ixs = intersect(touch_ixs, mismatch_ixs);
+    
+    
+    spawn_match_ixs = intersect(spawn_ixs, match_ixs);
+    spawn_mismatch_ixs = intersect(spawn_ixs, mismatch_ixs);
+    
+    suc_spawn_match_ix = [];
+    
+    suc_spawn_mismatch_ix = [];
+    suc_touch_mismatch_ix = [];
     
     % check data consistency
-    if ~isequal(size(mis_touch_ixs), size(mis_spawn_ixs))
+    if ~isequal(size(touch_mismatch_ixs), size(spawn_mismatch_ixs))
         error('Number of touch and spawn events is not the same!')
     end
-    if size(mis_touch_ixs,2) ~= 150
+    if size(touch_mismatch_ixs,2) ~= 150
         warning('Not exactly 600 events in dataset!')
     end
     if ~(size(EEG.times,2)==size(mocap.times,2))
@@ -103,35 +113,76 @@ for subject = subjects
     % 1. remove all trials that have a distance greater than 2s between 
     % spawn and touch
     latency_diff = (cell2mat({EEG.event(touch_ixs).latency}) - cell2mat({EEG.event(spawn_ixs).latency})) / EEG.srate;
-    slow_rt_ix = find(latency_diff>2);
-    rm_ixs = slow_rt_ix;
-    
-    % get latency for 
+    bad_tr_ixs = find(latency_diff>2);
     
     % 2. remove all trials with not enough data before
     % box:spawned, this will be used for baseline!
     % check first trial and at boundaries
     if EEG.event(spawn_ixs(1)).latency < abs(bemobil_config.epoching.base_epochs_boundaries(1) * 250)
         % remove first mismatch trial because not enough data before the touch event
-        rm_ixs = [rm_ixs, 1];
+        bad_tr_ixs = [bad_tr_ixs, 1];
     end
     for b = boundaries_lats
-        dist = cell2mat({EEG.event(mis_spawn_ixs).latency}) - b;
+        dist = cell2mat({EEG.event(spawn_mismatch_ixs).latency}) - b;
         post_b_ix = find(dist>0, 1, 'first'); % index of post boundary spawn event
-        ev_dist = EEG.event(mis_spawn_ixs(post_b_ix)).latency - b;
+        ev_dist = EEG.event(spawn_mismatch_ixs(post_b_ix)).latency - b;
         
         if ev_dist < abs(bemobil_config.epoching.base_epochs_boundaries(1) * EEG.srate)
             % no data for baseline, remove post boundary event
-            rm_ixs = [rm_ixs, post_b_ix];
+            bad_tr_ixs = [bad_tr_ixs, post_b_ix];
         end
     end
     
-    %TO SAVE: find indeces of mismatch trials in both visual and visual+vibro condition
-    EEG.etc.epoching.mismatch_touch_ixs = mis_touch_ixs;
-    EEG.etc.epoching.mismatch_spawn_ixs = mis_spawn_ixs;
-    EEG.etc.epoching.rm_ixs = rm_ixs;
-    EEG.etc.epoching.latency_diff_mismatch = cell2mat({EEG.event(mis_touch_ixs).latency}) - cell2mat({EEG.event(mis_spawn_ixs).latency});
-    EEG.etc.epoching.latency_diff_match = cell2mat({EEG.event(match_touch_ixs).latency}) - cell2mat({EEG.event(match_spawn_ixs).latency});
+    % 3. remove all trials without a succeeding match trial and get
+    % succeding trial indices
+    % get event indeces of all trials succeeding a mismatch trial
+    c = 1;
+    b_ix = 1;
+    for mi = touch_mismatch_ixs
+        missing_suc_tr_ix = touch_match_ixs(touch_match_ixs>mi);
+        
+        if ~isempty(missing_suc_tr_ix)
+            missing_suc_tr_ix = missing_suc_tr_ix(1);
+        end
+        
+        if isempty(missing_suc_tr_ix)
+            no_suc_ix(b_ix) = find(touch_mismatch_ixs==mi);
+            b_ix = b_ix + 1;
+            
+        % check if succeeding trial actually the next trial or from the next block
+        elseif str2double(EEG.event(mi).trial_nr) == (str2double(EEG.event(missing_suc_tr_ix).trial_nr)-1)
+            mis_touch_suc_ixs(c) = missing_suc_tr_ix;
+            c = c+1;
+        
+        % succeeding trial from another block
+        else
+            no_suc_ix(b_ix) = find(touch_mismatch_ixs==mi);
+            b_ix = b_ix + 1;
+        end
+    end
+    bad_tr_ixs = [bad_tr_ixs, touch_mismatch_ixs(no_suc_ix)];
+    
+    % clean up and save indices
+    %TO SAVE: find EEG.event indeces of mismatch trials in both visual and visual+vibro condition
+    spawn_match_ix = [];
+    touch_match_ix = [];
+    suc_spawn_match_ix = [];
+    suc_touch_match_ix = [];
+    
+    spawn_mismatch_ix = [];
+    touch_mismatch_ix = [];
+    suc_spawn_mismatch_ix = [];
+    suc_touch_mismatch_ix = [];
+    
+    touch_mismatch_ixs(missing_suc_tr_ix) = [];
+    spawn_mismatch_ixs(missing_suc_tr_ix) = [];
+    
+    EEG.etc.epoching.mismatch_touch_ixs = touch_mismatch_ixs;
+    EEG.etc.epoching.mismatch_spawn_ixs = spawn_mismatch_ixs;
+    EEG.etc.epoching.mismatch_touch_succeeding_ixs = mis_touch_suc_ixs;
+    EEG.etc.epoching.rm_ixs = bad_tr_ixs;
+    EEG.etc.epoching.latency_diff_mismatch = cell2mat({EEG.event(touch_mismatch_ixs).latency}) - cell2mat({EEG.event(spawn_mismatch_ixs).latency});
+    EEG.etc.epoching.latency_diff_match = cell2mat({EEG.event(touch_match_ixs).latency}) - cell2mat({EEG.event(spawn_match_ixs).latency});
     
     %% BOTH: epoching
     % duplicate EEG set for epoching
@@ -140,6 +191,9 @@ for subject = subjects
     % copy for ERSP later
     EEG_ersp = EEG;
     EEG_ersp_base = EEG;
+    
+    % copy for mocap of succeeding trials later
+    mocap_suc = mocap;
     
     % filter for ERP
     EEG = pop_eegfiltnew(EEG, bemobil_config.filter_plot_low, bemobil_config.filter_plot_high);
@@ -208,49 +262,49 @@ for subject = subjects
     EEG.etc.analysis.erp.non_corrected.visual.comps(:,:,:) = EEG.icaact(:,event_win_samples,vis);
     EEG.etc.analysis.erp.non_corrected.vibro.comps(:,:,:) = EEG.icaact(:,event_win_samples,vib);
     
-    %% ERPs chans 
-    
-    % for channel ERPs project out eye component activation time courses
-    eyes = find(EEG.etc.ic_classification.ICLabel.classifications(:,3) > bemobil_config.eye_threshold);
-    EEG_erp_chan = pop_subcomp(EEG, eyes);
-    baseEEG_erp_chan = pop_subcomp(baseEEG, eyes);
-    
-    % baseline chans
-    EEG.etc.analysis.erp.baseline.visual.chans = mean(baseEEG_erp_chan.data(:, base_win_samples, vis), 2);
-    EEG.etc.analysis.erp.baseline.vibro.chans = mean(baseEEG_erp_chan.data(:, base_win_samples, vib), 2);
-    
-    % base corrected ERPs
-    EEG.etc.analysis.erp.base_corrected.visual.chans(:,:,:) = EEG_erp_chan.data(:,event_win_samples,vis) - EEG.etc.analysis.erp.baseline.visual.chans;
-    EEG.etc.analysis.erp.base_corrected.vibro.chans(:,:,:) = EEG_erp_chan.data(:,event_win_samples,vib) - EEG.etc.analysis.erp.baseline.vibro.chans;
-    
-    % non-baseline corrected ERPs
-    EEG.etc.analysis.erp.non_corrected.visual.chans(:,:,:) = EEG_erp_chan.data(:,event_win_samples,vis);
-    EEG.etc.analysis.erp.non_corrected.vibro.chans(:,:,:) = EEG_erp_chan.data(:,event_win_samples,vib);
-    
-    %% ERSP comps and chans
-    
-    % copy over events from EEG set
-    EEG_ersp.event = EEG.event;
-    % epoching
-    EEG_ersp = pop_epoch( EEG_ersp, bemobil_config.epoching.event_epoching_event, bemobil_config.epoching.event_epochs_boundaries, 'newname',...
-        'epochs', 'epochinfo', 'yes');
-    baseEEG_ersp = pop_epoch( EEG_ersp_base, bemobil_config.epoching.base_epoching_event, bemobil_config.epoching.base_epochs_boundaries, 'newname',...
-        'epochs', 'epochinfo', 'yes');
-    
-    % 1. calculate newtimef for both baseline and event epochs
-    % event_win
-    zero = 3*EEG.srate; % [-3 2] epoch around event
-    ersp_win = (zero-EEG.srate):zero+2*EEG.srate; % [-1 2] around event
-    ersp_win(end) = [];
-    
-    % settings
-    fft_options = struct();
-    fft_options.cycles = [3 0.5];
-    fft_options.freqrange = [3 80];
-    fft_options.freqscale = 'log';
-    fft_options.n_freqs = 60;
-    fft_options.timesout = 120;
-               
+%     %% ERPs chans 
+%     
+%     % for channel ERPs project out eye component activation time courses
+%     eyes = find(EEG.etc.ic_classification.ICLabel.classifications(:,3) > bemobil_config.eye_threshold);
+%     EEG_erp_chan = pop_subcomp(EEG, eyes);
+%     baseEEG_erp_chan = pop_subcomp(baseEEG, eyes);
+%     
+%     % baseline chans
+%     EEG.etc.analysis.erp.baseline.visual.chans = mean(baseEEG_erp_chan.data(:, base_win_samples, vis), 2);
+%     EEG.etc.analysis.erp.baseline.vibro.chans = mean(baseEEG_erp_chan.data(:, base_win_samples, vib), 2);
+%     
+%     % base corrected ERPs
+%     EEG.etc.analysis.erp.base_corrected.visual.chans(:,:,:) = EEG_erp_chan.data(:,event_win_samples,vis) - EEG.etc.analysis.erp.baseline.visual.chans;
+%     EEG.etc.analysis.erp.base_corrected.vibro.chans(:,:,:) = EEG_erp_chan.data(:,event_win_samples,vib) - EEG.etc.analysis.erp.baseline.vibro.chans;
+%     
+%     % non-baseline corrected ERPs
+%     EEG.etc.analysis.erp.non_corrected.visual.chans(:,:,:) = EEG_erp_chan.data(:,event_win_samples,vis);
+%     EEG.etc.analysis.erp.non_corrected.vibro.chans(:,:,:) = EEG_erp_chan.data(:,event_win_samples,vib);
+%     
+%     % ERSP comps and chans
+%     
+%     copy over events from EEG set
+%     EEG_ersp.event = EEG.event;
+%     epoching
+%     EEG_ersp = pop_epoch( EEG_ersp, bemobil_config.epoching.event_epoching_event, bemobil_config.epoching.event_epochs_boundaries, 'newname',...
+%         'epochs', 'epochinfo', 'yes');
+%     baseEEG_ersp = pop_epoch( EEG_ersp_base, bemobil_config.epoching.base_epoching_event, bemobil_config.epoching.base_epochs_boundaries, 'newname',...
+%         'epochs', 'epochinfo', 'yes');
+%     
+%     1. calculate newtimef for both baseline and event epochs
+%     event_win
+%     zero = 3*EEG.srate; % [-3 2] epoch around event
+%     ersp_win = (zero-EEG.srate):zero+2*EEG.srate; % [-1 2] around event
+%     ersp_win(end) = [];
+%     
+%     settings
+%     fft_options = struct();
+%     fft_options.cycles = [3 0.5];
+%     fft_options.freqrange = [3 80];
+%     fft_options.freqscale = 'log';
+%     fft_options.n_freqs = 60;
+%     fft_options.timesout = 120;
+%                
 %     % do the timefreq analysis for ERSP
 %     data_for_ersp = EEG_ersp.icaact(:,ersp_win,:);
 %     data_for_base = baseEEG_ersp.icaact;
@@ -313,74 +367,74 @@ for subject = subjects
 % %         figure;imagesclogy(times_win, ersp_freqs, base_corrected_ersp_dB_win, max(abs(base_corrected_ersp_dB_win(:)))/2 * [-1 1]);axis xy;cbar;
 %         toc 
 %     end
-
-    % now do timefreq for chans FZ = 5 and PZ = 25 and FCz = 65
-    data_for_ersp = EEG_ersp.data(:,ersp_win,:);
-    data_for_base = baseEEG_ersp.data;
-    for chan = [5, 25, 65]
-        tic
-        [~,~,~,ersp_times,ersp_freqs,~,~,tfdata] = newtimef(data_for_ersp(chan,:,:),...
-            size(data_for_ersp,2),...
-            [-1 2]*1000,...
-            EEG.srate,...
-            'cycles',fft_options.cycles,...
-            'freqs',fft_options.freqrange,...
-            'freqscale',fft_options.freqscale,...
-            'baseline',[NaN],... % no baseline, since that is only a subtraction of the freq values, we do it manually
-            'nfreqs',fft_options.n_freqs,...
-            'timesout',fft_options.timesout,...
-            'plotersp','off',...
-            'plotitc','off',...
-            'verbose','off');
-                    
-        % select relevant data
-        event_win_times = bemobil_config.epoching.event_win * 1000;
-        tfdata = abs(tfdata); % discard phase
-        tfdata_all = tfdata;
-        tfdata = tfdata(:,find(ersp_times>event_win_times(1),1,'first'):find(ersp_times<=event_win_times(2),1,'last'),:);
-        times_win = ersp_times(:,find(ersp_times>event_win_times(1),1,'first'):find(ersp_times<=event_win_times(2),1,'last'));
-        
-        % 2. make mean baseline vector across all samples in baseline epoch (ensemble baseline)
-        % power spectrum of baseline segment
-        [~,~,~,base_times,freqs,~,~,basedata] = newtimef(data_for_base(chan,:,:),...
-            size(data_for_base,2),...
-            [-1 1]*1000,...
-            EEG.srate,...
-            'cycles',fft_options.cycles,...
-            'freqs',fft_options.freqrange,...
-            'freqscale',fft_options.freqscale,...
-            'baseline',[NaN],... % no baseline, since that is only a subtraction of the freq values, we do it manually
-            'nfreqs',fft_options.n_freqs,...
-            'timesout',fft_options.timesout,...
-            'plotersp','off',...
-            'plotitc','off',...
-            'verbose','off');
-        
-        % average across basewin
-        basedata = abs(basedata); % discard phase
-        base_win_times = bemobil_config.epoching.base_win * 1000;
-        ersp_base_power_raw = basedata(:,find(base_times>base_win_times(1),1,'first'):find(base_times<=base_win_times(2),1,'last'),:);
-        
-        % save full data
-        EEG.etc.analysis.ersp.tfdata.visual.channel(chan,:,:,:) = tfdata_all(:,:,vis);
-        EEG.etc.analysis.ersp.tfdata.vibro.channel(chan,:,:,:) = tfdata_all(:,:,vib);
-        
-        % divisive baseline correction with ensemble baseline
-        EEG.etc.analysis.ersp.baseline.visual.channel(chan,:) = mean(mean(ersp_base_power_raw(:,:,vis),3),2);
-        EEG.etc.analysis.ersp.baseline.vibro.channel(chan,:) = mean(mean(ersp_base_power_raw(:,:,vib),3),2);
-        
-        % apply divisive baseline, convert to dB and save
-        EEG.etc.analysis.ersp.base_corrected_dB.visual.channel(chan,:,:,:) = 10.*log10(tfdata(:,:,vis) ./ EEG.etc.analysis.ersp.baseline.visual.channel(chan,:)');
-        EEG.etc.analysis.ersp.base_corrected_dB.vibro.channel(chan,:,:,:) = 10.*log10(tfdata(:,:,vib) ./ EEG.etc.analysis.ersp.baseline.vibro.channel(chan,:)');
-        
+% 
+%     now do timefreq for chans FZ = 5 and PZ = 25 and FCz = 65
+%     data_for_ersp = EEG_ersp.data(:,ersp_win,:);
+%     data_for_base = baseEEG_ersp.data;
+%     for chan = [5, 25, 65]
+%         tic
+%         [~,~,~,ersp_times,ersp_freqs,~,~,tfdata] = newtimef(data_for_ersp(chan,:,:),...
+%             size(data_for_ersp,2),...
+%             [-1 2]*1000,...
+%             EEG.srate,...
+%             'cycles',fft_options.cycles,...
+%             'freqs',fft_options.freqrange,...
+%             'freqscale',fft_options.freqscale,...
+%             'baseline',[NaN],... % no baseline, since that is only a subtraction of the freq values, we do it manually
+%             'nfreqs',fft_options.n_freqs,...
+%             'timesout',fft_options.timesout,...
+%             'plotersp','off',...
+%             'plotitc','off',...
+%             'verbose','off');
+%                     
+%         select relevant data
+%         event_win_times = bemobil_config.epoching.event_win * 1000;
+%         tfdata = abs(tfdata); % discard phase
+%         tfdata_all = tfdata;
+%         tfdata = tfdata(:,find(ersp_times>event_win_times(1),1,'first'):find(ersp_times<=event_win_times(2),1,'last'),:);
+%         times_win = ersp_times(:,find(ersp_times>event_win_times(1),1,'first'):find(ersp_times<=event_win_times(2),1,'last'));
+%         
+%         2. make mean baseline vector across all samples in baseline epoch (ensemble baseline)
+%         power spectrum of baseline segment
+%         [~,~,~,base_times,freqs,~,~,basedata] = newtimef(data_for_base(chan,:,:),...
+%             size(data_for_base,2),...
+%             [-1 1]*1000,...
+%             EEG.srate,...
+%             'cycles',fft_options.cycles,...
+%             'freqs',fft_options.freqrange,...
+%             'freqscale',fft_options.freqscale,...
+%             'baseline',[NaN],... % no baseline, since that is only a subtraction of the freq values, we do it manually
+%             'nfreqs',fft_options.n_freqs,...
+%             'timesout',fft_options.timesout,...
+%             'plotersp','off',...
+%             'plotitc','off',...
+%             'verbose','off');
+%         
+%         average across basewin
+%         basedata = abs(basedata); % discard phase
+%         base_win_times = bemobil_config.epoching.base_win * 1000;
+%         ersp_base_power_raw = basedata(:,find(base_times>base_win_times(1),1,'first'):find(base_times<=base_win_times(2),1,'last'),:);
+%         
+%         save full data
+%         EEG.etc.analysis.ersp.tfdata.visual.channel(chan,:,:,:) = tfdata_all(:,:,vis);
+%         EEG.etc.analysis.ersp.tfdata.vibro.channel(chan,:,:,:) = tfdata_all(:,:,vib);
+%         
+%         divisive baseline correction with ensemble baseline
+%         EEG.etc.analysis.ersp.baseline.visual.channel(chan,:) = mean(mean(ersp_base_power_raw(:,:,vis),3),2);
+%         EEG.etc.analysis.ersp.baseline.vibro.channel(chan,:) = mean(mean(ersp_base_power_raw(:,:,vib),3),2);
+%         
+%         apply divisive baseline, convert to dB and save
+%         EEG.etc.analysis.ersp.base_corrected_dB.visual.channel(chan,:,:,:) = 10.*log10(tfdata(:,:,vis) ./ EEG.etc.analysis.ersp.baseline.visual.channel(chan,:)');
+%         EEG.etc.analysis.ersp.base_corrected_dB.vibro.channel(chan,:,:,:) = 10.*log10(tfdata(:,:,vib) ./ EEG.etc.analysis.ersp.baseline.vibro.channel(chan,:)');
+%         
 %         figure;imagesclogy(times_win, ersp_freqs, base_corrected_ersp_dB_win, max(abs(base_corrected_ersp_dB_win(:)))/2 * [-1 1]);axis xy;cbar;
-        toc 
-    end
-    
-    % save freqs and times
-    EEG.etc.analysis.ersp.times = times_win;
-    EEG.etc.analysis.ersp.times_all = ersp_times;
-    EEG.etc.analysis.ersp.freqs = ersp_freqs;
+%         toc 
+%     end
+%     
+%     save freqs and times
+%     EEG.etc.analysis.ersp.times = times_win;
+%     EEG.etc.analysis.ersp.times_all = ersp_times;
+%     EEG.etc.analysis.ersp.freqs = ersp_freqs;
     
     %% FC comps, sliding window correlation between 2 sources, do later on second level
     % otherwise results matrix gets huge if correlating every comp with
@@ -388,7 +442,8 @@ for subject = subjects
     
     %% MOCAP: Velocity at time points before events of interest
     
-    % save (x,y) coordinates for each trial
+    % save (x,y) coordinates for each vis and vib and their succeeding
+    % trials
     hand_chans_ix = 1:3;
     EEG.etc.analysis.mocap.visual.x = squeeze(mocap.data(hand_chans_ix(1),:,vis));
     EEG.etc.analysis.mocap.visual.y = squeeze(mocap.data(hand_chans_ix(2),:,vis));
@@ -410,6 +465,19 @@ for subject = subjects
     EEG.etc.analysis.mocap.vibro.mag_acc = squeeze(sqrt(mocap.data(13,:,vib).^2 +...
             mocap.data(14,:,vib).^2 +...
             mocap.data(15,:,vib).^2));
+        
+    % save 3D magnitude of velocity and acceleration of trials succeeding
+    % vis and vib trials
+    mocap_suc.event = mocap_suc.event(EEG.etc.epoching.mismatch_touch_succeeding_ixs);
+    mocap_suc = pop_epoch( mocap_suc, bemobil_config.epoching.base_epoching_event, bemobil_config.epoching.base_epochs_boundaries, 'newname',...
+        'epochs', 'epochinfo', 'yes');    
+    
+    EEG.etc.analysis.mocap.visual_suc.mag_vel = squeeze(sqrt(mocap.data(7,:,vis_suc).^2 +...
+            mocap.data(8,:,vis_suc).^2 +...
+            mocap.data(9,:,vis_suc).^2));
+    EEG.etc.analysis.mocap.vibro_suc.mag_vel = squeeze(sqrt(mocap.data(7,:,vib_suc).^2 +...
+            mocap.data(8,:,vib_suc).^2 +...
+            mocap.data(9,:,vib_suc).^2));
 
     %% save epoched datasets with clean trial indices of the 2x2 study design
     pop_saveset(EEG, 'filename', [bemobil_config.filename_prefix num2str(subject) '_' bemobil_config.epochs_filename] , 'filepath', output_filepath);

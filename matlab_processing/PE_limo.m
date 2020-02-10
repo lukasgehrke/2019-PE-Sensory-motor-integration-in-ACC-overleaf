@@ -92,10 +92,14 @@ end
 LIMO.design.status = 'to do';
 
 % parameter added using debugger due to errors being thrown in limo_random_robust
+save_param_name = regexprep(save_info.parameter, ':' , '_');
+save_param_name = regexprep(save_param_name, '(' , '');
+save_param_name = regexprep(save_param_name, ')' , '');
+
 if isempty(regressor)
-    LIMO.dir = [LIMO.data.data_dir '/ttest_' save_info.parameter];
+    LIMO.dir = [LIMO.data.data_dir '/ttest_' save_param_name];
 else
-    LIMO.dir = [LIMO.data.data_dir '/regress_' save_info.parameter];
+    LIMO.dir = [LIMO.data.data_dir '/regress_' save_param_name];
 end
 LIMO.data.size3D = [size(y,1), size(y,2)*size(y,3), size(y,4)];
 LIMO.data.size4D = [size(y,1), size(y,2) size(y,3) size(y,4)];

@@ -35,25 +35,31 @@ channels_of_int = [5, 25, 65];
 % 25: Pz
 % 65: FCz
 
-%% result 0.1: Histograms of reaction times mismatch and match trials
+%% FINAL result 0.1: Histograms of reaction times mismatch and match trials
 
 all_match_rt = [];
 all_mismatch_rt = []; 
 
+% load data
 for s = ALLEEG
-    
     all_mismatch_rt = [all_mismatch_rt s.etc.epoching.latency_diff_mismatch];
     all_match_rt = [all_match_rt s.etc.epoching.latency_diff_match];
-    
 end
 
 % covert to time
 all_mismatch_rt = all_mismatch_rt/s.srate;
 all_match_rt =  all_match_rt/s.srate;
 
-map = brewermap(2,'Set1'); 
+% remove outliers > 2, these trials are removed for erp analyses
 all_match_rt(all_match_rt>2) = [];
 
+% print means
+disp(["mean reaction time matching feedback: " mean(all_match_rt)]);
+disp(["mean reaction time mismatching feedback: " mean(all_mismatch_rt)]);
+disp(["difference between matching and mismatching feedback: " mean(all_match_rt) - mean(all_mismatch_rt)]);
+
+% plot
+map = brewermap(2,'Set1'); 
 figure;
 grid on;
 hold on;
@@ -70,17 +76,13 @@ h2(1).EdgeColor = 'none';
 h2(1).FaceAlpha = .7;
 h2(2).Color = map(2,:);
 
-mean(all_match_rt)
 l = line([mean(all_match_rt) mean(all_match_rt)], [0 500]);
 l.Color = map(1,:);
 l.LineWidth = 2;
 
-mean(all_mismatch_rt)
 l2 = line([mean(all_mismatch_rt) mean(all_mismatch_rt)], [0 500]);
 l2.Color = map(2,:);
 l2.LineWidth = 2;
-
-mean(all_match_rt) - mean(all_mismatch_rt)
 
 %format plot
 set(gca,'FontSize',20)
@@ -92,7 +94,7 @@ legend boxoff
 xlabel('seconds')
 ylabel('frequency')
 
-%% result 0.2: histogram velocity profile / mean velocity curve with confidence interval
+%% TODO:confirm result 0.2: histogram velocity profile / mean velocity curve with confidence interval
 
 cond = 'vibro';
 trials = 'good_vibro';
@@ -185,7 +187,7 @@ set(gca,'FontSize',20)
 ylabel('magnitude of velocity');
 xlabel('seconds');
 
-%% result 0.3: plot 3D trajectory colorcoded by hand velocity and erp amplitude (erpimage2D)
+%% TODO:confirm result 0.3: plot 3D trajectory colorcoded by hand velocity and erp amplitude (erpimage2D)
 
 % 1: make hand velocity at each x,y for each subject, then plot average
 % across subjects and smooth
@@ -287,3 +289,82 @@ for cluster = clusters_of_int
     clear all_dat
 
 end
+
+%% TODO:group_statistics discussion results 1.1: find movement onsets to see reaction time after prediction error trials
+
+% significant effect that this participant slowed down more in haptic
+% mismatch trials compared to just visual feedback
+
+model = 'velocity_erp_sample ~ haptics + trial_nr + direction + sequence';
+
+mismatch = EEG.etc.epoching.oddball';
+haptics = EEG.etc.epoching.haptics(mismatch)';
+trial_nr = EEG.etc.epoching.trial_number(mismatch)';
+direction = categorical(EEG.etc.epoching.direction(mismatch))';
+sequence = EEG.etc.epoching.sequence(mismatch)';
+
+% now fit linear model for each component
+robustfit = 0;
+count = 1;
+tic
+for sample = 1:size(EEG.etc.analysis.mocap.mag_vel,1)
+    
+    velocity_erp_sample = EEG.etc.analysis.mocap.mag_vel(sample,mismatch)';
+    design = table(velocity_erp_sample, haptics, trial_nr, direction, sequence);
+    
+    if robustfit
+        mdl = fitlm(design, model, 'RobustOpts', 'on');
+    else
+        mdl = fitlm(design, model);
+    end
+
+    res.betas(count,sample,:) = mdl.Coefficients.Estimate;
+    res.t(count,sample,:) = mdl.Coefficients.tStat;
+    res.p(count,sample,:) = mdl.Coefficients.pValue;
+    res.r2(count,sample,:) = mdl.Rsquared.Ordinary;
+    res.adj_r2(count,sample,:) = mdl.Rsquared.Adjusted;
+end
+toc
+
+figure;plot(res.betas(1,500:1000,2)); xline(250);
+
+%% TODO:group_statistics discussion results 1.2: are trials after mismatch trials differently initiated?
+
+mismatch = EEG.etc.epoching.oddball;
+after_mismatch = [0 mismatch(1:end-1)];
+
+match = ~EEG.etc.epoching.oddball';
+after_mismatch = after_mismatch(match)';
+haptics = EEG.etc.epoching.haptics(match)';
+trial_nr = EEG.etc.epoching.trial_number(match)';
+direction = categorical(EEG.etc.epoching.direction(match))';
+
+% now fit linear model for each component
+model = 'velocity_erp_sample ~ after_mismatch * haptics + trial_nr + direction';
+robustfit = 0;
+count = 1;
+tic
+for sample = 1:size(EEG.etc.analysis.mocap.mag_vel,1)
+    
+    velocity_erp_sample = EEG.etc.analysis.mocap.mag_vel(sample, match)';
+    design = table(velocity_erp_sample, after_mismatch, haptics, trial_nr, direction);
+    
+    if robustfit
+        mdl = fitlm(design, model, 'RobustOpts', 'on');
+    else
+        mdl = fitlm(design, model);
+    end
+
+    res.betas(count,sample,:) = mdl.Coefficients.Estimate;
+    res.t(count,sample,:) = mdl.Coefficients.tStat;
+    res.p(count,sample,:) = mdl.Coefficients.pValue;
+    res.r2(count,sample,:) = mdl.Rsquared.Ordinary;
+    res.adj_r2(count,sample,:) = mdl.Rsquared.Adjusted;
+end
+toc
+
+figure;plot(res.adj_r2);
+
+% this is interesting but not much there, must check across subjects
+figure;plot(res.betas(1,500:750,1)); hold on; plot(sum(res.betas(1,500:750,[1,2]),3))
+

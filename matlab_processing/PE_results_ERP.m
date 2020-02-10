@@ -19,7 +19,9 @@ if isempty(STUDY)
 end
 STUDY_sets = cellfun(@str2num, {STUDY.datasetinfo.subject});
 
-%% compute result 1: main effect velocity components & channels
+%% TODO:add main effect congruency
+
+%% TODO:adapt compute result 1: main effect velocity components & channels
 
 % 3: effect of velocity on ERP per subject and condition, i.e. pERP, then
 % average betas across subjects for each condition
@@ -28,6 +30,11 @@ if ~exist('ALLEEG','var'); eeglab; end
 pop_editoptions( 'option_storedisk', 0, 'option_savetwofiles', 1, 'option_saveversion6', 0, 'option_single', 0, 'option_memmapdata', 0, 'option_eegobject', 0, 'option_computeica', 1, 'option_scaleicarms', 1, 'option_rememberfolder', 1, 'option_donotusetoolboxes', 0, 'option_checkversion', 1, 'option_chat', 1);
 
 robustfit = 0;
+
+% select timewindow of interest
+%zero = 3*EEG.srate; % [-3 2] epoch around event    
+%event_win_samples = zero + (bemobil_config.epoching.event_win(1) * EEG.srate):zero+(bemobil_config.epoching.event_win(2) * EEG.srate);
+    
 
 % try out several ts prior to event
 event_onset = abs(bemobil_config.epoching.event_epochs_boundaries(1) * 250);
@@ -202,7 +209,7 @@ for ts = ts_of_ints
     end
 end
 
-%% signficance of main effects across subjects
+%% TODO:confirm signficance of main effects across subjects
 
 % settings
 alpha = .05;
