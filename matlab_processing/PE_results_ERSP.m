@@ -19,7 +19,7 @@ if isempty(STUDY)
 end
 STUDY_sets = cellfun(@str2num, {STUDY.datasetinfo.subject});
 
-%% TODO:LIMO_LOOP single-trial regression first-level and group level statistics : congruency
+%% FINAL single-trial regression first-level and group level statistics
 
 if ~exist('ALLEEG','var'); eeglab; end
 pop_editoptions( 'option_storedisk', 0, 'option_savetwofiles', 1, 'option_saveversion6', 0, 'option_single', 0, 'option_memmapdata', 0, 'option_eegobject', 0, 'option_computeica', 1, 'option_scaleicarms', 1, 'option_rememberfolder', 1, 'option_donotusetoolboxes', 0, 'option_checkversion', 1, 'option_chat', 1);
@@ -32,8 +32,7 @@ event_sample = 750;
 window = event_sample-25:event_sample+200; %[-.1 .8]seconds start and end of interesting, to be analyzed, samples
 count = 1;
 
-
-for cluster = 11 % clusters_of_int
+for cluster = clusters_of_int
     for model = models
         model = model{1};
         
