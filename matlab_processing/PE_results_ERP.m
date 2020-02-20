@@ -55,11 +55,11 @@ for model = models
             disp(['Now running analysis for channel: ' num2str(chan) ' and subject: ' num2str(count+1)]);
 
             %DESIGN make continuous and dummy coded predictors
-            congruency = s.etc.epoching.oddball';
-            haptics = s.etc.epoching.haptics';
-            trial_nr = s.etc.epoching.trial_number';
-            direction = categorical(s.etc.epoching.direction)';
-            sequence = s.etc.epoching.sequence';
+            congruency = s.etc.analysis.design.oddball';
+            haptics = s.etc.analysis.design.haptics';
+            trial_nr = s.etc.analysis.design.trial_number';
+            direction = categorical(s.etc.analysis.design.direction)';
+            sequence = s.etc.analysis.design.sequence';
             
             if contains(model, 'velocity')
                 % select mismatch trials only

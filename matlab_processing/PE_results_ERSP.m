@@ -25,14 +25,13 @@ if ~exist('ALLEEG','var'); eeglab; end
 pop_editoptions( 'option_storedisk', 0, 'option_savetwofiles', 1, 'option_saveversion6', 0, 'option_single', 0, 'option_memmapdata', 0, 'option_eegobject', 0, 'option_computeica', 1, 'option_scaleicarms', 1, 'option_rememberfolder', 1, 'option_donotusetoolboxes', 0, 'option_checkversion', 1, 'option_chat', 1);
 
 % get betas from single subject level of design:
-models = {'ersp_sample ~ congruency * haptics + trial_nr + direction + sequence',...
-    'ersp_sample ~ congruency * haptics + trial_nr + direction + sequence + base'};
+models = {'ersp_sample ~ congruency * haptics + base',... % + base + trial_nr + direction + sequence
+    'ersp_sample ~ velocity * haptics + base'}; % trial_nr + direction + sequence
 robustfit = 0; % fit robust regression with squared weights, see fitlm
 event_sample = 750;
-window = event_sample-25:event_sample+200; %[-.1 .8]seconds start and end of interesting, to be analyzed, samples
-count = 1;
+log_scale = 0;
 
-for cluster = clusters_of_int
+for cluster = [33]%,5] %6
     for model = models
         model = model{1};
         
@@ -50,22 +49,26 @@ for cluster = clusters_of_int
         all_setindices = STUDY.cluster(cluster).sets;
         all_sets = STUDY_sets(all_setindices);
         all_comps = STUDY.cluster(cluster).comps;
-        subjects = unique_subjects;
-
+        
         % fit model to IC data
         count = 1;
-        for subject = subjects
+        for subject = unique_subjects
             
             % select EEG dataset
             [~, ix] = find(subject==subjects);
             s = ALLEEG(ix);
 
             %DESIGN make continuous and dummy coded predictors
-            congruency = s.etc.epoching.oddball';
-            haptics = s.etc.epoching.haptics';
-            trial_nr = s.etc.epoching.trial_number';
-            direction = categorical(s.etc.epoching.direction)';
-            sequence = s.etc.epoching.sequence';
+            % good trials ixs
+            good_trials = ones(1,size(s.etc.analysis.design.oddball,2));
+            good_trials(s.etc.analysis.ersp.rm_ixs) = 0;
+            good_trials = logical(good_trials);
+    
+            congruency = s.etc.analysis.design.oddball(good_trials)';
+            haptics = s.etc.analysis.design.haptics(good_trials)';
+            trial_nr = s.etc.analysis.design.trial_number(good_trials)';
+            direction = categorical(s.etc.analysis.design.direction(good_trials))';
+            sequence = s.etc.analysis.design.sequence(good_trials)';
             
             if contains(model, 'velocity')
                 % select mismatch trials only
@@ -75,31 +78,46 @@ for cluster = clusters_of_int
                 direction = direction(congruency);
                 sequence = sequence(congruency);                
                 % add velocity at moment of collision
-                velocity = s.etc.analysis.mocap.mag_vel(event_sample,congruency)';
+                % velocity = s.etc.analysis.mocap.mag_vel(event_sample,congruency)';
             end
 
             % select 1st comp if more than 1 comp per subject
-            comp = all_comps(all_sets==subject);
-            if comp > 1
-    %             % averaging
-    %             s_eeg.etc.analysis.ersp.base_corrected_dB.visual(compos(1),:,:,:) = ...
-    %                 mean(s_eeg.etc.analysis.ersp.base_corrected_dB.visual(compos,:,:,:),1);
-    %             s_eeg.etc.analysis.ersp.base_corrected_dB.vibro(compos(1),:,:,:) = ...
-    %                 mean(s_eeg.etc.analysis.ersp.base_corrected_dB.vibro(compos,:,:,:),1);
+            this_sets = find(all_sets==subject);
+            comps = all_comps(this_sets);
 
-                % selecting first index
-                comp = comp(1);
-            end
+%             if size(comps,2) > 1
+%                                 
+%                 % selecting first index
+%                 %comp = comps(1);
+%                 
+%                 % select the one with lower rv
+%                 comp_ixs = find(ismember(STUDY.cluster(cluster).comps,comps));
+%                 rvs = STUDY.cluster(cluster).residual_variances(this_sets);
+%                 min_rv = find(rvs==min(rvs));
+%                 comp = comps(min_rv);
+%             else
+%                 comp = comps;
+%             end
 
             % fitlm for each time frequency pixel
             tic
-            disp(['Now running analysis for cluster: ' num2str(cluster) ' and subject: ' num2str(subject) ' with component: ' num2str(comp)]);
-            for t = 1:size(s.etc.analysis.ersp.times,2)
-                for f = 1:size(s.etc.analysis.ersp.freqs,2)
+            disp(['Now running analysis for cluster: ' num2str(cluster) ' and subject: ' num2str(subject) ' with component: ' num2str(comps)]);
+            for t = 1:size(s.etc.analysis.ersp.tf_event_times,2)
+                for f = 1:size(s.etc.analysis.ersp.tf_event_freqs,2)
 
                     % add ersp and baseline sample to design matrix
-                    ersp_sample = squeeze(s.etc.analysis.ersp.tfdata.comp(comp,f,t,:));
-                    base = squeezemean(s.etc.analysis.ersp.tfdata.comp(comp,f,1:19,:),3);
+                    if size(comps,2) > 1
+                        ersp_sample = squeezemean(s.etc.analysis.ersp.tf_event_raw_power(comps,f,t,good_trials),1);
+                        base = squeezemean(s.etc.analysis.ersp.tf_base_raw_power(comps,f,good_trials),1);
+                    else
+                        ersp_sample = squeeze(s.etc.analysis.ersp.tf_event_raw_power(comps,f,t,good_trials));
+                        base = squeeze(s.etc.analysis.ersp.tf_base_raw_power(comps,f,good_trials));
+                    end
+                    
+                    if log_scale
+                        base = mean(base,2);
+                        ersp_sample = 10.*log10(ersp_sample./base);
+                    end
                     
                     if contains(model,'velocity')
                         ersp_sample = ersp_sample(congruency,:);
@@ -153,6 +171,8 @@ for cluster = clusters_of_int
         times_ixs = [1, size(times,2)];
         freqs = s.etc.analysis.ersp.freqs;
         max_freq_ix = freqs(end);
+        res.times = times;
+        res.freqs = freqs;
         
         % select model
         if contains(model, 'velocity')

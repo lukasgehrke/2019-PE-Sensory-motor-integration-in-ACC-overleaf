@@ -33,14 +33,16 @@ save(['/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/5_stu
 clear loc
 
 %% plot clusters dipoleclusters
-colors = brewermap(size(clusters_of_int,2),'Set1');
-std_dipoleclusters(STUDY, ALLEEG, 'clusters', clusters_of_int,...
+%colors = brewermap(size(clusters_of_int,2),'Set1');
+std_dipoleclusters(STUDY, ALLEEG, 'clusters', 26,...
     'centroid', 'add',...
     'projlines', 'on',...
-    'viewnum', 4,...
-    'colors', colors);
+    'viewnum', 4);
+
+%,'colors', colors);
 
 %% makotos NIMAs Blobs
+
 voxelSize      = 4;
 FWHM           = 10;
 blobOrVoxelIdx = 1;

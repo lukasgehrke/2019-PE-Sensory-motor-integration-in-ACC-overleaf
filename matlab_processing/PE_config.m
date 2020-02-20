@@ -99,35 +99,29 @@ bemobil_config.subjects = 2:20;
 bemobil_config.folders.study_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/';
 
 %% EEG and MOCAP epochs processing
-% bemobil_config.epoching.event_epochs_boundaries = [-2.3  1]; % was -.3
 bemobil_config.epoching.event_epochs_boundaries = [-3  2]; % larger window for ERSP computation
-bemobil_config.epoching.event_win = [-.4 .8];
+bemobil_config.epoching.event_win = [-1 1];
 bemobil_config.epoching.event_epoching_event = {'box:touched'}; 
 
+% ERSPs
 bemobil_config.epoching.base_epochs_boundaries = [-1  1];
-bemobil_config.epoching.base_win = [-.4 -.1];
+bemobil_config.epoching.base_win = [-.2 0];
 bemobil_config.epoching.base_epoching_event = {'box:spawned'}; 
 
-% filtering
+% settings
+fft_options = struct();
+fft_options.cycles = [3 0.5];
+fft_options.padratio = 2;
+fft_options.freqrange = [3 40];
+fft_options.freqscale = 'log';
+fft_options.n_freqs = 40;
+fft_options.timesout = 150;
+fft_options.alpha = NaN;
+fft_options.powbase = NaN;
+
+% ERP filtering
 bemobil_config.filter_plot_low = 1;
-bemobil_config.filter_plot_high = 15;
-
-% ERSPs
-% baseline
-bemobil_config.ersp.baseline = [-300 -100];
-bemobil_config.ersp.n_times = 300;
-bemobil_config.ersp.trial_normalization = true;
-bemobil_config.ersp.baseline_start_end = bemobil_config.ersp.baseline;
-
-% fft options
-bemobil_config.ersp.fft_cycles = [3 0.5];
-bemobil_config.ersp.fft_freqrange = [3 100];
-bemobil_config.ersp.fft_padratio = 2;
-bemobil_config.ersp.fft_freqscale = 'log';
-bemobil_config.ersp.fft_alpha = NaN;
-bemobil_config.ersp.fft_powbase = NaN;
-bemobil_config.ersp.fft_c_type   = 'ersp'; % 'itc' 'both'
-bemobil_config.ersp.n_freqs = 98;
+bemobil_config.filter_plot_high = 10;
 
 %% study parameters
 
@@ -149,8 +143,8 @@ bemobil_config.ersp.n_freqs = 98;
 % bemobil_config.study_filename = 'PE_rv_15_new.study';
 % clusters_of_int = [4, 7, 9, 13, 15, 18]; % 'PE_rv_15_new.study', 9 ACC, 7/15 PCC
 
-bemobil_config.study_filename = 'PE_rv_15_new_dip_only.study';
-clusters_of_int = [4, 6, 9, 11, 18, 19]; % 'PE_rv_15_new_dip_only.study', 11 ACC, 19 PCC
+%bemobil_config.study_filename = 'PE_mobi.study';
+bemobil_config.study_filename = 'PE_mobi_clean.study';
 
 channels_of_int = [5, 25, 65];
 % channels
@@ -158,32 +152,34 @@ channels_of_int = [5, 25, 65];
 % 25: Pz
 % 65: FCz
 
-bemobil_config.STUDY_components_to_use = 1:65;
-% precluster
-% bemobil_config.STUDY_clustering_weights = struct('dipoles', 10, 'scalp_topographies', 1, 'spectra', 3, 'erp', 3); % double dipping
-bemobil_config.STUDY_clustering_weights = struct('dipoles', 1, 'scalp_topographies', 0, 'spectra', 0, 'erp', 0); % no double dipping
+% no double dipping
+%bemobil_config.STUDY_clustering_weights = struct('dipoles', 1, 'scalp_topographies', 0, 'spectra', 0, 'erp', 0);
+% spot rotation settings
+%STUDY_2_clustering_weights = struct('dipoles', 6, 'scalp_topographies', 1, 'spectra', 1, 'ERSPs', 3);
+%STUDY_2_quality_measure_weights = [3,-2,-1,-1,-2,-1];
 
-% repeated clustering, TODO set Talairach of peak interest
-% % RSC Spot Rotation
-bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 34, 'z', 28);
-% % RSC more posterior
-% % MNI ('x', 0, 'y', -55, 'z', 10)
-% % https://www.biorxiv.org/content/biorxiv/early/2017/10/09/200576.full.pdf
-% % https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5321500/
-% STUDY_cluster_ROI_talairach = struct('x', 0, 'y', -55, 'z', 10);
+% default: spot rotation
+bemobil_config.STUDY_clustering_weights = struct('dipoles', 6, 'scalp_topographies', 1, 'spectra', 1, 'ersp', 3, 'erp', 0);
+%bemobil_config.STUDY_clustering_weights = struct('dipoles', 1, 'scalp_topographies', 1, 'spectra', 1, 'ersp', 3, 'erp', 0);
+%bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 9, 'z', 39); % toellner2017
+%bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 9, 'z', 30); % myself
+%bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 15, 'z', 45); % myself
+%bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 15, 'z', 40); % myself
+%bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 15, 'z', 30); % Zander2016
 
+bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 10, 'y', -40, 'z', 30); % Zander2016
+
+%bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 40, 'z', 22);
 %     quality_measure_weights         - vector of weights for quality measures. 6 entries: subjects, ICs/subjects, normalized
 %                                     spread, mean RV, distance from ROI, mahalanobis distance from median of multivariate
 %                                     distribution (put this very high to get the most "normal" solution)
-% STUDY_quality_measure_weights = [3,-1,-2,-1,-2,-1];
-bemobil_config.STUDY_quality_measure_weights = [3,-2,-1,-1,-1,-1];
+bemobil_config.STUDY_quality_measure_weights = [3,-2,-1,-1,-2,-1];
 
 % calculate how many ICs remain in the STUDY and take 70% of that for the k
 % clusters
 bemobil_config.IC_percentage = .7;
 bemobil_config.outlier_sigma = 3;
-bemobil_config.n_iterations = 10000;
-
+bemobil_config.n_iterations = 10;
 bemobil_config.do_clustering = 1;
 bemobil_config.do_multivariate_data = 1;
 bemobil_config.STUDY_filepath_clustering_solutions = 'clustering_solutions/';
@@ -214,7 +210,9 @@ bemobil_config.warped_dipfitted_filename = 'warped_dipfitted.set';
 bemobil_config.copy_weights_interpolate_avRef_filename = 'interp_avRef_ICA.set';
 bemobil_config.single_subject_cleaned_ICA_filename = 'cleaned_with_ICA.set';
 bemobil_config.ssd_frontal_parietal_filename = 'ssd_frontal_parietal.set';
-bemobil_config.epochs_filename = 'epochs.set';
+%bemobil_config.epochs_filename = 'epochs.set';
+bemobil_config.epochs_filename = 'epochs_new.set';
+bemobil_config.epochs_cleaned_filename = 'epochs_new_clean.set';
 
 bemobil_config.merged_filename_mocap = 'merged_mocap.set';
 
@@ -254,8 +252,9 @@ bemobil_config.do_remove_outside_head = 'off';
 bemobil_config.number_of_dipoles = 1;
 
 % IC_label
-bemobil_config.eye_threshold = 0.7;
-bemobil_config.brain_threshold = 0.4;
+bemobil_config.eye_threshold = .8;
+bemobil_config.line_threshold = .8;
+bemobil_config.brain_threshold = .5;
 
 % FHs cleaning
 bemobil_config.buffer_length = 0.49;

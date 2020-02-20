@@ -280,8 +280,8 @@ if ~exist('ALLEEG','var'); eeglab; end
 pop_editoptions( 'option_storedisk', 0, 'option_savetwofiles', 1, 'option_saveversion6', 0, 'option_single', 0, 'option_memmapdata', 0, 'option_eegobject', 0, 'option_computeica', 1, 'option_scaleicarms', 1, 'option_rememberfolder', 1, 'option_donotusetoolboxes', 0, 'option_checkversion', 1, 'option_chat', 1);
 
 % get betas from single subject level of design:
-models = {'vel_erp_sample ~ congruency * haptics + trial_nr + direction + sequence',...
-    'vel_erp_sample ~ after_mismatch * haptics + trial_nr + direction + sequence'};
+models = {'vel_erp_sample ~ haptics + trial_nr + direction + sequence',...
+    'vel_erp_sample ~ after_mismatch * haptics + trial_nr + direction + was_sequence'};
 robustfit = 0; % fit robust regression with squared weights, see fitlm
 event_sample = 750;
 window = event_sample-250:event_sample+250; %[-1 1]seconds start and end of interesting, to be analyzed, samples
@@ -310,12 +310,26 @@ for model = models
         direction = categorical(s.etc.epoching.direction)';
         sequence = s.etc.epoching.sequence';
         after_mismatch = [0; congruency(1:end-1)];
+        was_sequence = [0 s.etc.epoching.sequence(1:end-1)]';
+        if strcmp(model, models{1})
+            sequence = sequence(congruency);
+            direction = direction(congruency);
+            trial_nr = trial_nr(congruency);
+            haptics = haptics(congruency);
+        end
 
         tic
         for sample = window
 
             vel_erp_sample = s.etc.analysis.mocap.mag_vel(sample,:)';
-            design = table(vel_erp_sample, congruency, haptics, trial_nr, direction, sequence, after_mismatch); % design matrix per sample
+            
+            % design matrix per sample
+            if strcmp(model, models{1})
+                vel_erp_sample = vel_erp_sample(congruency);                
+                design = table(vel_erp_sample, haptics, trial_nr, direction, sequence);
+            else
+                design = table(vel_erp_sample, haptics, trial_nr, direction, sequence, after_mismatch, was_sequence);
+            end
             
             if robustfit
                 mdl = fitlm(design, model, 'RobustOpts', 'on');
@@ -337,7 +351,7 @@ for model = models
     % add parameter names
     res.model = model;
     res.parameter_names = string(mdl.CoefficientNames)';
-    save([save_fpath '/res_' model '_robust-' num2str(robustfit) '.mat'], 'res');
+    %save([save_fpath '/res_' model '_robust-' num2str(robustfit) '.mat'], 'res');
 
     %LIMO ttests
     % settings
@@ -349,7 +363,7 @@ for model = models
 
     % main effects: run limo ttest against 0
     for i = 1:size(save_info.parameters,1)
-        save_info.parameter = save_info.parameters{1};
+        save_info.parameter = save_info.parameters{i};
         PE_limo(save_info, res, 0, [], [], [], [], []);
 
         % load LIMO output: save mean value and sig. mask to res and resave res
@@ -372,11 +386,11 @@ for model = models
         % load true result
         load([save_info.load_p '/ttest_' save_name '/tfce/tfce_one_sample_ttest_parameter_1.mat']);
         % threshold true data with bootstrap prctile thresh
-        res.ttest.(save_name).sig_mask = find(tfce_one_sample>thresh);
-
-        % resave res
-        save([save_info.load_p '/res_' save_info.model '_robust-' num2str(save_info.robustfit) '.mat'], 'res');
+        res.ttest.(save_name).sig_mask = find(tfce_one_sample>thresh);    
     end
+    
+    % save res
+    save([save_info.load_p '/res_' save_info.model '_robust-' num2str(save_info.robustfit) '.mat'], 'res');
 
     % clear results struct
     clear res
