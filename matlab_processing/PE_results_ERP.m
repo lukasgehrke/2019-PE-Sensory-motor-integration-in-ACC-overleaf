@@ -27,8 +27,8 @@ if ~exist('ALLEEG','var'); eeglab; end
 pop_editoptions( 'option_storedisk', 0, 'option_savetwofiles', 1, 'option_saveversion6', 0, 'option_single', 0, 'option_memmapdata', 0, 'option_eegobject', 0, 'option_computeica', 1, 'option_scaleicarms', 1, 'option_rememberfolder', 1, 'option_donotusetoolboxes', 0, 'option_checkversion', 1, 'option_chat', 1);
 
 % get betas from single subject level of design:
-models = {'erp_sample ~ congruency * haptics + trial_nr + direction + sequence', ...
-    'erp_sample ~ velocity * haptics + trial_nr + direction + sequence'};
+models = {'erp_sample ~ congruency * haptics', ...
+    'erp_sample ~ velocity * haptics'};
 
 robustfit = 0; % fit robust regression with squared weights, see fitlm
 event_sample = 750;
