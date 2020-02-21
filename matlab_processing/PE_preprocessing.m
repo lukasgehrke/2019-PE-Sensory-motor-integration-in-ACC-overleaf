@@ -94,18 +94,19 @@ for subject = subjects
     touch_ixs = find(strcmp({EEG.event.type}, 'box:touched'));
     spawn_ixs = find(strcmp({EEG.event.type}, 'box:spawned'));
         
-    % 1. remove all trials that have a distance greater than 2s between 
-    % spawn and touch: participants where slow to react / start the trial
-    latency_diff = (cell2mat({EEG.event(touch_ixs).latency}) - cell2mat({EEG.event(spawn_ixs).latency})) / EEG.srate;
-    bad_tr_ixs = find(latency_diff>2);
-    EEG.etc.analysis.behavior.rt_spawned_touched = latency_diff;
-    
     %% Design Matrix
     
     design = EEG;
     design.event = design.event(touch_ixs);
     design = pop_epoch( design, bemobil_config.epoching.event_epoching_event, bemobil_config.epoching.event_epochs_boundaries, 'newname',...
         'epochs', 'epochinfo', 'yes');
+    
+    % remove all trials that have a distance greater than 2s between 
+    % spawn and touch: participants where slow to react / start the trial
+    latency_diff = (cell2mat({EEG.event(touch_ixs).latency}) - cell2mat({EEG.event(spawn_ixs).latency})) / EEG.srate;
+    bad_tr_ixs = find(latency_diff>2);
+    EEG.etc.analysis.design.rt_spawned_touched = latency_diff;
+    EEG.etc.analysis.design.isitime = str2double({design.epoch.eventisiTime});
     
     % factor: oddball
     haptics = string({design.epoch.eventfeedback});
@@ -150,7 +151,7 @@ for subject = subjects
     % for channel ERPs project out eye component activation time courses
     eyes = find(EEG.etc.ic_classification.ICLabel.classifications(:,3) > bemobil_config.eye_threshold);
     line = find(EEG.etc.ic_classification.ICLabel.classifications(:,5) > bemobil_config.line_threshold);
-    ERP = pop_subcomp(EEG, [eyes', line']);
+    ERP = pop_subcomp(EEG, unique([eyes', line']));
     
     % filter
     ERP = pop_eegfiltnew(ERP, bemobil_config.filter_plot_low, bemobil_config.filter_plot_high);
@@ -188,11 +189,15 @@ for subject = subjects
     ERSP_base = pop_epoch( ERSP_base, bemobil_config.epoching.base_epoching_event, bemobil_config.epoching.base_epochs_boundaries, 'newname',...
         'epochs', 'epochinfo', 'yes');
     
-    % find bad epochs based on component ERP
-    [~, rmepochs] = pop_autorej(ERSP_event, 'electrodes', [], 'icacomps', 1:size(ERSP_event.icaact,1), 'maxrej', 1, 'nogui','on','eegplot','off');
+    % find bad epochs based on component ERP: actually select good
+    % components as they should be most relevant for the cleaning as they
+    % are the ones later being analysed
+    % about the IClabel threshold: Marius said thats what Luca used, cite!
+    comps = find(EEG.etc.ic_classification.ICLabel.classifications(:,1) > bemobil_config.brain_threshold);
+    [~, rmepochs] = pop_autorej(ERSP_event, 'electrodes', [], 'icacomps', comps, 'maxrej', 1, 'nogui','on','eegplot','off');
     EEG.etc.analysis.ersp.rm_ixs = sort([bad_tr_ixs, rmepochs]);
     
-    for comp = 1:size(ERSP_event.icaact,1)
+    for comp = 1:size(ERSP_event.icaact,1) % loop through all components
         tic
         
         % event ersp
@@ -211,7 +216,7 @@ for subject = subjects
             'plotitc','off',...
             'verbose','off');
        
-        EEG.etc.analysis.ersp.tf_event_raw_power(comp,:,:,:) = abs(tfdata);
+        EEG.etc.analysis.ersp.tf_event_raw_power(comp,:,:,:) = abs(tfdata); %discard phase (complex valued)
         EEG.etc.analysis.ersp.tf_event_times = ersp_times;
         EEG.etc.analysis.ersp.tf_event_freqs = ersp_freqs;
         
@@ -235,7 +240,7 @@ for subject = subjects
         win = bemobil_config.epoching.base_win * 1000;
         EEG.etc.analysis.ersp.tf_base_raw_power(comp,:,:) = squeezemean(abs(tfdata(:,find(ersp_times>win(1),1,'first'):find(ersp_times<=win(2),1,'last'),:)),2);
 
-% test: everything looks good, 14.02.2020
+% test grand mean ersp: everything looks good, 14.02.2020
 %         ev = squeezemean(EEG.etc.analysis.ersp.tf_event_raw_power,3);
 %         base = squeezemean(EEG.etc.analysis.ersp.tf_base_raw_power,2);
 %         ev_db = 10.*log10(ev./base);
@@ -259,39 +264,20 @@ for subject = subjects
             mocap.data(14,:,:).^2 +...
             mocap.data(15,:,:).^2));
     
-    %% add back unfiltered, only event times raw data later clustering params and save epoched datasets
+    %% add back unfiltered epoched data and remove bad ERSP trials for creating ERSP study
     
+    % add back raw unfiltered epoch data
     EEG = pop_epoch( EEG, bemobil_config.epoching.event_epoching_event, bemobil_config.epoching.event_epochs_boundaries, 'newname',...
         'epochs', 'epochinfo', 'yes');
     EEG = eeg_checkset(EEG);
-    pop_saveset(EEG, 'filename', [bemobil_config.filename_prefix num2str(subject) '_' bemobil_config.epochs_filename] , 'filepath', output_filepath);
     
-end
-
-%% remove bad trials prior to creating study
-
-if ~exist('ALLEEG','var'); eeglab; end
-pop_editoptions( 'option_storedisk', 1, 'option_savetwofiles', 1, 'option_saveversion6', 0,...
-    'option_single', 1, 'option_memmapdata', 0, 'option_eegobject', 0, 'option_computeica', 1,...
-    'option_scaleicarms', 1, 'option_rememberfolder', 1, 'option_donotusetoolboxes', 0,...
-    'option_checkversion', 1, 'option_chat', 1);
-STUDY = []; CURRENTSTUDY = 0; ALLEEG = []; EEG=[]; CURRENTSET=[];
-input_path = [bemobil_config.study_folder bemobil_config.single_subject_analysis_folder];
-
-for subject = subjects
-    disp(['Subject #' num2str(subject) ]);
-    input_filepath = [input_path bemobil_config.filename_prefix num2str(subject)];
-    output_filepath = input_filepath;
-    EEG = pop_loadset('filename',[ bemobil_config.filename_prefix num2str(subject) '_'...
-		bemobil_config.epochs_filename], 'filepath', input_filepath);
-    [ALLEEG, EEG, CURRENTSET] = eeg_store( ALLEEG, EEG, 0 );
-    
-    % good trials ixs
+    % remove trials
     bad_trials = zeros(1,size(EEG.epoch,2));
-    bad_trials(union(EEG.etc.analysis.erp.rm_ixs, EEG.etc.analysis.ersp.rm_ixs)) = 1;
+    bad_trials(EEG.etc.analysis.ersp.rm_ixs) = 1;
+    EEG = pop_rejepoch(EEG, bad_trials, 0);  
     
-    EEG = pop_rejepoch(EEG, bad_trials, 0);
-    pop_saveset(EEG, 'filename', [bemobil_config.filename_prefix num2str(subject) '_' bemobil_config.epochs_cleaned_filename] , 'filepath', output_filepath);
+    % save
+    pop_saveset(EEG, 'filename', [bemobil_config.filename_prefix num2str(subject) '_' bemobil_config.epochs_filename] , 'filepath', output_filepath);
     
 end
 
@@ -313,7 +299,7 @@ for subject = subjects
     disp(['Subject #' num2str(subject) ]);
     input_filepath = [input_path bemobil_config.filename_prefix num2str(subject)];
     EEG = pop_loadset('filename',[ bemobil_config.filename_prefix num2str(subject) '_'...
-		bemobil_config.epochs_cleaned_filename], 'filepath', input_filepath);
+		bemobil_config.epochs_filename], 'filepath', input_filepath);
     [ALLEEG, EEG, CURRENTSET] = eeg_store( ALLEEG, EEG, 0 );
 end
 eeglab redraw
@@ -350,11 +336,11 @@ for subject = subjects  % do it for all subjects
     disp(['Subject: ' num2str(subject)])
     input_filepath = [input_path bemobil_config.filename_prefix num2str(subject)];
     EEG = pop_loadset('filename',[ bemobil_config.filename_prefix num2str(subject) '_'...
-		bemobil_config.epochs_cleaned_filename], 'filepath', input_filepath);    
-    
+        bemobil_config.epochs_filename], 'filepath', input_filepath);
+
     % good trials ixs
     good_trials = ones(1,size(EEG.etc.analysis.design.oddball,2));
-    good_trials(union(EEG.etc.analysis.erp.rm_ixs, EEG.etc.analysis.ersp.rm_ixs)) = 0;
+    good_trials(EEG.etc.analysis.ersp.rm_ixs) = 0;
     good_trials = logical(good_trials);
     
     comps = 1:size(EEG.icaact,1);
@@ -389,7 +375,8 @@ for subject = subjects  % do it for all subjects
     all_ersp.datafiles  = bemobil_computeFullFileName( { EEG.filepath }, { EEG.filename });
     all_ersp.datatrials = trialindices;
     all_ersp.parameters = parameters_icaersp;
-    std_savedat( [input_filepath '/' bemobil_config.filename_prefix num2str(subject) '_' bemobil_config.epochs_filename(1:end-4) '.icaersp'], all_ersp);
+    %std_savedat( [input_filepath '/' bemobil_config.filename_prefix num2str(subject) '_' bemobil_config.epochs_filename(1:end-4) '.icaersp'], all_ersp);
+    std_savedat( [input_filepath '/design1_' num2str(subject) '.icaersp'], all_ersp);
     
 end % for every participant
 disp('Done.')
@@ -460,4 +447,13 @@ mkdir(output_path)
 [STUDY EEG] = pop_savestudy( STUDY, EEG, 'filename', bemobil_config.study_filename,'filepath',output_path);
 CURRENTSTUDY = 1; EEG = ALLEEG; CURRENTSET = [1:length(EEG)];
 eeglab redraw
+
+disp('Saving STUDY clustering solution')
+cluster = {STUDY.cluster};
+save(['/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/matlab_processing/'...
+    'cluster_ROI_' ...
+    num2str(bemobil_config.STUDY_cluster_ROI_talairach.x) '_' ...
+    num2str(bemobil_config.STUDY_cluster_ROI_talairach.y) '_' ...
+    num2str(bemobil_config.STUDY_cluster_ROI_talairach.z) '.mat']);
 disp('...done')
+

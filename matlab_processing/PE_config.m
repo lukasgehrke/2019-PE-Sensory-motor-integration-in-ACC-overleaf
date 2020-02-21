@@ -165,11 +165,8 @@ bemobil_config.STUDY_clustering_weights = struct('dipoles', 6, 'scalp_topographi
 %bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 9, 'z', 30); % myself
 %bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 15, 'z', 45); % myself
 %bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 15, 'z', 40); % myself
-%bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 15, 'z', 30); % Zander2016
+bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 15, 'z', 30); % Zander2016
 
-bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 10, 'y', -40, 'z', 30); % Zander2016
-
-%bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 40, 'z', 22);
 %     quality_measure_weights         - vector of weights for quality measures. 6 entries: subjects, ICs/subjects, normalized
 %                                     spread, mean RV, distance from ROI, mahalanobis distance from median of multivariate
 %                                     distribution (put this very high to get the most "normal" solution)
@@ -179,7 +176,7 @@ bemobil_config.STUDY_quality_measure_weights = [3,-2,-1,-1,-2,-1];
 % clusters
 bemobil_config.IC_percentage = .7;
 bemobil_config.outlier_sigma = 3;
-bemobil_config.n_iterations = 10;
+bemobil_config.n_iterations = 10000;
 bemobil_config.do_clustering = 1;
 bemobil_config.do_multivariate_data = 1;
 bemobil_config.STUDY_filepath_clustering_solutions = 'clustering_solutions/';
@@ -212,7 +209,6 @@ bemobil_config.single_subject_cleaned_ICA_filename = 'cleaned_with_ICA.set';
 bemobil_config.ssd_frontal_parietal_filename = 'ssd_frontal_parietal.set';
 %bemobil_config.epochs_filename = 'epochs.set';
 bemobil_config.epochs_filename = 'epochs_new.set';
-bemobil_config.epochs_cleaned_filename = 'epochs_new_clean.set';
 
 bemobil_config.merged_filename_mocap = 'merged_mocap.set';
 

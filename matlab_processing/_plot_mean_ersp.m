@@ -9,7 +9,7 @@ plot_ss = 0;
 min_rv = 0;
 trials = 'mismatch'; % 'match'
 
-clusters = [34]; %8, 11, 15, 28, 33, 36];
+clusters = [27]; %8, 11, 15, 28, 33, 36];
 % std_dipoleclusters(STUDY, ALLEEG, 'clusters', clusters,...
 %     'centroid', 'add',...
 %     'projlines', 'on',...
@@ -46,13 +46,9 @@ for c = clusters
         end            
  
         % get mean times of events
-        rt(i) = mean(s.etc.analysis.behavior.rt_spawned_touched(tr_ix));
+        rt(i) = mean(s.etc.analysis.design.rt_spawned_touched(tr_ix));
         % trials taken below considers all trials so a but wrong (should not matter much)
-        for j = 1:size(s.epoch,2)
-            start_t(j) = str2double(s.epoch(j).eventisiTime{1});
-        end
-        start(i) = mean(start_t);
-        clear start_t
+        start(i) = mean(s.etc.analysis.design.isitime(tr_ix));
         
         % prepare ersp data
         data = squeezemean(s.etc.analysis.ersp.tf_event_raw_power(ic,:,:,tr_ix),4);
