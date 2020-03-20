@@ -456,4 +456,3 @@ save(['/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-
     num2str(bemobil_config.STUDY_cluster_ROI_talairach.y) '_' ...
     num2str(bemobil_config.STUDY_cluster_ROI_talairach.z) '.mat']);
 disp('...done')
-

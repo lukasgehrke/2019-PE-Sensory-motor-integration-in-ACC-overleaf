@@ -143,10 +143,10 @@ bemobil_config.filter_plot_high = 10;
 % bemobil_config.study_filename = 'PE_rv_15_new.study';
 % clusters_of_int = [4, 7, 9, 13, 15, 18]; % 'PE_rv_15_new.study', 9 ACC, 7/15 PCC
 
-%bemobil_config.study_filename = 'PE_mobi.study';
-bemobil_config.study_filename = 'PE_mobi_clean.study';
+%bemobil_config.study_filename = 'PE_mobi_clean.study';
+bemobil_config.study_filename = 'PE_mobi_clean_lda.study';
 
-channels_of_int = [5, 25, 65];
+channels_of_int = 65;% [5, 25, 65];
 % channels
 % 5: Fz
 % 25: Pz
@@ -165,7 +165,8 @@ bemobil_config.STUDY_clustering_weights = struct('dipoles', 6, 'scalp_topographi
 %bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 9, 'z', 30); % myself
 %bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 15, 'z', 45); % myself
 %bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 15, 'z', 40); % myself
-bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 15, 'z', 30); % Zander2016
+%bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 15, 'z', 30); % Zander2016
+bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 3, 'y', -37, 'z', 30); % after LDA localization
 
 %     quality_measure_weights         - vector of weights for quality measures. 6 entries: subjects, ICs/subjects, normalized
 %                                     spread, mean RV, distance from ROI, mahalanobis distance from median of multivariate

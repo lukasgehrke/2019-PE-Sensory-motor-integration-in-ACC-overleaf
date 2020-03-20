@@ -35,7 +35,11 @@ LIMO.data.data_dir = [save_info.load_p];
 LIMO.data.chanlocs = [];
 
 % find index of data
-data_ix = find(strcmp(save_info.parameter, res.parameter_names));
+if isfield(save_info, 'parameter')
+    data_ix = find(strcmp(save_info.parameter, res.parameter_names));
+else
+    data_ix = [];
+end
 
 if ersp
     LIMO.Analysis      = 'Time-Frequency';
@@ -57,7 +61,11 @@ else
     LIMO.Analysis      = 'erp';
     
     if isempty(data_ix) % make the mean
-        y = sum(res.betas,3);
+        if ndims(res.betas)>2
+            y = sum(res.betas,3);
+        else
+            y = res.betas;
+        end
     else
         y = res.betas(:,:,data_ix);
     end
@@ -79,7 +87,7 @@ LIMO.design.fullfactorial    = 0; % 0/1 specify if interaction should be include
 LIMO.design.zscore           = 0; %/1 zscoring of continuous regressors
 LIMO.design.method           = ''; % actuially no effect because random_robust looks at the design
 LIMO.design.type_of_analysis = 'Mass-univariate'; 
-LIMO.design.bootstrap        = 1000; % 0/1 indicates if bootstrap should be performed or not (by default 0 for group studies)
+LIMO.design.bootstrap        = 10000; % 0/1 indicates if bootstrap should be performed or not (by default 0 for group studies)
 LIMO.design.tfce             = 1; %0/1 indicates to compute TFCE or not
 
 LIMO.design.nb_categorical = 0;
@@ -92,9 +100,13 @@ end
 LIMO.design.status = 'to do';
 
 % parameter added using debugger due to errors being thrown in limo_random_robust
-save_param_name = regexprep(save_info.parameter, ':' , '_');
-save_param_name = regexprep(save_param_name, '(' , '');
-save_param_name = regexprep(save_param_name, ')' , '');
+if isfield(save_info, 'parameter')
+    save_param_name = regexprep(save_info.parameter, ':' , '_');
+    save_param_name = regexprep(save_param_name, '(' , '');
+    save_param_name = regexprep(save_param_name, ')' , '');
+else
+    save_param_name = 'grand_mean';
+end
 
 if isempty(regressor)
     LIMO.dir = [LIMO.data.data_dir '/ttest_' save_param_name];
