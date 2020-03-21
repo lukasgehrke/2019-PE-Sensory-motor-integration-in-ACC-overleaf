@@ -1,17 +1,46 @@
-\subsection{Visuomotor adaptation during targeted reaching \textcolor{green}{Sezen, Klaus, Pedro}}
+\subsection{Spatiotemporal perturbations of task structure \textcolor{green}{Sezen, Klaus, Pedro}}}
+In contemporary motor control theories, a system of generative, i.e. forward, models is assumed in order to explain potential variability between elicited motor commands, the movement they trigger, and changes in body pose and the environment \cite{Wolpert2011, Shadmehr2010}. Assuming the brain entertains models of its environment, a generative model predicts the sensory consequences of an action given the current context and efference copy of the motor commandmeanwhile refining the models that cause those sensory consequences \cite{Pearson2011, Friston2010, Friston2016a}. Evidence about the exact nature of the computational implementation in the brain is converging on bayesian inference computing predictions from a generative model or \textit{prior beliefs}, i.e. what is expected to happen, with sensory \textit{evidence}, what is currently happening \cite{Knill2004}. Taken together, within these frameworks, model evidence is scored by an accuracy or surprise metric, e.g. prediction errors. Further, in order to make predictions in a stable environment, where inference on the latent variables governing sensory events is useful, the brain must be a good model of this environment, grounded in causality \cite{Friston2016a}.
 
-Frequently employed paradigms trigger prediction errors at various stages of the action-perception cycle, i.e. in terms of exteroceptive prediction errors \cites{cohen, cavahang, mmn_stuff}
+% then transition to our task
+Previously, we proposed a paradigm with a misaligned spatiotemporal, causal, task structure in a fraction of trials, prematurely triggering succesful object selection in a hand reaching task \cite{Gehrke2019}. Succesful object selection was indicated by a color-change of the selected object accompanied by a vibration under the fingertip hinting at haptic rigidity of the object. In summary, the paradigm perturbed visuo-haptic feedback conflicting generative model predictions about where, and therefore when, the current hand position elicits a succesful object selection with the aim to trigger prediction errors about the visuomotor mapping, or behavioral policy, set at trial start.
 
-Previously, we reported results in light of applied human-computer interaction scenarios and which achieving haptic realism is one of the key challenges, specifically in virtual reality development. Here, the goal of haptic devices is to render realistic sensory feedback that mimics the sensory experience a user would normally perceive when acting on the real world. Head-mounted virtual reality in combination with expected haptic feedback renders a \textit{naturalistic} experience. Further, we presume that predicting the hidden causes of the observed outcomes within the action-perception cycle should, hypothetically, depend on how present one feels in the environment. Virtual reality can provide experiences that elicit profound presence experiences \cite{}. We introduced a paradigm to assess whether prediction error-related potentials at fronto-central electrodes can, on average, detect an increase in the level of immersion, operationalized through added feedback channels \cite{Gehrke_2019}. In the task, we render a perturbation in a fraction of the trials, distorting predicted visual or visuo-haptic consequences of the motor command \cite{oddball}. Specifically, we perturb visuo-haptic feedback conflicting forward model predictions about when or where the current hand position elicits object selection. In the current work we investigate the impact of \textit{perceptual context} on EEG source signals promptly following visuomotor adaptation. We follow a data-driven approach: first we locate independent brain sources maximally contributing to a single-trial linear classification between predicted and perturbed sensory outcomes in an object selection task. Then we contextualise sensory prediction errors at the moment they occur by participants instantaneous hand velocity and the haptic realism of the environment. Using single-trial regression we describe the contextual impact on sensory prediction errors elicited at sources maximally contributing to the binary classification.
+%Visuomotor adaptation during targeted reaching 
+% - first describe general ideas of visuomotor adaption and specify prediction error in our task and differentiate from other prediction errors, be precise!
+% - discrimation classes of prediction error (Wolpert), sensory prediction errors (shadmehr), visuomotor adaptation (shadmehr);
+% - cerebellar (shadmehr, krakauer)
+
+
 
 % in the following:
-% - first describe general ideas of visuomotor adaption and specify prediction error in our task and differentiate from other prediction errors, be precise!
-% - then introduce other EEG findings using similar task focusing on spatial conflict processing
-
+% - then introduce other EEG findings using similar task focusing on spatial conflict processing:  as well as parietal (savioe, Ridderinkhof) eeg dynamics
 % describe previous findings
-% - discrimation classes of prediction error (Wolpert), sensory prediction errors (shadmehr), visuomotor adaptation (shadmehr); is proprioceptive feedback important in our task: I'd argue against that because I consider vibration on the fingertip to be an exteroceptive sensation and do not consider it relevant where the hand was and how my joints were angled etc. during the mismatch event, therefore i stick to exteroceptive prediction errors only!
-% - cerebellar (shadmehr, krakauer)
-% - parietal (Savoie); posterior parietal sensory motor integration within the prediction error hierarchy
-% - acc/PEN/FRN/ERN (Holroyd, Cohen, Zander, Akman): we dont hypothesize ACC since we do not provide a reward in the task. There is no evaluation with respect to a task goal
+% - focus on frontal (cohen, cavanagh, toellner, zander, Holroyd, Gehrke): acc/PEN/FRN/ERN: we dont hypothesize ACC since we do not provide a reward in the task. There is no evaluation with respect to a task goal
+% - parietal (Savoie, Ridderinkhof); posterior parietal sensory motor integration within the prediction error hierarchy
+Frequently employed paradigms trigger prediction errors at various stages of the action-perception cycle, i.e. in terms of exteroceptive prediction errors \cites{cohen, cavahang, mmn_stuff}
 
-Here, we investigate exteroceptive prediction errors during reaching movements similar to reaching for a cup. 
+
+
+
+
+
+%end with hypotheses?:
+
+
+
+
+
+
+
+
+
+
+
+
+% writing ressources
+% - Here, we investigate exteroceptive prediction errors during reaching movements similar to reaching for a cup. 
+%Head-mounted virtual reality in combination with expected haptic feedback renders a \textit{naturalistic} experience. Further, we presume that predicting the hidden causes of the observed outcomes within the action-perception cycle should, hypothetically, depend on how present one feels in the environment. Virtual reality can provide experiences that elicit profound presence experiences \cite{}. 
+%We introduced a paradigm to assess whether prediction error-related potentials at fronto-central electrodes can, on average, detect an increase in the level of immersion, operationalized through added feedback channels \cite{Gehrke_2019}. In the paradigm, we rendered a perturbation in a fraction of the trials, distorting predicted visual or visuo-haptic consequences of the motor command \cite{oddball}.
+%Here, the goal of haptic devices is to render realistic sensory feedback that mimic the sensory experiences when acting on the real world
+%is proprioceptive feedback important in our task: I'd argue against that because I consider vibration on the fingertip to be an exteroceptive sensation and do not consider it relevant where the hand was and how my joints were angled etc. during the mismatch event, therefore i stick to exteroceptive prediction errors only!
+% results in light of applied human-computer interaction scenarios where achieving haptic realism is one of the key challenges, specifically in virtual reality development /cite{Gehrke2019}
+%From an active inference standpoint, motor commands are explainable as descending proprioceptive prediction errors from the top-level within the hierarchical brain structure \cite{Adams2013}
