@@ -1,29 +1,11 @@
 \subsection{Spatiotemporal perturbations of task structure \textcolor{green}{Sezen, Klaus, Pedro}}}
-In contemporary motor control theories, a system of generative, i.e. forward, models is assumed in order to explain potential variability between elicited motor commands, the movement they trigger, and changes in body pose and the environment \cite{Wolpert2011, Shadmehr2010}. Assuming the brain entertains models of its environment, a generative model predicts the sensory consequences of an action given the current context and efference copy of the motor commandmeanwhile refining the models that cause those sensory consequences \cite{Pearson2011, Friston2010, Friston2016a}. Evidence about the exact nature of the computational implementation in the brain is converging on bayesian inference computing predictions from a generative model or \textit{prior beliefs}, i.e. what is expected to happen, with sensory \textit{evidence}, what is currently happening \cite{Knill2004}. Taken together, within these frameworks, model evidence is scored by an accuracy or surprise metric, e.g. prediction errors. Further, in order to make predictions in a stable environment, where inference on the latent variables governing sensory events is useful, the brain must be a good model of this environment, grounded in causality \cite{Friston2016a}.
+In contemporary motor control theories, a system of generative, i.e. forward, models is assumed in order to explain potential variability between elicited motor commands, the movement they trigger, and changes in body pose and the environment \cite{Wolpert2011, Shadmehr2010}. Assuming the brain entertains models of its environment, a generative model predicts the sensory consequences of an action given the current context and efference copy of the motor command, meanwhile refining the models of the causes of those sensory consequences \cite{Pearson2011, Friston2010, Friston2016a}. Evidence about the exact nature of the computational implementation in the brain is converging on bayesian inference computing predictions from a generative model or \textit{prior beliefs}, i.e. what is expected to happen, with sensory \textit{evidence}, what is currently happening \cite{Knill2004}. Taken together, within these frameworks, model evidence is scored by an accuracy or surprise metric, e.g. prediction errors. Importantly, in order to make predictions in a stable environment, where inference on the latent variables governing sensory events is useful, the brain must be a good model of this environment, grounded in causality \cite{Friston2016a}.
 
-% then transition to our task
-Previously, we proposed a paradigm with a misaligned spatiotemporal, causal, task structure in a fraction of trials, prematurely triggering succesful object selection in a hand reaching task \cite{Gehrke2019}. Succesful object selection was indicated by a color-change of the selected object accompanied by a vibration under the fingertip hinting at haptic rigidity of the object. In summary, the paradigm perturbed visuo-haptic feedback conflicting generative model predictions about where, and therefore when, the current hand position elicits a succesful object selection with the aim to trigger prediction errors about the visuomotor mapping, or behavioral policy, set at trial start.
+The human sensorium has arguably developed in order to actively sample the environment with regards to sourcing food and reproduction. Individual senses each excell in specific sensory domains with a combination of reliability-weighted sensory cues providing a holistic sample \cite{Fetsch2012, Cao2019}. Such samples gain their perceptual "significance through their meaning about their causes" \cite{Kording2007}. Thus, in order to efficiently infer what causes certain sensory events, an optimally weighted multisensory percetual experience is preferable with temporal correlations and spatio-temporal congruencies serving as binding cues \cite{Robertson2003}. Recent evidence points towards a parietal-frontal cortical hierarchy binding sensory signals to a common source while segregating those from diverging sources. Unisensory encoding in domain-specific sensory cortices assuming separate source origins evolves via a reliability-weighted fusion in parietal-temporal areas assuming common source origins, ultimately leading to causal inference in frontal and parietal lobes \cite{Cao2019, Rohe2019}.
 
-%Visuomotor adaptation during targeted reaching 
-% - first describe general ideas of visuomotor adaption and specify prediction error in our task and differentiate from other prediction errors, be precise!
-% - discrimation classes of prediction error (Wolpert), sensory prediction errors (shadmehr), visuomotor adaptation (shadmehr);
-% - cerebellar (shadmehr, krakauer)
+Previously, we proposed a paradigm with an asynchronous spatio-temporal cue in a fraction (25\%) of trials, prematurely triggering succesful object selection in an active hand reaching task in virtual reality \cite{Gehrke2019}. Succesful object selection was indicated by a color-change of the selected object accompanied by a synchronous vibration under the fingertip hinting at haptic rigidity of the object. By maintaining spatio-temporal synchrony on 75\%, we hypothesize the formation of a predictive model on the causes of sensory events, therefore amplifying a spatio-temporal prediction error in the asynchronous trials. By investigating participants in this unconstrained reaching setting, we extend previous audio-visual asynchrony setups, including ongoing proprioceptive and vestibular senses while acting in peripersonal space. The tight coupling of spatio-temporal asynchronies to self-generated sampling of the environment may specifically trigger processes in relation to bodily self-consciousness as it anchors predictions to the acting self \cite{Blanke2015, Guterstam2015a}. 
 
-
-
-% in the following:
-% - then introduce other EEG findings using similar task focusing on spatial conflict processing:  as well as parietal (savioe, Ridderinkhof) eeg dynamics
-% describe previous findings
-% - focus on frontal (cohen, cavanagh, toellner, zander, Holroyd, Gehrke): acc/PEN/FRN/ERN: we dont hypothesize ACC since we do not provide a reward in the task. There is no evaluation with respect to a task goal
-% - parietal (Savoie, Ridderinkhof); posterior parietal sensory motor integration within the prediction error hierarchy
-Frequently employed paradigms trigger prediction errors at various stages of the action-perception cycle, i.e. in terms of exteroceptive prediction errors \cites{cohen, cavahang, mmn_stuff}
-
-
-
-
-
-
-%end with hypotheses?:
+% now more detail about EEG of parietal cortex during binding mismatch, causal inference in multisensory perception, sense of agency, locating the self...
 
 
 
@@ -35,6 +17,56 @@ Frequently employed paradigms trigger prediction errors at various stages of the
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+% situate task in general on three timescales
+%In order to situate our report within the literature, we first consider how instantaneous prediction errors are influenced at different time and contextual scales. 
+
+%In the long run, the brain is in the game of optimizing the outcome of its motor behaviors. On any given motor task, learning is ultimately driven by optimizing a trade-off between domain-specific and generalizable motor skill.
+
+% triggering prediction errors at different time and contextual scales.
+% then extend on the first timescale that is the immediate context
+
+% first (milliseconds to seconds): immediate perceptual moment, binding in time and context, being able to make useful predictions at all
+%- discrimation classes of prediction error (Wolpert)
+%- sensory prediction errors (shadmehr), visuomotor adaptation (shadmehr)
+%- cerebellar (shadmehr, krakauer)
+%- spatial conflict processing
+%- parietal (Savoie, Ridderinkhof); posterior parietal sensory motor integration within the prediction error hierarchy
+%- task and temporal structure
+
+% second (minutes to hours): overarching task goal, optimal reinforcement learning, reward expectation
+%- focus on frontal (cohen, cavanagh, toellner, zander, Holroyd, Gehrke): acc/PEN/FRN/ERN: we dont hypothesize ACC since we do not provide a reward in the task. There is no evaluation with respect to a task goal
+
+%The classical work of \citet{Holroyd2002} relates the origin of neural responses to \textit{errors} to anterior cortical sources as part of the motor control filtering system which regulates motor behavior based on prediction errors that are detected and communicated by the basal ganglia. Following their work, numerous studies focused on further disentangling the specific violations frontal brain sources correlate with. Their activity is now often related to valence expectation prediction errors based on learning a given higher-order task objective across trials, such as reducing reaction times or moving a cursor with a brain-computer interface \cite{Zander2016, Cavanagh2010a, Li2011}. Frequently, as in \citet{Holroyd2002} original work, reaction time modulations are characterized as a metric for behavioral adaptation \cite{Holroyd2002}.
+
+% third (days to month): transfer learning, skill acquistion etc.
+
+% then end with hypotheses:
+%In our task, we did not specifically provide a task obective across trials
 
 % writing ressources
 % - Here, we investigate exteroceptive prediction errors during reaching movements similar to reaching for a cup. 
