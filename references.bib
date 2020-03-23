@@ -152,6 +152,15 @@ title = {{Event Perception and Memory}},
 volume = {71},
 year = {2020}
 }
+@article{Palmer2011,
+author = {Palmer, Jason a and Kreutz-Delgado, Ken and Makeig, Scott},
+keywords = {artifacts},
+mendeley-groups = {Methods/EEG Measures/Blind Source Separation,publications/prediction{\_}error (EJN)/1{\_}intro/methods},
+pages = {1--15},
+title = {{AMICA: An Adaptive Mixture of Independent Component Analyzers with Shared Components}},
+url = {http://sccn.ucsd.edu/{~}jason/amica{\_}a.pdf{\%}5Cnpapers2://publication/uuid/E6296FC1-7F6B-400C-85D0-3A292A27F710},
+year = {2011}
+}
 @article{Phillips2015,
 abstract = {? 2015 Phillips et al.Brain function can be conceived as a hierarchy of generative models that optimizes predictions of sensory inputs and minimizes ?surprise.? Each level of the hierarchy makes predictions of neural events at a lower level in the hierarchy, which returns a prediction error when these expectations are violated. We tested the generalization of this hypothesis to multiple sequential deviations, and we identified the most likely organization of the network that accommodates deviations in temporal structure of stimuli. Magnetoencephalography of healthy human participants during an auditory paradigm identified prediction error responses in bilateral primary auditory cortex, superior temporal gyrus, and lateral prefrontal cortex for deviation by frequency, intensity, location, duration, and silent gap. We examined the connectivity between cortical sources using a set of 21 generative models that embedded alternate hypotheses of frontotemporal network dynamics. Bayesian model selection provided evidence for two new features of functional network organization. First, an expectancy signal provided input to the prefrontal cortex bilaterally, related to the temporal structure of stimuli. Second, there are functionally significant lateral connections between superior temporal and/or prefrontal cortex. The results support a predictive coding hypothesis but go beyond previous work in demonstrating the generalization to multiple concurrent stimulus dimensions and the evidence for a temporal expectancy input at the higher level of the frontotemporal hierarchy.Wepropose that this framework for studying the brain?s response to unexpected events is not limited to simple sensory tasks but may also apply to the neurocognitive mechanisms of higher cognitive functions and their disorders.},
 author = {Phillips, H. N. and Blenkmann, A. and Hughes, L. E. and Bekinschtein, T. A. and Rowe, J. B.},
@@ -340,6 +349,23 @@ title = {{Embodied inference and spatial cognition}},
 volume = {13},
 year = {2012}
 }
+@article{Bigdely-Shamlo2015,
+abstract = {The technology to collect brain imaging and physiological measures has become portable and ubiquitous, opening the possibility of large-scale analysis of real-world human imaging. By its nature, such data is large and complex, making automated processing essential. This paper shows how lack of attention to the very early stages of an EEG preprocessing pipeline can reduce the signal-to-noise ratio and introduce unwanted artifacts into the data, particularly for computations done in single precision. We demonstrate that ordinary average referencing improves the signal-to-noise ratio, but that noisy channels can contaminate the results. We also show that identification of noisy channels depends on the reference and examine the complex interaction of filtering, noisy channel identification, and referencing. We introduce a multi-stage robust referencing scheme to deal with the noisy channel-reference interaction. We propose a standardized early-stage EEG processing pipeline (PREP) and discuss the application of the pipeline to more than 600 EEG datasets. The pipeline includes an automatically generated report for each dataset processed. Users can download the PREP pipeline as a freely available MATLAB library from http://eegstudy.org/prepcode.},
+author = {Bigdely-Shamlo, Nima and Mullen, Tim and Kothe, Christian and Su, Kyung-Min and Robbins, Kay a.},
+doi = {10.3389/fninf.2015.00016},
+file = {:Users/lukasgehrke/Library/Application Support/Mendeley Desktop/Downloaded/Bigdely-Shamlo et al. - 2015 - The PREP pipeline standardized preprocessing for large-scale EEG analysis.pdf:pdf},
+issn = {1662-5196},
+journal = {Frontiers in Neuroinformatics},
+keywords = {EEG, artifact, preprocessing, EEGLAB, BCILAB, mach,artifact,bcilab,big data,eeg,eeglab,machine learning,preprocessing},
+mendeley-groups = {Methods/EEG Tools,publications/prediction{\_}error (EJN)/1{\_}intro/methods},
+number = {June},
+pages = {1--20},
+pmid = {26150785},
+title = {{The PREP pipeline: standardized preprocessing for large-scale EEG analysis}},
+url = {http://journal.frontiersin.org/article/10.3389/fninf.2015.00016},
+volume = {9},
+year = {2015}
+}
 @article{Torrecillos2014,
 abstract = {In humans, electrophysiological correlates of error processing have been extensively investigated in relation to decision-making theories. In particular, error-related ERPs have been most often studied using response selection tasks. In these tasks, involving very simple motor responses (e.g., button press), errors concern inappropriate action-selection only. However, EEG activity in relation to inaccurate movement-execution in more complex motor tasks has beenmuchless examined. In the present study, we recordedEEGwhile volunteers performed reaching movements in a force-field created by a robotic device. Hand-path deviations were induced by interspersing catch trials in which the force condition was unpredictably altered. Our goal was twofold. First, we wanted to determine whether a frontocentral ERP was elicited by sensory-prediction errors, whose amplitude reflected the size of kinematic errors. Then, we explored whether common neural processes could be involved in the generation of this ERP and the feedback-related negativity (FRN), often assumed to reflect reward-prediction errors. We identified a frontocentral negativity whose amplitude was modulated by the size of the hand-path deviations induced by the unpredictable mechanical perturbations. This kinematic error-related ERP presented great similarities in terms of time course, topography, and potential source-location with the FRN recorded in the same experiment. These findings suggest that the processing of sensory-prediction errors and the processing of reward-prediction errors could involve a shared neural network. {\textcopyright} 2014 the authors.},
 author = {Torrecillos, Flavie and Albouy, Philippe and Brochier, Thomas and Malfait, Nicole},
@@ -414,6 +440,31 @@ keywords = {Gaussian fields,analysis of variance,functional anatomy,functional i
 mendeley-groups = {publications/imt1:behavior/1{\_}intro/4{\_}imt,publications/prediction{\_}error (EJN)/1{\_}intro/methods},
 title = {{Statistical parametric maps in functional imaging: A general linear approach}},
 year = {1994}
+}
+@article{Delorme2004a,
+abstract = {We have developed a toolbox and graphic user interface, EEGLAB, running under the crossplatform MATLAB environment (The Mathworks, Inc.) for processing collections of single-trial and/or averaged EEG data of any number of channels. Available functions include EEG data, channel and event information importing, data visualization (scrolling, scalp map and dipole model plotting, plus multi-trial ERP-image plots), preprocessing (including artifact rejection, filtering, epoch selection, and averaging), independent component analysis (ICA) and time/frequency decompositions including channel and component cross-coherence supported by bootstrap statistical methods based on data resampling. EEGLAB functions are organized into three layers. Top-layer functions allow users to interact with the data through the graphic interface without needing to use MATLAB syntax. Menu options allow users to tune the behavior of EEGLAB to available memory. Middle-layer functions allow users to customize data processing using command history and interactive 'pop' functions. Experienced MATLAB users can use EEGLAB data structures and stand-alone signal processing functions to write custom and/or batch analysis scripts. Extensive function help and tutorial information are included. A 'plug-in' facility allows easy incorporation of new EEG modules into the main menu. EEGLAB is freely available (http://www.sccn.ucsd.edu/eeglab/) under the GNU public license for noncommercial use and open source development, together with sample data, user tutorial and extensive documentation.},
+author = {Delorme, Arnaud and Makeig, Scott},
+doi = {10.1016/j.jneumeth.2003.10.009},
+file = {:Users/lukasgehrke/Library/Application Support/Mendeley Desktop/Downloaded/Delorme, Makeig - 2004 - EEGLAB an open sorce toolbox for analysis of single-trail EEG dynamics including independent component anlaysis.pdf:pdf},
+isbn = {0165-0270 (Print)$\backslash$r0165-0270 (Linking)},
+issn = {0165-0270},
+journal = {Journal of Neuroscience Methods},
+keywords = {content-based image retrieval,gaussian mixtures,image similarity,multiple instance learning,query by example,semantic retrieval,semantic space},
+mendeley-groups = {Methods/EEGLAB,publications/prediction{\_}error (EJN)/1{\_}intro/methods},
+pages = {9--21},
+pmid = {15102499},
+title = {{EEGLAB: an open sorce toolbox for analysis of single-trail EEG dynamics including independent component anlaysis}},
+volume = {134},
+year = {2004}
+}
+@article{Gramann2018,
+abstract = {The retrosplenial complex (RSC) plays a crucial role in spatial orientation by computing heading direction and translating between distinct spatial reference frames. While invasive studies allow investigating heading computation in moving animals, established non-invasive analyses of human brain dynamics are restricted to stationary setups. To investigate the role of the RSC in heading computation of actively moving humans, we used a Mobile Brain/Body Imaging approach synchronizing electroencephalography with motion capture and virtual reality. Data from physically rotating participants were contrasted with rotations based only on visual flow. Varying rotation velocities were accompanied by pronounced beta synchronization during physical rotation. In addition, heading computation based only on visual flow replicated alpha desynchronization in the RSC, which was absent during physical rotation. These results suggest an involvement of the human RSC in heading computation based on vestibular input and implicate revisiting traditional findings of alpha desynchronization during spatial orientation in movement-restricted participants. Heading computation is fundamental for spatial orientation in the human and other species. The registration of moment-to-moment changes in orientation with respect to an allocentric reference direction provides information about an animal's current heading relative to the environment. This is accomplished by the integration of vestibular, proprioceptive, and visual signals providing information about linear and angular velocity signals of the head, the relative position of the head with respect to the trunk, and information about stable aspects of the environment, respectively.[1][1] Single cell recordings in freely behaving animals identified several brain structures involved in heading computation, including the retrosplenial cortex (RSC).[2][2], [3][3] The RSC receives input from the visual system and from head direction cells in the thalamic nuclei.[4][4] It also hosts subpopulations of heading-sensitive cells that are sentient to local features of the environment, while other cells exhibit mixed activity patterns related to both local and global heading computation.[5][5] These findings suggest that neural activity in the RSC subserves the integration of information about the local and global environment, integrating egocentrically coded landmark cues based on sensory fusion (vision and proprioception)[6][6] with allocentric heading information originating from the Papez circuit.[7][7] This allows the compensation of the rotational offset between egocentric and allocentric spatial representations, routed from the parietal and medial temporal cortices, providing the necessary information for translating between both egocentric and allocentric spatial representational frames in the RSC.[8][8] [1]: {\#}ref-1 [2]: {\#}ref-2 [3]: {\#}ref-3 [4]: {\#}ref-4 [5]: {\#}ref-5 [6]: {\#}ref-6 [7]: {\#}ref-7 [8]: {\#}ref-8},
+author = {Gramann, Klaus and Hohlefeld, Friederike U and Gehrke, Lukas and Klug, Marius},
+file = {:Users/lukasgehrke/Downloads/papers/417972.full.pdf:pdf},
+mendeley-groups = {publications/prediction{\_}error (EJN)/1{\_}intro/methods},
+pages = {1--36},
+title = {{Heading computation in the human retrosplenial complex during full-body rotation}},
+year = {2018}
 }
 @article{Adams2013,
 abstract = {The descending projections from motor cortex share many features with top-down or backward connections in visual cortex; for example, corticospinal projections originate in infragranular layers, are highly divergent and (along with descending cortico-cortical projections) target cells expressing NMDA receptors. This is somewhat paradoxical because backward modulatory characteristics would not be expected of driving motor command signals. We resolve this apparent paradox using a functional characterisation of the motor system based on Helmholtz's ideas about perception; namely, that perception is inference on the causes of visual sensations. We explain behaviour in terms of inference on the causes of proprioceptive sensations. This explanation appeals to active inference, in which higher cortical levels send descending proprioceptive predictions, rather than motor commands. This process mirrors perceptual inference in sensory cortex, where descending connections convey predictions, while ascending connections convey prediction errors. The anatomical substrate of this recurrent message passing is a hierarchical system consisting of functionally asymmetric driving (ascending) and modulatory (descending) connections: an arrangement that we show is almost exactly recapitulated in the motor system, in terms of its laminar, topographic and physiological characteristics. This perspective casts classical motor reflexes as minimising prediction errors and may provide a principled explanation for why motor cortex is agranular. {\textcopyright} 2012 The Author(s).},
@@ -1039,4 +1090,40 @@ title = {{Temporal prediction errors in visual and auditory cortices}},
 url = {http://dx.doi.org/10.1016/j.cub.2014.02.007},
 volume = {24},
 year = {2014}
+}
+@article{Haufe2014a,
+abstract = {The increase in spatiotemporal resolution of neuroimaging devices is accompanied by a trend towards more powerful multivariate analysis methods. Often it is desired to interpret the outcome of these methods with respect to the cognitive processes under study. Here we discuss which methods allow for such interpretations, and provide guidelines for choosing an appropriate analysis for a given experimental goal: For a surgeon who needs to decide where to remove brain tissue it is most important to determine the origin of cognitive functions and associated neural processes. In contrast, when communicating with paralyzed or comatose patients via brain-computer interfaces, it is most important to accurately extract the neural processes specific to a certain mental state. These equally important but complementary objectives require different analysis methods. Determining the origin of neural processes in time or space from the parameters of a data-driven model requires what we call a forward model of the data; such a model explains how the measured data was generated from the neural sources. Examples are general linear models (GLMs). Methods for the extraction of neural information from data can be considered as backward models, as they attempt to reverse the data generating process. Examples are multivariate classifiers. Here we demonstrate that the parameters of forward models are neurophysiologically interpretable in the sense that significant nonzero weights are only observed at channels the activity of which is related to the brain process under study. In contrast, the interpretation of backward model parameters can lead to wrong conclusions regarding the spatial or temporal origin of the neural signals of interest, since significant nonzero weights may also be observed at channels the activity of which is statistically independent of the brain process under study. As a remedy for the linear case, we propose a procedure for transforming backward models into forward models. This procedure enables the neurophysiological interpretation of the parameters of linear backward models. We hope that this work raises awareness for an often encountered problem and provides a theoretical basis for conducting better interpretable multivariate neuroimaging analyses. {\textcopyright} 2013 The Authors.},
+author = {Haufe, Stefan and Meinecke, Frank and G{\"{o}}rgen, Kai and D{\"{a}}hne, Sven and Haynes, John Dylan and Blankertz, Benjamin and Bie{\ss}mann, Felix},
+doi = {10.1016/j.neuroimage.2013.10.067},
+issn = {10959572},
+journal = {NeuroImage},
+keywords = {Activation patterns,Decoding,EEG,Encoding,Extraction filters,FMRI,Forward/backward models,Generative/discriminative models,Interpretability,Multivariate,Neuroimaging,Regularization,Sparsity,Univariate},
+mendeley-groups = {publications/prediction{\_}error (EJN)/1{\_}intro/methods},
+pmid = {24239590},
+title = {{On the interpretation of weight vectors of linear models in multivariate neuroimaging}},
+year = {2014}
+}
+@inproceedings{Krol2019,
+abstract = {In the context of brain-computer interfacing, it is important to investigate what regions of the brain a classifier focuses on. For one, this will clarify to what extent the classifier relies on brain activity, as opposed to undesirable non-cortical signals. More generally, the practice is informative as it allows conclusions to be drawn about the cortical regions - and thus, cortical functions - that contribute to the effect under investigation. In this study, we start to investigate different methods to visualise the regions of interest of classifiers based on windowed means and on common spatial patterns. Specifically, we take individually reconstructed source spaces and transform the classifier filter weights into relevance weights indicating the relative contribution of each source to the classifier. This is visualised across participants in an average brain. By decomposing the classifier weights into separate sources and localising these in the brain, this method provides a tool to evaluate classifiers and test hypotheses.},
+author = {Krol, Laurens and Mousavi, Mahta and {De Sa}, Virginia and Zander, Thorsten},
+booktitle = {Proceedings - 2018 IEEE International Conference on Systems, Man, and Cybernetics, SMC 2018},
+doi = {10.1109/SMC.2018.00022},
+isbn = {9781538666500},
+mendeley-groups = {publications/prediction{\_}error (EJN)/1{\_}intro/methods},
+title = {{Towards Classifier Visualisation in 3D Source Space}},
+year = {2019}
+}
+@article{Pion-Tonachini2019,
+abstract = {The electroencephalogram (EEG) provides a non-invasive, minimally restrictive, and relatively low-cost measure of mesoscale brain dynamics with high temporal resolution. Although signals recorded in parallel by multiple, near-adjacent EEG scalp electrode channels are highly-correlated and combine signals from many different sources, biological and non-biological, independent component analysis (ICA) has been shown to isolate the various source generator processes underlying those recordings. Independent components (IC) found by ICA decomposition can be manually inspected, selected, and interpreted, but doing so requires both time and practice as ICs have no order or intrinsic interpretations and therefore require further study of their properties. Alternatively, sufficiently-accurate automated IC classifiers can be used to classify ICs into broad source categories, speeding the analysis of EEG studies with many subjects and enabling the use of ICA decomposition in near-real-time applications. While many such classifiers have been proposed recently, this work presents the ICLabel project comprised of (1) the ICLabel dataset containing spatiotemporal measures for over 200,000 ICs from more than 6000 EEG recordings and matching component labels for over 6000 of those ICs, all using common average reference, (2) the ICLabel website for collecting crowdsourced IC labels and educating EEG researchers and practitioners about IC interpretation, and (3) the automated ICLabel classifier, freely available for MATLAB. The ICLabel classifier improves upon existing methods in two ways: by improving the accuracy of the computed label estimates and by enhancing its computational efficiency. The classifier outperforms or performs comparably to the previous best publicly available automated IC component classification method for all measured IC categories while computing those labels ten times faster than that classifier as shown by a systematic comparison against other publicly available EEG IC classifiers.},
+archivePrefix = {arXiv},
+arxivId = {1901.07915},
+author = {Pion-Tonachini, Luca and Kreutz-Delgado, Ken and Makeig, Scott},
+doi = {10.1016/j.neuroimage.2019.05.026},
+eprint = {1901.07915},
+issn = {10959572},
+journal = {NeuroImage},
+keywords = {Classification,Crowdsourcing,EEG,ICA},
+mendeley-groups = {publications/prediction{\_}error (EJN)/1{\_}intro/methods},
+title = {{ICLabel: An automated electroencephalographic independent component classifier, dataset, and website}},
+year = {2019}
 }
