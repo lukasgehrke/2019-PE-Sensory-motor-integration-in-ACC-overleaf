@@ -32,9 +32,11 @@ loc(rem, :) = [];
 save(['/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/5_study_level/clustering_solutions/' bemobil_config.study_filename(1:end-6) '/dipole_locs.mat'], 'loc');
 clear loc
 
+%% (DONE & FIGURES SAVED )save pattern clusters
+
 %% plot clusters dipoleclusters
-%colors = brewermap(size(clusters_of_int,2),'Set1');
-std_dipoleclusters(STUDY, ALLEEG, 'clusters', 26,...
+colors = brewermap(size(clusters_of_int,2),'Set1');
+std_dipoleclusters(STUDY, ALLEEG, 'clusters', 9,...
     'centroid', 'add',...
     'projlines', 'on',...
     'viewnum', 4);

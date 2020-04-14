@@ -1,4 +1,4 @@
-%% ONLY CHANCE THESE PARTS!
+%% Processing settings
 
 subjects = 2:20;
 
@@ -100,7 +100,6 @@ bemobil_config.folders.study_folder = '/Volumes/Seagate Expansion Drive/work/stu
 
 %% EEG and MOCAP epochs processing
 bemobil_config.epoching.event_epochs_boundaries = [-3  2]; % larger window for ERSP computation
-bemobil_config.epoching.event_win = [-1 1];
 bemobil_config.epoching.event_epoching_event = {'box:touched'}; 
 
 % ERSPs
@@ -112,45 +111,61 @@ bemobil_config.epoching.base_epoching_event = {'box:spawned'};
 fft_options = struct();
 fft_options.cycles = [3 0.5];
 fft_options.padratio = 2;
-fft_options.freqrange = [3 40];
+fft_options.freqrange = [3 80];
 fft_options.freqscale = 'log';
-fft_options.n_freqs = 40;
-fft_options.timesout = 150;
+fft_options.n_freqs = 60;
+fft_options.timesout = 300;
 fft_options.alpha = NaN;
 fft_options.powbase = NaN;
 
 % ERP filtering
-bemobil_config.filter_plot_low = 1;
-bemobil_config.filter_plot_high = 10;
-
-%% study parameters
-
-% single subject final datasets and epochs
-% bemobil_config.study_filename = 'PE_reg_vel_new_clustered.study';
-
-% bemobil_config.study_filename = 'PE_reg_vel.study';
-% clusters_of_int = [3, 7, 9, 24, 25, 28, 30, 33, 34];
-% % clusters
-% % 3: right parietal
-% % 7: right motor?
-% % 24: right SMA
-% % 25: left parietal
-% % 28: interesting
-% % 33: ACC
-
-% bemobil_config.study_filename = 'PE_test.study';
-
-% bemobil_config.study_filename = 'PE_rv_15_new.study';
-% clusters_of_int = [4, 7, 9, 13, 15, 18]; % 'PE_rv_15_new.study', 9 ACC, 7/15 PCC
-
-%bemobil_config.study_filename = 'PE_mobi_clean.study';
-bemobil_config.study_filename = 'PE_mobi_clean_lda.study';
-
-channels_of_int = 65;% [5, 25, 65];
+bemobil_config.filter_plot_low = .1;
+bemobil_config.filter_plot_high = 15;
+bemobil_config.channels_of_int = [5, 14, 25, 65];
+bemobil_config.channels_of_int_labels = {'Fz', 'Cz', 'Pz', 'FCz'};
 % channels
 % 5: Fz
+% 14: Cz
 % 25: Pz
 % 65: FCz
+
+%% Classifier approach: LDA using windowed means from ERPs as features
+wnds = [.05 .1;.1 .15; .15 .2;.2 .25; .25 .3; .3 .35; .35 .4; .4 .45];
+base_win = [.0 .05];
+bemobil_config.lda.targetmarkers = {'normal','conflict'};
+% define approach
+bemobil_config.lda.approach = {'Windowmeans' ...
+    'SignalProcessing', {'Resampling','off', 'BaselineRemoval', base_win,...
+        'EpochExtraction',[base_win(1) max(wnds(:))],'SpectralSelection',[0.1 15]},...
+    'Prediction', { ...
+        'FeatureExtraction', { ...
+            'TimeWindows', wnds}, ...
+        'MachineLearning', { ...
+            'Learner', {'lda' ...
+                'Regularizer', 'shrinkage'}}}};
+
+% without baseline
+% bemobil_config.lda.approach = {'Windowmeans' ...
+%     'SignalProcessing', {'Resampling','off',...
+%         'EpochExtraction',[min(wnds(:)) max(wnds(:))],'SpectralSelection',[0.1 15]},...
+%     'Prediction', { ...
+%         'FeatureExtraction', { ...
+%             'TimeWindows', wnds}, ...
+%         'MachineLearning', { ...
+%             'Learner', {'lda' ...
+%                 'Regularizer', 'shrinkage'}}}};
+            
+% number of cross-validation folds and trial spacing margins for parameter search ('OptimizationScheme'),
+% and performance estimates ('EvaluationScheme'). this is for the default chronological/blockwise
+% cross-validation scheme; see utl_crossval for other options. performance estimation can also be 
+% left out entirely.
+bemobil_config.lda.parafolds = 5;
+bemobil_config.lda.paramargin = 5;
+bemobil_config.lda.evalfolds = 5;
+bemobil_config.lda.evalmargin = 5;
+
+%% study parameters
+bemobil_config.study_filename = 'PE_lda_ersp.study';
 
 % no double dipping
 %bemobil_config.STUDY_clustering_weights = struct('dipoles', 1, 'scalp_topographies', 0, 'spectra', 0, 'erp', 0);
@@ -159,23 +174,22 @@ channels_of_int = 65;% [5, 25, 65];
 %STUDY_2_quality_measure_weights = [3,-2,-1,-1,-2,-1];
 
 % default: spot rotation
-bemobil_config.STUDY_clustering_weights = struct('dipoles', 6, 'scalp_topographies', 1, 'spectra', 1, 'ersp', 3, 'erp', 0);
-%bemobil_config.STUDY_clustering_weights = struct('dipoles', 1, 'scalp_topographies', 1, 'spectra', 1, 'ersp', 3, 'erp', 0);
-%bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 9, 'z', 39); % toellner2017
-%bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 9, 'z', 30); % myself
-%bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 15, 'z', 45); % myself
-%bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 15, 'z', 40); % myself
-%bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 15, 'z', 30); % Zander2016
-bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 3, 'y', -37, 'z', 30); % after LDA localization
+%bemobil_config.STUDY_clustering_weights = struct('dipoles', 6, 'scalp_topographies', 1, 'spectra', 1, 'ersp', 3, 'erp', 0);
+bemobil_config.STUDY_clustering_weights = struct('dipoles', 1, 'scalp_topographies', 0, 'spectra', 0, 'ersp', 0, 'erp', 0);
+
+% dipoledensity clusters weighted by LDA
+%bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', -35, 'z', 50); 
+bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 20, 'y', -65, 'z', 30); % 20 -65 30 Visual Association Area / Cuneus
+%0 -40 30 Posterior Cingulate
 
 %     quality_measure_weights         - vector of weights for quality measures. 6 entries: subjects, ICs/subjects, normalized
 %                                     spread, mean RV, distance from ROI, mahalanobis distance from median of multivariate
 %                                     distribution (put this very high to get the most "normal" solution)
-bemobil_config.STUDY_quality_measure_weights = [3,-2,-1,-1,-2,-1];
+bemobil_config.STUDY_quality_measure_weights = [2,-2,-1,-1,-2,-1];
 
 % calculate how many ICs remain in the STUDY and take 70% of that for the k
 % clusters
-bemobil_config.IC_percentage = .7;
+bemobil_config.IC_percentage = 1;
 bemobil_config.outlier_sigma = 3;
 bemobil_config.n_iterations = 10000;
 bemobil_config.do_clustering = 1;
@@ -249,8 +263,6 @@ bemobil_config.do_remove_outside_head = 'off';
 bemobil_config.number_of_dipoles = 1;
 
 % IC_label
-bemobil_config.eye_threshold = .8;
-bemobil_config.line_threshold = .8;
 bemobil_config.brain_threshold = .5;
 
 % FHs cleaning

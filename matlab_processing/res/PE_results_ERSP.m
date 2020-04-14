@@ -271,3 +271,25 @@ betas_zero = zeros(size(betas));
 figure;
 plotersp(res.times(t), res.freqs(f), squeezemean(betas,3), betas_p_vals, .05,...
     'frequency (Hz)', 'time in ms', res.parameter_names{param}, 'beta');
+
+%% test permutation statistics
+
+for i = 2:6
+    % do permutation test. here the correct freq and time range must be taken since this will affect the values.
+    betas = permute(res.betas(:,:,:,i), [2,3,1]);
+    betas_zero = zeros(size(betas));
+
+    [~, ~, betas_p_vals, ~] = statcond({betas betas_zero},...
+        'method', 'perm', 'naccu', 10000);
+
+    figure;
+    subplot(1,2,1);
+    data_plot = squeezemean(betas,3);
+    lims = max(abs(data_plot(:)))/2  * [-1 1];
+    imagesc(res.times, res.freqs, data_plot,lims);axis xy;cbar;
+    subplot(1,2,2);
+    imagesc(betas_p_vals,[0 .05]);axis xy;cbar;
+    sgtitle(res.predictor_names{i})
+end
+
+%% with Limo tfce bootstrap-t
