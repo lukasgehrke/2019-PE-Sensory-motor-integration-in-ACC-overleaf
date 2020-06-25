@@ -45,6 +45,10 @@ for subject = subjects
 	
 end
 
+    %% 1. merge MoBI sets if data recording was started multiple times
+    EEG = pop_mergeset(ALLEEG, 1:size(ALLEEG,2));
+
+
 %% save all topos for all subjects (DONE)
 
 % to fix elocs of one subject
@@ -62,6 +66,8 @@ pop_editoptions( 'option_storedisk', 0, 'option_savetwofiles', 1, 'option_saveve
 
 for subject = subjects
     
+    
+    %% todo change to using pop_importbids !!
     %% load EEG and mocap data
 	disp(['Subject #' num2str(subject)]);
     

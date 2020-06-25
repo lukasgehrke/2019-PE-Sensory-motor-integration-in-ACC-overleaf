@@ -1,5 +1,5 @@
 %% clear all and load params
-close all; clear all;
+close all; clear all; clc;
 
 PE_config;
 
@@ -18,6 +18,28 @@ if isempty(STUDY)
     eeglab redraw
 end
 STUDY_sets = cellfun(@str2num, {STUDY.datasetinfo.subject});
+
+%% RT
+
+for subject = subjects
+    
+    subject = subject - 1;
+    bad_trials = ALLEEG(subject).etc.analysis.design.rm_ixs;
+    async_trials = ALLEEG(subject).etc.analysis.design.oddball;
+    async_trials(bad_trials) = 0; % remove bad trials
+    % match number of async trials for sync trials
+    sync_trials = ~async_trials;
+    sync_trials(bad_trials) = 0; % remove bad trials
+    
+    % sync
+    rt_sync(subject,:) = mean(ALLEEG(subject).etc.analysis.design.rt_spawned_touched(sync_trials),2);
+    % async
+    rt_async(subject,:) = mean(ALLEEG(subject).etc.analysis.design.rt_spawned_touched(async_trials),2);
+end
+
+disp(['sync trials mean rt: ' num2str(mean(rt_sync,1)) ' and sd: ' num2str(std(rt_sync))]);
+disp(['async trials mean rt: ' num2str(mean(rt_async,1)) ' and sd: ' num2str(std(rt_async))]);
+disp(['rt difference: ' num2str((mean(rt_sync,1) - mean(rt_async,1))*1000)])
 
 %% (DONE & FIGURES READY) grand average velocity sync/async
 
@@ -236,9 +258,9 @@ clear sync async
 
 % load clustering solution
 cluster_path = '/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/matlab_processing/';
-load([cluster_path 'clustering_vaa.mat']); % clustering_parietal
-STUDY.cluster = clustering_results_STUDY_vaa; % clustering_parietal
-cluster = 9; % 9
+%load([cluster_path 'clustering_vaa.mat']); % clustering_parietal
+%STUDY.cluster = clustering_results_STUDY_vaa; % clustering_parietal
+%cluster = 9; % parietal = 8, vaa = 9
 
 unique_setindices = unique(STUDY.cluster(cluster).sets);
 unique_subjects = STUDY_sets(unique_setindices);
@@ -286,14 +308,76 @@ for subject = unique_subjects
     grand_avg.ersp.async.base_corrected(subject,:,:) = 10.*log10(grand_avg.ersp.async.event(subject,:,:) ./ grand_avg.ersp.async.base(subject,:));
 end
 
+% remove missing subjects
+grand_avg.ersp.sync.event = grand_avg.ersp.sync.event(unique_subjects-1,:,:);
+grand_avg.ersp.sync.base = grand_avg.ersp.sync.base(unique_subjects-1,:);
+grand_avg.ersp.async.event = grand_avg.ersp.async.event(unique_subjects-1,:,:);
+grand_avg.ersp.async.base = grand_avg.ersp.async.base(unique_subjects-1,:);
+
 % statistics asynchronous trials permutation t-test
-[~, ~, p_vals, ~] = statcond({permute(grand_avg.ersp.async.event, [2,3,1]) permute(repmat(grand_avg.ersp.async.base, [1,1,size(grand_avg.ersp.async.event,3)]),[2,3,1])},...
+[stats, df, p_vals, ~] = statcond({permute(grand_avg.ersp.async.event, [2,3,1]) permute(repmat(grand_avg.ersp.async.base, [1,1,size(grand_avg.ersp.async.event,3)]),[2,3,1])},...
     'method', 'perm', 'naccu', 1000);
+
 % plot
 asy = 10.*log10(squeezemean(grand_avg.ersp.async.event,1) ./ squeezemean(grand_avg.ersp.async.base,1)');
 normal;figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 960 300]);
 plotersp(ALLEEG(subject).etc.analysis.ersp.tf_event_times, ALLEEG(subject).etc.analysis.ersp.tf_event_freqs,...
     asy, p_vals, .05, 'frequency (Hz)', 'time (ms)', 'asynchrony', 'dB', 1);
+
+% extract stats
+% 1. theta spawn
+t = 166; % -300ms
+ALLEEG(subject).etc.analysis.ersp.tf_event_times(t)
+f = 11; % 5 Hz
+ALLEEG(subject).etc.analysis.ersp.tf_event_freqs(f)
+stats(f,t)
+df
+p_vals(f,t)
+
+% 2. theta object
+t = 210; % 270ms
+ALLEEG(subject).etc.analysis.ersp.tf_event_times(t)
+f = 8; % 4.5 Hz
+ALLEEG(subject).etc.analysis.ersp.tf_event_freqs(f)
+stats(f,t)
+df
+p_vals(f,t)
+
+% 3. alpha movement
+t = 190; % 0ms
+ALLEEG(subject).etc.analysis.ersp.tf_event_times(t)
+f = 23; % 10 Hz
+ALLEEG(subject).etc.analysis.ersp.tf_event_freqs(f)
+stats(f,t)
+df
+p_vals(f,t)
+
+% 4. beta movement
+t = 190; % 0ms
+ALLEEG(subject).etc.analysis.ersp.tf_event_times(t)
+f = 36; % 21 Hz
+ALLEEG(subject).etc.analysis.ersp.tf_event_freqs(f)
+stats(f,t)
+df
+p_vals(f,t)
+
+% 5. beta pre-movement
+t = 19; % 0ms
+ALLEEG(subject).etc.analysis.ersp.tf_event_times(t)
+f = 36; % 21 Hz
+ALLEEG(subject).etc.analysis.ersp.tf_event_freqs(f)
+stats(f,t)
+df
+p_vals(f,t)
+
+% 5. beta post-movement
+t = 274; % 0ms
+ALLEEG(subject).etc.analysis.ersp.tf_event_times(t)
+f = 36; % 21 Hz
+ALLEEG(subject).etc.analysis.ersp.tf_event_freqs(f)
+stats(f,t)
+df
+p_vals(f,t)
 
 %clear grand_avg p_vals
 
@@ -403,6 +487,7 @@ for i = 2:size(res.predictor_names,2)
 
     % threshold true t_map
     [~,~,~,STATS] = ttest(permute(betas, [2,1]));
+    res.stats(i).perm_t = STATS;
     res.stats(i).tfce_true = limo_tfce(1,STATS.tstat,[],0);
     res.stats(i).tfce_thresh = prctile(res.stats(i).tfce_max_dist,95);
     res.stats(i).tfce_sig_mask = res.stats(i).tfce_true>res.stats(i).tfce_thresh;
@@ -411,25 +496,33 @@ end
 % resave res
 save([res.save_path '/res_' res.model '_' num2str(res.t1) '-' num2str(res.tend) '.mat'], 'res');
 
-% plot
-normal; % plot normal window, not docked
-figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 960 150]);
-colors = brewermap(5, 'Spectral');
-xline_zero = 750-res.t1_ix;
-% condition 1 normal
-colors1 = colors(2, :);
-cond1 = squeeze(res.betas(:,:,1));
-ploterp_lg(cond1, [], [], xline_zero, 1, 'ERV m/s', '', [0 .8], colors1, '-');
-hold on
-% condition 2 following async
-colors2 = colors(5, :);
-cond2 = squeeze(sum(res.betas(:,:,[1,2]),3));
-ploterp_lg(cond2, res.stats(2).betas_p_vals, .05, xline_zero, 1, '', '', [0 .8], colors2, '-.');
-% add legend
-legend('haptic','no haptic');
-% save plot
-print(gcf, [res.save_path(1:end-7) 'figures/vel_haptic.eps'], '-depsc');
-close(gcf);
+% effect X at sample Y
+effect = 3;
+i = 635;
+res.stats(effect).perm_t.tstat(i)
+res.stats(effect).perm_t.df(i)
+res.stats(effect).betas_p_vals(i)
+mean(res.r2(:,i),1)
+
+% % plot
+% normal; % plot normal window, not docked
+% figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 960 150]);
+% colors = brewermap(5, 'Spectral');
+% xline_zero = 750-res.t1_ix;
+% % condition 1 normal
+% colors1 = colors(2, :);
+% cond1 = squeeze(res.betas(:,:,1));
+% ploterp_lg(cond1, [], [], xline_zero, 1, 'ERV m/s', '', [0 .8], colors1, '-');
+% hold on
+% % condition 2 following async
+% colors2 = colors(5, :);
+% cond2 = squeeze(sum(res.betas(:,:,[1,2]),3));
+% ploterp_lg(cond2, res.stats(2).betas_p_vals, .05, xline_zero, 1, '', '', [0 .8], colors2, '-.');
+% % add legend
+% legend('haptic','no haptic');
+% % save plot
+% print(gcf, [res.save_path(1:end-7) 'figures/vel_haptic.eps'], '-depsc');
+% close(gcf);
 
 %% (DONE & FIGURE READY) VEL post asynchrony detection adaptation / discussion
 
@@ -557,14 +650,14 @@ close(gcf);
 res.model = 'ersp_sample ~ velocity * haptics + rt + base';
 zero = 750;
 test_multicoll = 1;
-t1 = -200; % -2444 (ersp start)
+t1 = -400; % -2444 (ersp start)
 tend = 1200; % 1440 (ersp end)
 
 % load clustering solution
 cluster_path = '/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/matlab_processing/';
 load([cluster_path 'clustering_parietal.mat']); % clustering_vaa
 STUDY.cluster = clustering_parietal; % clustering_results_STUDY_vaa
-cluster = 8; %14
+cluster = 8; % vaa = 9
 
 % get matching datasets from EEGLAB Study struct
 unique_setindices = unique(STUDY.cluster(cluster).sets);
@@ -583,11 +676,11 @@ for subject = unique_subjects
     % prepare design
     subject = subject-1; % STUDY index is -1 as first subject data is missing
     asynchrony = ALLEEG(subject).etc.analysis.design.oddball';
-    haptics = ALLEEG(subject).etc.analysis.design.haptics';
+    haptics = zscore(ALLEEG(subject).etc.analysis.design.haptics)'; % zscore
     trial_nr = ALLEEG(subject).etc.analysis.design.trial_number';
     direction = categorical(ALLEEG(subject).etc.analysis.design.direction)';
     sequence = ALLEEG(subject).etc.analysis.design.sequence';
-    velocity = ALLEEG(subject).etc.analysis.mocap.mag_vel(zero,:)';
+    velocity = zscore(ALLEEG(subject).etc.analysis.mocap.mag_vel(zero,:))'; % zscore
     rt = ALLEEG(subject).etc.analysis.design.rt_spawned_touched';
 
     % find nearest element
@@ -598,7 +691,7 @@ for subject = unique_subjects
     % fitlm for each time frequency pixel
     tic
     disp(['now fitting data for subject: ' num2str(subject) ' and model: ' res.model '...']);
-    for t = ixs %1:size(ALLEEG(subject).etc.analysis.ersp.tf_event_times,2)
+    for t = ixs
         for f = 1:size(ALLEEG(subject).etc.analysis.ersp.tf_event_freqs,2)
             % add ersp and baseline sample to design matrix
             if size(comps,2) > 1
@@ -650,7 +743,7 @@ for i = 2:size(res.predictor_names,2)
     zero = zeros(size(betas));
 
     % permutation t-test
-    [~, ~, res.stats(i).betas_p_vals, res.stats(i).surrogate_data] = statcond({betas zero},...
+    [res.stats(i).t_stats, ~, res.stats(i).betas_p_vals, res.stats(i).surrogate_data] = statcond({betas zero},...
         'method', 'perm', 'naccu', res.perm);
 
     % compute tfce transform of t_maps surrogate data, add max tfce
@@ -672,17 +765,94 @@ end
 save([res.save_path 'res_' res.model '.mat'], 'res');
 
 % plot
+normal; % plot normal window, not docked
+figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 1400 300]);
+
 measures = 2:6;
+c = 1;
 for measure = measures
+    subplot(1,size(measures,2),measure-1);
     to_plot = squeezemean(res.betas(:,:,:,measure),1);
     p = res.stats(measure).betas_p_vals;
 
-    figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 500 300]);
+    %figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 500 300]);
     plotersp(res.times, res.freqs, to_plot, p, .05, 'frequency (Hz)', 'time (ms)', 'asynchrony', 'dB', 1);
-    
-    % save plot
-    print(gcf, [res.save_path 'st_betas_' num2str(measure) '.eps'], '-depsc');
-    close(gcf);
 end
+
+% save plot
+%print(gcf, [res.save_path 'st_betas_' num2str(measure) '.eps'], '-depsc');
+%close(gcf);
+
+% extract stats
+
+% 1. alpha baseline post event
+effect = 2;
+t = 48; % 200 ms
+res.times(t)
+f = 21; % 9 Hz
+res.freqs(f)
+res.stats(effect).t_stats(f,t)
+df
+res.stats(effect).betas_p_vals(f,t)
+
+% 2. alpha rt post event
+effect = 5;
+t = 52; % 250 ms
+res.times(t)
+f = 26; % 12 Hz
+res.freqs(f)
+res.stats(effect).t_stats(f,t)
+df
+res.stats(effect).betas_p_vals(f,t)
+
+% 3. alpha rt pre event
+effect = 5;
+t = 16; % -200 ms
+res.times(t)
+f = 16; % 12 Hz
+res.freqs(f)
+res.stats(effect).t_stats(f,t)
+df
+res.stats(effect).betas_p_vals(f,t)
+
+% 4. alpha haptics post event
+effect = 3;
+t = 46; % 180 ms
+res.times(t)
+f = 11; % 5 Hz
+res.freqs(f)
+res.stats(effect).t_stats(f,t)
+df
+res.stats(effect).betas_p_vals(f,t)
+
+% 5. alpha haptics post event
+effect = 3;
+t = 46; % 180 ms
+res.times(t)
+f = 26; % 12 Hz
+res.freqs(f)
+res.stats(effect).t_stats(f,t)
+df
+res.stats(effect).betas_p_vals(f,t)
+
+% 6. alpha velocity pre event
+effect = 4;
+t = 16; % 180 ms
+res.times(t)
+f = 26; % 12 Hz
+res.freqs(f)
+res.stats(effect).t_stats(f,t)
+df
+res.stats(effect).betas_p_vals(f,t)
+
+% 7. theta interaction post event
+effect = 6;
+t = 46; % 180 ms
+res.times(t)
+f = 6; % 12 Hz
+res.freqs(f)
+res.stats(effect).t_stats(f,t)
+df
+res.stats(effect).betas_p_vals(f,t)
 
 %% correlation post error vel and prior ERSP

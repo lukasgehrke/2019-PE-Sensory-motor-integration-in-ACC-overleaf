@@ -178,8 +178,8 @@ bemobil_config.study_filename = 'PE_lda_ersp.study';
 bemobil_config.STUDY_clustering_weights = struct('dipoles', 1, 'scalp_topographies', 0, 'spectra', 0, 'ersp', 0, 'erp', 0);
 
 % dipoledensity clusters weighted by LDA
-%bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', -35, 'z', 50); 
-bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 20, 'y', -65, 'z', 30); % 20 -65 30 Visual Association Area / Cuneus
+bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', -35, 'z', 50); 
+%bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 20, 'y', -65, 'z', 30); % 20 -65 30 Visual Association Area / Cuneus
 %0 -40 30 Posterior Cingulate
 
 %     quality_measure_weights         - vector of weights for quality measures. 6 entries: subjects, ICs/subjects, normalized

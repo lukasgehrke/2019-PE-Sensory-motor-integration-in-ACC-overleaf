@@ -35,8 +35,11 @@ clear loc
 %% (DONE & FIGURES SAVED )save pattern clusters
 
 %% plot clusters dipoleclusters
-colors = brewermap(size(clusters_of_int,2),'Set1');
-std_dipoleclusters(STUDY, ALLEEG, 'clusters', 9,...
+
+%std_dipoleclusters(STUDY,ALLEEG,'clusters',clusters([1 2 5 6 7]),'centroid','add','colors',[0.6 0 0; 0 0.1 0.7; 0 0.5 0.8;0.1 0.4 0; 0.7 0.4 0])
+
+%colors = brewermap(size(clusters_of_int,2),'Set1');
+std_dipoleclusters(STUDY, ALLEEG, 'clusters', 7,...
     'centroid', 'add',...
     'projlines', 'on',...
     'viewnum', 4);
@@ -44,6 +47,8 @@ std_dipoleclusters(STUDY, ALLEEG, 'clusters', 9,...
 %,'colors', colors);
 
 %% makotos NIMAs Blobs
+
+clusters_of_int = 7;
 
 voxelSize      = 4;
 FWHM           = 10;
