@@ -79,6 +79,5 @@ for subject = cfg.subjects(10)
         [ALLEEG EEG index] = eeg_store(ALLEEG, EEG);
     end
     EEG = pop_mergeset(ALLEEG, 1:size(ALLEEG,2));
-    
 
 end
