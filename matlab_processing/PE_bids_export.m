@@ -4,12 +4,8 @@ clear all;
 
 cfg.subjects = 2:20;
 
-cfg.study_folder = '/Volumes/Data_and_photos/work/studies/Prediction_Error/data/';
+cfg.study_folder = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\';
 cfg.filename_prefix = 's';
-
-%cfg.filenames =  {'s2_PredError_block_TestEMS.xdf', 's2_PredError_block_TestVibro.xdf', 's2_PredError_block_TestVisual.xdf'};
-%cfg.filenames = {'PredError_block_TestVibro' 'PredError_block_TestVisual'};
-%cfg.filenames_s3 = {'PredError_block_TestVibro_erste100' 'PredError_block_TestVibro_101bis300' 'PredError_block_TestVisual'};
 
 % be as specific as possible (uses regexp)
 cfg.unprocessed_data_streams = {'brainvision_rda_bpn-c012'};
@@ -18,21 +14,84 @@ cfg.rigidbody_streams = {'rigid_handr_BPN-C043','rigid_head_BPN-C043'};
 
 % enter channels that you did not use at all (e.g. with the MoBI 160 chan layout, only 157 chans are used):
 cfg.channels_to_remove = [];
+cfg.rename_channels = {'brainvision_rda_bpn-c012_Fp1' 'Fp1';
+    'brainvision_rda_bpn-c012_Fp2' 'Fp2';
+    'brainvision_rda_bpn-c012_F7' 'F7';
+    'brainvision_rda_bpn-c012_F3' 'F3';
+    'brainvision_rda_bpn-c012_Fz' 'Fz';
+    'brainvision_rda_bpn-c012_F4' 'F4';
+    'brainvision_rda_bpn-c012_F8' 'F8';
+    'brainvision_rda_bpn-c012_FC5' 'FC5';
+    'brainvision_rda_bpn-c012_FC1' 'FC1';
+    'brainvision_rda_bpn-c012_FC2' 'FC2';
+    'brainvision_rda_bpn-c012_FC6' 'FC6';
+    'brainvision_rda_bpn-c012_T7' 'T7';
+    'brainvision_rda_bpn-c012_C3' 'C3';
+    'brainvision_rda_bpn-c012_Cz' 'Cz';
+    'brainvision_rda_bpn-c012_C4' 'C4';
+    'brainvision_rda_bpn-c012_T8' 'T8';
+    'brainvision_rda_bpn-c012_TP9' 'TP9';
+    'brainvision_rda_bpn-c012_CP5' 'CP5';
+    'brainvision_rda_bpn-c012_CP1' 'CP1';
+    'brainvision_rda_bpn-c012_CP2' 'CP2';
+    'brainvision_rda_bpn-c012_CP6' 'CP6';
+    'brainvision_rda_bpn-c012_TP10' 'TP10';
+    'brainvision_rda_bpn-c012_P7' 'P7';
+    'brainvision_rda_bpn-c012_P3' 'P3';
+    'brainvision_rda_bpn-c012_Pz' 'Pz';
+    'brainvision_rda_bpn-c012_P4' 'P4';
+    'brainvision_rda_bpn-c012_P8' 'P8';
+    'brainvision_rda_bpn-c012_PO9' 'PO9';
+    'brainvision_rda_bpn-c012_O1' 'O1';
+    'brainvision_rda_bpn-c012_Oz' 'Oz';
+    'brainvision_rda_bpn-c012_O2' 'O2';
+    'brainvision_rda_bpn-c012_PO10' 'PO10';
+    'brainvision_rda_bpn-c012_AF7' 'AF7';
+    'brainvision_rda_bpn-c012_AF3' 'AF3';
+    'brainvision_rda_bpn-c012_AF4' 'AF4';
+    'brainvision_rda_bpn-c012_AF8' 'AF8';
+    'brainvision_rda_bpn-c012_F5' 'F5';
+    'brainvision_rda_bpn-c012_F1' 'F1';
+    'brainvision_rda_bpn-c012_F2' 'F2';
+    'brainvision_rda_bpn-c012_F6' 'F6';
+    'brainvision_rda_bpn-c012_FT9' 'FT9';
+    'brainvision_rda_bpn-c012_FT7' 'FT7';
+    'brainvision_rda_bpn-c012_FC3' 'FC3';
+    'brainvision_rda_bpn-c012_FC4' 'FC4';
+    'brainvision_rda_bpn-c012_FT8' 'FT8';
+    'brainvision_rda_bpn-c012_FT10' 'FT10';
+    'brainvision_rda_bpn-c012_C5' 'C5';
+    'brainvision_rda_bpn-c012_C1' 'C1';
+    'brainvision_rda_bpn-c012_C2' 'C2';
+    'brainvision_rda_bpn-c012_C6' 'C6';
+    'brainvision_rda_bpn-c012_TP7' 'TP7';
+    'brainvision_rda_bpn-c012_CP3' 'CP3';
+    'brainvision_rda_bpn-c012_CPz' 'CPz';
+    'brainvision_rda_bpn-c012_CP4' 'CP4';
+    'brainvision_rda_bpn-c012_TP8' 'TP8';
+    'brainvision_rda_bpn-c012_P5' 'P5';
+    'brainvision_rda_bpn-c012_P1' 'P1';
+    'brainvision_rda_bpn-c012_P2' 'P2';
+    'brainvision_rda_bpn-c012_P6' 'P6';
+    'brainvision_rda_bpn-c012_PO7' 'PO7';
+    'brainvision_rda_bpn-c012_PO3' 'PO3';
+    'brainvision_rda_bpn-c012_POz' 'POz';
+    'brainvision_rda_bpn-c012_PO4' 'PO4';
+    'brainvision_rda_bpn-c012_PO8' 'PO8'}; % 'E65' 'FCz'    
 
 % enter EOG channel names here:
 cfg.eog_channels  = {''};
 cfg.ref_channel = 'FCz';
 
 % leave this empty if you have standard channel names that should use standard locations:
-% the standard .elc file can be found at "M:/BrainVision Stuff/Cap Layouts/standard_MoBI_channel_locations" and must
+% the standard .elc file can be found at "M:\BrainVision Stuff\Cap Layouts\standard_MoBI_channel_locations" and must
 % be copied into every subject's data folder (where the .xdf files are)
 cfg.channel_locations_filename = '';
 
-
 % general foldernames and filenames
-cfg.raw_data_folder = '0_raw-data/';
-cfg.mobilab_data_folder = '1_mobilab-data/';
-cfg.raw_EEGLAB_data_folder = '2_basic-EEGLAB/';
+cfg.raw_data_folder = '0_raw-data\';
+cfg.mobilab_data_folder = '1_mobilab-data\';
+cfg.raw_EEGLAB_data_folder = '2_basic-EEGLAB\';
 
 cfg.merged_filename = 'merged.set';
 cfg.preprocessed_filename = 'preprocessed.set';
@@ -44,7 +103,7 @@ cfg.mocap_lowpass = 6;
 cfg.rigidbody_derivatives = 2;
 cfg.resample_freq = 250;
 
-%% set to mobids export / conversion
+%% set to mobids export \ conversion
 
 if ~exist('ALLEEG','var')
 	eeglab;
@@ -52,9 +111,9 @@ if ~exist('ALLEEG','var')
 end
 
 % read data, align modalities and merge to one file
-for subject = cfg.subjects(10)
+for subject = cfg.subjects(3:end)
     
-    % get all xdf filename in subject folder
+    %% get all xdf filename in subject folder
     filenames = dir(fullfile(cfg.study_folder, cfg.raw_data_folder, [cfg.filename_prefix num2str(subject)]));
     xdf_ix = find(contains({filenames.name}, 'xdf'));
     filenames = {filenames(xdf_ix).name};
@@ -65,19 +124,277 @@ for subject = cfg.subjects(10)
         cfg.filenames{i} = filenames{i}(u_ix+1:end-4);
     end
     
-	% load xdf files and process them with mobilab, export to eeglab, split MoBI and merge all conditions for EEG
-	[ALLEEG, EEG_merged, CURRENTSET] = bemobil_process_all_mobilab(subject, cfg, ALLEEG, CURRENTSET, mobilab, 1);
-
+	%% load xdf files and process them with mobilab, export to eeglab
+    % this is taken from Marius Klug's bemobil pipeline bemobil_process_all_mobilab
+	bemobil_process_all_mobilab(subject, cfg, ALLEEG, CURRENTSET, mobilab, 0);
+    
     % merge
     % load all _MoBI sets
-    for f = files
-        EEG = pop_loadset(fullfile([cfg.filename_prefix num2str(subject) '_'...
-                f{1} '_MoBI.set'],...
-                [cfg.study_folder ...
+    for fname = cfg.filenames
+        EEG = pop_loadset(fullfile([cfg.study_folder ...
                 cfg.raw_EEGLAB_data_folder ...
-                cfg.filename_prefix num2str(subject)]));
+                cfg.filename_prefix num2str(subject)], ...
+                [cfg.filename_prefix num2str(subject) '_'...
+                fname{1} '_MoBI.set']));
         [ALLEEG EEG index] = eeg_store(ALLEEG, EEG);
     end
     EEG = pop_mergeset(ALLEEG, 1:size(ALLEEG,2));
+    
+    %% 9. save and clear
+
+    EEG = eeg_checkset(EEG);
+    pop_saveset(EEG, 'filename', ['s' num2str(subject) '_full_MoBI'], 'filepath', fullfile([cfg.study_folder ...
+                cfg.raw_EEGLAB_data_folder ...
+                cfg.filename_prefix num2str(subject)]));
+    
+    % clear EEG sets
+    ALLEEG = pop_delset(ALLEEG, 1:size(ALLEEG,2));
+    if size(ALLEEG,2)>1
+        for i = 2:size(ALLEEG,2)
+            ALLEEG(2) = [];
+        end
+    end
 
 end
+
+%% TODO add changes related to PE dataset, set to mobids
+% This script provides the transformation of raw EEG and motion capture 
+% data (XDF, extensible data format) recorded from participants in the 
+% invisible maze task. First, raw data is corrected manually for 
+% experimenter shortcomings and non-informative events. Second, EEGLAB 
+% compatible '.set' files are created and parsed.
+
+% Ultimately, '.set' files are exported to (MoBI) BIDS format with
+% information of participant descriptives.
+
+% L. Gehrke - June 2020
+
+%--------------------------------------------------------------------------
+% 0. General Information and Directory Management 
+%--------------------------------------------------------------------------
+
+% add the path to the bids matlab tools folder 
+addpath(genpath('/Users/lukasgehrke/Documents/MATLAB/toolboxes/bids-matlab-tools'));
+
+% directories
+% -----------
+% participant ID strings
+subjects = [4,5,7,9,10,12:24];
+participantIDArray = {'s4', 's5', 's7', 's9', 's10', 's12', 's13', 's14', 's15', 's16', 's17', 's18', 's19', 's20', 's21', 's22', 's23', 's24'};
+
+% path to the .set files 
+eegFileFolder         = '/Volumes/Data_and_photos/work/studies/Visual_Maze_2/data/BIDS_in';
+
+% EEG file suffix (participant ID string + suffix = EEG file name)
+eegFileSuffix         = '_full_MoBI.set';   
+
+% path to the chanloc files 
+chanlocFileFolder     = '/Volumes/Data_and_photos/work/studies/Visual_Maze_2/data/BIDS_in';
+
+% chanloc file suffix (participant ID string + suffix = chanloc file name)
+chanlocFileSuffix         = '_locs.elc';   
+
+% warning : target path will be emptied and overwritten when you run
+%           the export function
+targetFolder          = '/Volumes/Data_and_photos/work/studies/Visual_Maze_2/data/BIDS_out';                                          
+
+% general information for dataset_description.json file
+% -----------------------------------------------------
+gInfo.Name    = 'Invisible Maze Task';
+gInfo.BIDSVersion = '1.4';
+gInfo.License = '';
+gInfo.Authors = {"Lukas Gehrke, Timotheus Berg, Yiru Chen, Sein Jeung, Klaus Gramann"};
+gInfo.Acknowledgements = '';
+gInfo.HowToAcknowledge = '';
+gInfo.ReferencesAndLinks = { "" };
+gInfo.DatasetDOI = '';
+
+% Content for README file
+% -----------------------
+README = sprintf( [ '18 participants were tested with the invisible maze task.\n'...
+    'Participants explored four different invisible mazes three times in a row\n'...
+    'and were subsequently tested on the accuracy of their mental model of the explored spaces.']);
+                
+
+% Content for CHANGES file
+% ------------------------
+CHANGES = sprintf([ 'Revision history for invisible maze task (2nd edition) dataset\n\n' ...
+                    'version 1.0 beta - 23 Jun 2020\n' ...
+                    ' - Initial release\n' ]);
+
+% Task information for xxxx-eeg.json file
+% ---------------------------------------
+tInfo.InstitutionAddress = 'Strasse des 17. Juni, Berlin, Germany';
+tInfo.InstitutionName = 'Technische Universitaet zu Berlin';
+tInfo.InstitutionalDepartmentName = 'Biopsychology and Neuroergonomics';
+tInfo.PowerLineFrequency = 50;
+tInfo.ManufacturersModelName = 'n/a';
+tInfo.SamplingFrequency = 1000;
+tInfo.TaskName = 'invisible maze task';
+tInfo.EOGChannelCount = 2;
+
+%--------------------------------------------------------------------------
+% 1. Add Participant Info and Raw File Paths 
+%--------------------------------------------------------------------------
+
+% participant information for participants.tsv file
+% -------------------------------------------------
+tmp = readtable('/Volumes/Data_and_photos/work/studies/Visual_Maze_2/admin/Fragebogenauswertung.xlsx');
+varnames = tmp.Properties.VariableNames;
+varnames(1) = {'participant_id'};
+varnames(2) = {'age'};
+varnames(3) = {'biological_sex'};
+varnames(4) = {'ptsot'};
+varnames(5) = {'sod'};
+varnames(6) = {'presence'};
+varnames(7) = {'gaming_experience'};
+pInfo = table2cell(tmp(subjects,:));
+pInfo = [varnames;pInfo];
+        
+% participant column description for participants.json file
+% ---------------------------------------------------------
+pInfoDesc.participant_id.Description = 'unique participant identifier';
+pInfoDesc.biological_sex.Description = 'biological sex of the participant';
+pInfoDesc.biological_sex.Levels.m = 'male';
+pInfoDesc.biological_sex.Levels.w = 'female';
+pInfoDesc.age.Description = 'age of the participant';
+pInfoDesc.age.Units       = 'years';
+pInfoDesc.ptsot.Description = 'perspective taking and spatial orientation psychometric task score; absolute angular deviation from goal';
+pInfoDesc.ptsot.Units       = 'degree (unsigned/absolute)';
+%pInfoDesc.ptsot.ressource = 'https://www.silc.northwestern.edu/object-perspective-spatial-orientation-test/';
+pInfoDesc.sod.Description = 'santa barbara sense of direction self-assessmnent questionnaire score';
+pInfoDesc.sod.Units       = 'likert';
+%pInfoDesc.sod.ressource       = 'https://www.silc.northwestern.edu/santa-barbara-sense-of-direction-sbsod/';
+pInfoDesc.presence.Description = 'immersion and presence questionnaire (IPQ); item G1: general presence';
+pInfoDesc.presence.Units       = 'likert';
+%pInfoDesc.presence.ressource = 'http://www.igroup.org/pq/ipq/download.php#English';
+pInfoDesc.gaming_experience.Description = 'video game experience self-assessment';
+pInfoDesc.gaming_experience.Units       = 'likert';
+pInfoDesc.gaming_experience.Levels.low = 'very good';
+pInfoDesc.gaming_experience.Levels.high = 'very bad';
+
+
+% file paths (chanlocs are optional, do not specify if not using)
+% ---------------------------------------------------------------
+for subjectID = 1:numel(participantIDArray)
+
+    % here participants are re-indexed from 1
+    subject(subjectID).file     = fullfile(eegFileFolder, participantIDArray{subjectID},...
+                                   [participantIDArray{subjectID}, eegFileSuffix]);
+    subject(subjectID).chanlocs = fullfile(chanlocFileFolder, participantIDArray{subjectID},... 
+                                   [participantIDArray{subjectID}, chanlocFileSuffix]);
+    
+end
+
+%--------------------------------------------------------------------------
+% 2. Process Events (OPTIONAL)
+%--------------------------------------------------------------------------  
+
+% By default, function mobids_events_set will parse all markers
+% and put all keys into fields of EEG.event struct.
+% The new events will be saved in a new .set file, overwritting the old one. 
+% Every experiment has different markers, so everyone needs to modify this function.
+% Keys and types are assumed to be the same across all participants. 
+for subjectID = 1%:numel(participantIDArray)
+    
+    [keys,types] = IMT_set_to_mobids_events([participantIDArray{subjectID} eegFileSuffix], fullfile(eegFileFolder, participantIDArray{subjectID}));
+
+end
+
+trialType = [types' types'];
+
+% add custom event columns
+% ------------------------
+eInfo = {}; 
+
+% for field 'onset', take 'latency' from the EEG.event struct
+% default implementation in bids_export will convert latency to seconds
+eInfo{1,1}            = 'onset' ;
+eInfo{1,2}            = 'latency';
+
+% for field 'trial_type', take 'trial_type' from the EEG.event struct
+eInfo{2,1}            = 'trial_type' ;
+eInfo{2,2}            = 'trial_type';
+
+% other fields are kept the same
+for keyIndex    = 1:numel(keys)
+    eInfo{end + 1 ,1}    = keys{keyIndex};
+    eInfo{end,2}         = keys{keyIndex};
+end
+
+% event column description for xxx-events.json file (only one such file)
+% ---------------------------------------------------------------------
+eInfoDesc.onset.Description = 'Event onset';
+eInfoDesc.onset.Units = 'second';
+
+eInfoDesc.duration.Description = 'Event duration';
+eInfoDesc.duration.Units = 'second';
+
+eInfoDesc.trial_type.Description = 'Type of event (different from EEGLAB convention)';
+
+for typeIndex = 1:numel(types)
+    % for now add all types in the marker to the levels
+    eInfoDesc.trial_type.Levels.(types{typeIndex}) =types{typeIndex} ;
+end
+
+
+% event information description
+% -----------------------------
+eInfoDesc.response_time.Description = 'Response time column not used for this data';
+eInfoDesc.sample.Description = 'Event sample starting at 0 (Matlab convention starting at 1)';
+eInfoDesc.value.Description = 'Value of event (raw makers)';
+
+% custom part: key 'type' is not included
+%----------------------------------------
+eInfoDesc.G.Description = 'RVD task; test object: global landmark (Lighthouse)';
+eInfoDesc.L.Description = 'RVD task; test object: local landmark (path end)';
+eInfoDesc.S.Description = 'RVD task; test object: start landmark (path start)';
+eInfoDesc.duration.Description = 'time elapsed from exploration start to end';
+eInfoDesc.duration.Units = 'second';
+eInfoDesc.duration_drawing.Description = 'time elapsedfrom start till end of drawing task';
+eInfoDesc.duration_drawing.Units = 'second';
+eInfoDesc.duration_outward.Description = 'time elapsed from exploration start to reaching the dead end, or, the start of the pointing task';
+eInfoDesc.duration_outward.Units = 'second';
+eInfoDesc.duration_return.Description = 'time elapsed from leaving the dead end, or end of pointing task, till return to the start position';
+eInfoDesc.duration_return.Units = 'second';
+eInfoDesc.duration_walk.Description = 'time elapsed from start till end of rewalking task';
+eInfoDesc.duration_walk.Units = 'second';
+eInfoDesc.end_pos.Description = 'position of local landmark, or end of path / dead end';
+eInfoDesc.end_pos.Units = 'meter';
+eInfoDesc.event.Description = 'RVD Task; start, participant response and end (set to 3 seconds following participants response)';
+eInfoDesc.global_pos.Description = 'position of Lighthouse landmark';
+eInfoDesc.global_pos.Units = 'meter';
+eInfoDesc.maze.Description = 'maze type, can be L, Z, U, S';
+eInfoDesc.num_head_collision.Description = 'continouos counter of head collisions with the maze walls within maze and run';
+eInfoDesc.num_wall_touch.Description = 'continouos counter of hand collisions, touches, with the maze walls';
+eInfoDesc.number.Description = 'index of sphere touch during baseline measurement';
+eInfoDesc.object.Description = 'RVD task; the tested object id, see eventfield G, L, S';
+eInfoDesc.object_location.Description = 'position where participant placed tested object in RVD task';
+eInfoDesc.object_location.Units = 'meter';
+eInfoDesc.start_pos.Description = 'position of start location';
+eInfoDesc.start_pos.Units = 'meter';
+eInfoDesc.total_touches.Description = 'num_wall_touch at return to start';
+eInfoDesc.trial_run.Description = 'repetition of maze exploration';
+eInfoDesc.x.Description = 'x location of hand collision, touch, with maze wall';
+eInfoDesc.x.Units = 'meter';
+eInfoDesc.y.Description = 'y location of hand collision, touch, with maze wall';
+eInfoDesc.y.Units = 'meter';
+eInfoDesc.z.Description = 'z location of hand collision, touch, with maze wall';
+eInfoDesc.z.Units = 'meter';
+
+%--------------------------------------------------------------------------
+% 3. Export in BIDS format
+%--------------------------------------------------------------------------
+
+bids_export(subject,                                                ...
+    'targetdir', targetFolder,                                      ... 
+    'taskName', 'IMT',                                              ...
+    'gInfo', gInfo,                                           ...
+    'pInfo', pInfo,                                                 ...
+    'pInfoDesc', pInfoDesc,                                         ...
+    'eInfo',eInfo,                                                  ...
+    'eInfoDesc', eInfoDesc,                                         ...
+    'README', README,                                               ...
+    'trialtype', trialType,                                         ...
+    'tInfo', tInfo,                                                 ...
+    'mobi', 1)
