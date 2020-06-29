@@ -179,31 +179,30 @@ addpath(genpath('/Users/lukasgehrke/Documents/MATLAB/toolboxes/bids-matlab-tools
 % directories
 % -----------
 % participant ID strings
-subjects = [4,5,7,9,10,12:24];
-participantIDArray = {'s4', 's5', 's7', 's9', 's10', 's12', 's13', 's14', 's15', 's16', 's17', 's18', 's19', 's20', 's21', 's22', 's23', 's24'};
+subjects = [2:20];
+participantIDArray = {'s2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's13', 's14', 's15', 's16', 's17', 's18', 's19', 's20'};
 
 % path to the .set files 
-eegFileFolder         = '/Volumes/Data_and_photos/work/studies/Visual_Maze_2/data/BIDS_in';
+eegFileFolder         = '/Volumes/Data_and_photos/work/studies/Prediction_Error/data/2_basic-EEGLAB';
 
 % EEG file suffix (participant ID string + suffix = EEG file name)
 eegFileSuffix         = '_full_MoBI.set';   
 
 % path to the chanloc files 
-chanlocFileFolder     = '/Volumes/Data_and_photos/work/studies/Visual_Maze_2/data/BIDS_in';
-
+%export chanlocs? - they are default chanlocs
 % chanloc file suffix (participant ID string + suffix = chanloc file name)
-chanlocFileSuffix         = '_locs.elc';   
+%chanlocFileSuffix         = '_locs.elc';   
 
 % warning : target path will be emptied and overwritten when you run
 %           the export function
-targetFolder          = '/Volumes/Data_and_photos/work/studies/Visual_Maze_2/data/BIDS_out';                                          
+targetFolder          = '/Volumes/Data_and_photos/work/studies/Prediction_Error/data/BIDS';
 
 % general information for dataset_description.json file
 % -----------------------------------------------------
-gInfo.Name    = 'Invisible Maze Task';
+gInfo.Name    = 'Prediction Error';
 gInfo.BIDSVersion = '1.4';
 gInfo.License = '';
-gInfo.Authors = {"Lukas Gehrke, Timotheus Berg, Yiru Chen, Sein Jeung, Klaus Gramann"};
+gInfo.Authors = {"Lukas Gehrke, Sezen Akman, Albert Chen, Pedro Lopes, Klaus Gramann"};
 gInfo.Acknowledgements = '';
 gInfo.HowToAcknowledge = '';
 gInfo.ReferencesAndLinks = { "" };
@@ -211,15 +210,16 @@ gInfo.DatasetDOI = '';
 
 % Content for README file
 % -----------------------
-README = sprintf( [ '18 participants were tested with the invisible maze task.\n'...
-    'Participants explored four different invisible mazes three times in a row\n'...
-    'and were subsequently tested on the accuracy of their mental model of the explored spaces.']);
+README = sprintf( [ '19 participants were tested in a virtual reality (VR) reach-to-object task.\n'...
+    'Participants experienced visual, visual with vibrotractile or visual with vibrotactile and \n'...
+    'electrical muscle stimulation (EMS) feedback.\n'...
+    'Participants rated their experience on the Immersion and Presence Questionnaire (IPQ) and their workload on the NASA-TLX']);
                 
 
 % Content for CHANGES file
 % ------------------------
-CHANGES = sprintf([ 'Revision history for invisible maze task (2nd edition) dataset\n\n' ...
-                    'version 1.0 beta - 23 Jun 2020\n' ...
+CHANGES = sprintf([ 'Revision history for prediction error dataset\n\n' ...
+                    'version 1.0 beta - 29 Jun 2020\n' ...
                     ' - Initial release\n' ]);
 
 % Task information for xxxx-eeg.json file
@@ -229,9 +229,9 @@ tInfo.InstitutionName = 'Technische Universitaet zu Berlin';
 tInfo.InstitutionalDepartmentName = 'Biopsychology and Neuroergonomics';
 tInfo.PowerLineFrequency = 50;
 tInfo.ManufacturersModelName = 'n/a';
-tInfo.SamplingFrequency = 1000;
-tInfo.TaskName = 'invisible maze task';
-tInfo.EOGChannelCount = 2;
+tInfo.SamplingFrequency = 500;
+tInfo.TaskName = 'reach-to-touch prediction error';
+tInfo.EOGChannelCount = 0;
 
 %--------------------------------------------------------------------------
 % 1. Add Participant Info and Raw File Paths 
@@ -239,16 +239,9 @@ tInfo.EOGChannelCount = 2;
 
 % participant information for participants.tsv file
 % -------------------------------------------------
-tmp = readtable('/Volumes/Data_and_photos/work/studies/Visual_Maze_2/admin/Fragebogenauswertung.xlsx');
+tmp = readtable('/Volumes/Data_and_photos/work/studies/Prediction_Error/admin/questionnaires_PE_2018.xlsx', 'Sheet', 'Matlab Import');
 varnames = tmp.Properties.VariableNames;
-varnames(1) = {'participant_id'};
-varnames(2) = {'age'};
-varnames(3) = {'biological_sex'};
-varnames(4) = {'ptsot'};
-varnames(5) = {'sod'};
-varnames(6) = {'presence'};
-varnames(7) = {'gaming_experience'};
-pInfo = table2cell(tmp(subjects,:));
+pInfo = table2cell(tmp);
 pInfo = [varnames;pInfo];
         
 % participant column description for participants.json file
@@ -256,23 +249,16 @@ pInfo = [varnames;pInfo];
 pInfoDesc.participant_id.Description = 'unique participant identifier';
 pInfoDesc.biological_sex.Description = 'biological sex of the participant';
 pInfoDesc.biological_sex.Levels.m = 'male';
-pInfoDesc.biological_sex.Levels.w = 'female';
+pInfoDesc.biological_sex.Levels.f = 'female';
 pInfoDesc.age.Description = 'age of the participant';
 pInfoDesc.age.Units       = 'years';
-pInfoDesc.ptsot.Description = 'perspective taking and spatial orientation psychometric task score; absolute angular deviation from goal';
-pInfoDesc.ptsot.Units       = 'degree (unsigned/absolute)';
-%pInfoDesc.ptsot.ressource = 'https://www.silc.northwestern.edu/object-perspective-spatial-orientation-test/';
-pInfoDesc.sod.Description = 'santa barbara sense of direction self-assessmnent questionnaire score';
-pInfoDesc.sod.Units       = 'likert';
-%pInfoDesc.sod.ressource       = 'https://www.silc.northwestern.edu/santa-barbara-sense-of-direction-sbsod/';
-pInfoDesc.presence.Description = 'immersion and presence questionnaire (IPQ); item G1: general presence';
-pInfoDesc.presence.Units       = 'likert';
-%pInfoDesc.presence.ressource = 'http://www.igroup.org/pq/ipq/download.php#English';
-pInfoDesc.gaming_experience.Description = 'video game experience self-assessment';
-pInfoDesc.gaming_experience.Units       = 'likert';
-pInfoDesc.gaming_experience.Levels.low = 'very good';
-pInfoDesc.gaming_experience.Levels.high = 'very bad';
-
+pInfoDesc.cap_size.Description = 'head circumference and EEG cap sized used';
+pInfoDesc.cap_size.Units       = 'centimeter';
+pInfoDesc.block_1.Description = 'pseudo permutation of sensory feedback conditions: condition of first block';
+pInfoDesc.block_1.Units       = 'Visual = Visual only condition; Visual + Vibro = Simultaneous visual and vibrotactile sensory feedback';
+pInfoDesc.block_2.Description = 'pseudo permutation of sensory feedback conditions: condition of second block';
+pInfoDesc.block_3.Description = 'some select participants completed a third block with Visual + Vibro + EMS sensory feedback';
+pInfoDesc.block_3.Units       = 'Visual + Vibro +EMS = Simultaneous visual, vibrotactile and electrical muscle stimulation sensory feedback';
 
 % file paths (chanlocs are optional, do not specify if not using)
 % ---------------------------------------------------------------
@@ -297,7 +283,7 @@ end
 % Keys and types are assumed to be the same across all participants. 
 for subjectID = 1%:numel(participantIDArray)
     
-    [keys,types] = IMT_set_to_mobids_events([participantIDArray{subjectID} eegFileSuffix], fullfile(eegFileFolder, participantIDArray{subjectID}));
+    [keys,types] = PE_set_to_mobids_events([participantIDArray{subjectID} eegFileSuffix], fullfile(eegFileFolder, participantIDArray{subjectID}));
 
 end
 
