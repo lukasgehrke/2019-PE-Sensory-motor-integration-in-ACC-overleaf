@@ -103,7 +103,7 @@ cfg.mocap_lowpass = 6;
 cfg.rigidbody_derivatives = 2;
 cfg.resample_freq = 250;
 
-%% set to mobids export \ conversion
+%% set to mobids export \ conversion: prepare data
 
 if ~exist('ALLEEG','var')
 	eeglab;
@@ -157,7 +157,7 @@ for subject = cfg.subjects(3:end)
 
 end
 
-%% TODO add changes related to PE dataset, set to mobids
+%% set to mobids definitions and export
 % This script provides the transformation of raw EEG and motion capture 
 % data (XDF, extensible data format) recorded from participants in the 
 % invisible maze task. First, raw data is corrected manually for 
@@ -174,7 +174,7 @@ end
 %--------------------------------------------------------------------------
 
 % add the path to the bids matlab tools folder 
-addpath(genpath('/Users/lukasgehrke/Documents/MATLAB/toolboxes/bids-matlab-tools'));
+addpath(genpath('C:\Users\Lukas\Documents\MATLAB\bids-matlab-tools'));
 
 % directories
 % -----------
@@ -183,7 +183,7 @@ subjects = [2:20];
 participantIDArray = {'s2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's13', 's14', 's15', 's16', 's17', 's18', 's19', 's20'};
 
 % path to the .set files 
-eegFileFolder         = '/Volumes/Data_and_photos/work/studies/Prediction_Error/data/2_basic-EEGLAB';
+eegFileFolder         = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\2_basic-EEGLAB';
 
 % EEG file suffix (participant ID string + suffix = EEG file name)
 eegFileSuffix         = '_full_MoBI.set';   
@@ -195,7 +195,7 @@ eegFileSuffix         = '_full_MoBI.set';
 
 % warning : target path will be emptied and overwritten when you run
 %           the export function
-targetFolder          = '/Volumes/Data_and_photos/work/studies/Prediction_Error/data/BIDS';
+targetFolder          = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\BIDS';
 
 % general information for dataset_description.json file
 % -----------------------------------------------------
@@ -239,7 +239,7 @@ tInfo.EOGChannelCount = 0;
 
 % participant information for participants.tsv file
 % -------------------------------------------------
-tmp = readtable('/Volumes/Data_and_photos/work/studies/Prediction_Error/admin/questionnaires_PE_2018.xlsx', 'Sheet', 'Matlab Import');
+tmp = readtable('P:\Lukas_Gehrke\studies\Prediction_Error\admin\questionnaires_PE_2018.xlsx', 'Sheet', 'Matlab Import');
 varnames = tmp.Properties.VariableNames;
 pInfo = table2cell(tmp);
 pInfo = [varnames;pInfo];
@@ -258,7 +258,7 @@ pInfoDesc.block_1.Description = 'pseudo permutation of sensory feedback conditio
 pInfoDesc.block_1.Units       = 'Visual = Visual only condition; Visual + Vibro = Simultaneous visual and vibrotactile sensory feedback';
 pInfoDesc.block_2.Description = 'pseudo permutation of sensory feedback conditions: condition of second block';
 pInfoDesc.block_3.Description = 'some select participants completed a third block with Visual + Vibro + EMS sensory feedback';
-pInfoDesc.block_3.Units       = 'Visual + Vibro +EMS = Simultaneous visual, vibrotactile and electrical muscle stimulation sensory feedback';
+pInfoDesc.block_3.Units       = 'Visual + Vibro + EMS = Simultaneous visual, vibrotactile and electrical muscle stimulation sensory feedback';
 
 % file paths (chanlocs are optional, do not specify if not using)
 % ---------------------------------------------------------------
@@ -267,8 +267,8 @@ for subjectID = 1:numel(participantIDArray)
     % here participants are re-indexed from 1
     subject(subjectID).file     = fullfile(eegFileFolder, participantIDArray{subjectID},...
                                    [participantIDArray{subjectID}, eegFileSuffix]);
-    subject(subjectID).chanlocs = fullfile(chanlocFileFolder, participantIDArray{subjectID},... 
-                                   [participantIDArray{subjectID}, chanlocFileSuffix]);
+%     subject(subjectID).chanlocs = fullfile(chanlocFileFolder, participantIDArray{subjectID},... 
+%                                    [participantIDArray{subjectID}, chanlocFileSuffix]);
     
 end
 
@@ -288,6 +288,7 @@ for subjectID = 1%:numel(participantIDArray)
 end
 
 trialType = [types' types'];
+
 
 % add custom event columns
 % ------------------------
@@ -323,7 +324,6 @@ for typeIndex = 1:numel(types)
     eInfoDesc.trial_type.Levels.(types{typeIndex}) =types{typeIndex} ;
 end
 
-
 % event information description
 % -----------------------------
 eInfoDesc.response_time.Description = 'Response time column not used for this data';
@@ -332,42 +332,74 @@ eInfoDesc.value.Description = 'Value of event (raw makers)';
 
 % custom part: key 'type' is not included
 %----------------------------------------
-eInfoDesc.G.Description = 'RVD task; test object: global landmark (Lighthouse)';
-eInfoDesc.L.Description = 'RVD task; test object: local landmark (path end)';
-eInfoDesc.S.Description = 'RVD task; test object: start landmark (path start)';
-eInfoDesc.duration.Description = 'time elapsed from exploration start to end';
-eInfoDesc.duration.Units = 'second';
-eInfoDesc.duration_drawing.Description = 'time elapsedfrom start till end of drawing task';
-eInfoDesc.duration_drawing.Units = 'second';
-eInfoDesc.duration_outward.Description = 'time elapsed from exploration start to reaching the dead end, or, the start of the pointing task';
-eInfoDesc.duration_outward.Units = 'second';
-eInfoDesc.duration_return.Description = 'time elapsed from leaving the dead end, or end of pointing task, till return to the start position';
-eInfoDesc.duration_return.Units = 'second';
-eInfoDesc.duration_walk.Description = 'time elapsed from start till end of rewalking task';
-eInfoDesc.duration_walk.Units = 'second';
-eInfoDesc.end_pos.Description = 'position of local landmark, or end of path / dead end';
-eInfoDesc.end_pos.Units = 'meter';
-eInfoDesc.event.Description = 'RVD Task; start, participant response and end (set to 3 seconds following participants response)';
-eInfoDesc.global_pos.Description = 'position of Lighthouse landmark';
-eInfoDesc.global_pos.Units = 'meter';
-eInfoDesc.maze.Description = 'maze type, can be L, Z, U, S';
-eInfoDesc.num_head_collision.Description = 'continouos counter of head collisions with the maze walls within maze and run';
-eInfoDesc.num_wall_touch.Description = 'continouos counter of hand collisions, touches, with the maze walls';
-eInfoDesc.number.Description = 'index of sphere touch during baseline measurement';
-eInfoDesc.object.Description = 'RVD task; the tested object id, see eventfield G, L, S';
-eInfoDesc.object_location.Description = 'position where participant placed tested object in RVD task';
-eInfoDesc.object_location.Units = 'meter';
-eInfoDesc.start_pos.Description = 'position of start location';
-eInfoDesc.start_pos.Units = 'meter';
-eInfoDesc.total_touches.Description = 'num_wall_touch at return to start';
-eInfoDesc.trial_run.Description = 'repetition of maze exploration';
-eInfoDesc.x.Description = 'x location of hand collision, touch, with maze wall';
-eInfoDesc.x.Units = 'meter';
-eInfoDesc.y.Description = 'y location of hand collision, touch, with maze wall';
-eInfoDesc.y.Units = 'meter';
-eInfoDesc.z.Description = 'z location of hand collision, touch, with maze wall';
-eInfoDesc.z.Units = 'meter';
+eInfoDesc.block.Description = 'start and end of an experimental block';
+eInfoDesc.block.Levels.start = 'start';
+eInfoDesc.block.Levels.end = 'end';
 
+eInfoDesc.currentBlockNr.Description = 'three experimental blocks per condition';
+eInfoDesc.currentBlockNr.Units = 'integer';
+
+eInfoDesc.condition.Description = 'sensory feedback type';
+eInfoDesc.condition.Levels.visual = 'visual';
+eInfoDesc.condition.Levels.vibro = 'visual + vibrotactile';
+eInfoDesc.condition.Levels.ems = 'visual + vibrotactile + electrical muscle stimulation';
+
+eInfoDesc.training.Description = '1 (true) if pre experimental training condition';
+
+eInfoDesc.box.Description = 'reach-to-touch trial procedure';
+eInfoDesc.box.Levels.spawned = 'box spawned on table in front of participant';
+eInfoDesc.box.Levels.touched = 'participant completed reach-to-touch, moment of collision with object';
+
+eInfoDesc.trial_nr.Description = 'increasing counter of trials';
+eInfoDesc.currentBlockNr.Units = 'integer';
+
+eInfoDesc.normal_or_conflict.Description = 'reach-to-touch trial condition';
+eInfoDesc.normal_or_conflict.Levels.normal = 'congruent sensory feedback, collider size matches object size';
+eInfoDesc.normal_or_conflict.Levels.conflict = 'incongruent sensory feedback, collider size bigger than object size causing to too-early sensory feedback';
+
+eInfoDesc.cube.Description = 'location of spawned object from participants perspective';
+eInfoDesc.cube.Levels.left = 'to participants left';
+eInfoDesc.cube.Levels.middle = 'in front of the participant';
+eInfoDesc.cube.Levels.right = 'to participants right';
+
+eInfoDesc.isiTime.Description = 'inter-stimulus-interval; time elapsed from trial start to object spawn';
+eInfoDesc.isiTime.Units = 'seconds';
+
+eInfoDesc.emsFeedback.Description = 'whether electrical muscle stimulation occurred';
+eInfoDesc.emsFeedback.Levels.on = 'electrical muscle stimulation active';
+
+eInfoDesc.reaction_time.Description = 'duration of reach-to-touch; time elapsed between object spawn and object touch';
+eInfoDesc.reaction_time.Units = 'seconds';
+
+eInfoDesc.emsCurrent.Description = 'electrical muscle stimulation parameter: current';
+eInfoDesc.emsCurrent.Units = 'milliampere';
+
+eInfoDesc.emsWidth.Description = 'electrical muscle stimulation parameter: pulse width';
+eInfoDesc.emsWidth.Units = 'microseconds';
+
+eInfoDesc.pulseCount.Description = 'electrical muscle stimulation parameter: pulse count';
+eInfoDesc.pulseCount.Units = 'count';
+
+eInfoDesc.vibroFeedback.Description = 'whether vibrotactile stimulation occurred';
+eInfoDesc.vibroFeedback.Levels.on = 'vibrotactile stimulation active';
+
+eInfoDesc.vibroFeedbackDuration.Description = 'duration of activated vibrotactile motor';
+eInfoDesc.vibroFeedbackDuration.Units = 'seconds';
+
+eInfoDesc.visualFeedback.Description = 'remove rendering of object after touching';
+eInfoDesc.visualFeedback.Levels.off = 'object removed';
+
+eInfoDesc.ipq_question_nr_1_answer.Description = 'answer to IPQ item 1';
+eInfoDesc.ipq_question_nr_1_answer.Units = 'Likert';
+
+eInfoDesc.ipq_question_nr_2_answer.Description = 'answer to IPQ item 2';
+eInfoDesc.ipq_question_nr_2_answer.Units = 'Likert';
+
+eInfoDesc.ipq_question_nr_3_answer.Description = 'answer to IPQ item 3';
+eInfoDesc.ipq_question_nr_3_answer.Units = 'Likert';
+
+eInfoDesc.ipq_question_nr_4_answer.Description = 'answer to IPQ item 4';
+eInfoDesc.ipq_question_nr_4_answer.Units = 'Likert';
 %--------------------------------------------------------------------------
 % 3. Export in BIDS format
 %--------------------------------------------------------------------------
