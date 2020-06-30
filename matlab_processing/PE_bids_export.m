@@ -281,7 +281,7 @@ end
 % The new events will be saved in a new .set file, overwritting the old one. 
 % Every experiment has different markers, so everyone needs to modify this function.
 % Keys and types are assumed to be the same across all participants. 
-for subjectID = 1%:numel(participantIDArray)
+for subjectID = 1:numel(participantIDArray)
     
     [keys,types] = PE_set_to_mobids_events([participantIDArray{subjectID} eegFileSuffix], fullfile(eegFileFolder, participantIDArray{subjectID}));
 
