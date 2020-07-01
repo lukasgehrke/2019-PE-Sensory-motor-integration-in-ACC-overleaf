@@ -9,3 +9,7 @@ figures/
 matlab_processing/bcilab-code-LRK/
 communication/
 *.asv
+._.DS_Store
+.DS_Store
+chapters/._.DS_Store
+chapters/.DS_Store
