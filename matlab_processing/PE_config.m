@@ -1,8 +1,8 @@
 %% Processing settings
 
-subjects = 2:20;
+bemobil_config.subjects = 2:20;
 
-bemobil_config.study_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/';
+% bemobil_config.study_folder = 'VolumesSeagate Expansion DriveworkstudiesPrediction_Errordata';
 bemobil_config.filename_prefix = 's';
 bemobil_config.filenames = {'PredError_block_TestVibro' 'PredError_block_TestVisual'};
 bemobil_config.filenames_s3 = {'PredError_block_TestVibro_erste100' 'PredError_block_TestVibro_101bis300' 'PredError_block_TestVisual'};
@@ -84,7 +84,7 @@ bemobil_config.rename_channels = {'brainvision_rda_bpn-c012_Fp1' 'Fp1';
 bemobil_config.ref_channel = 'FCz';
 
 % leave this empty if you have standard channel names that should use standard locations:
-% the standard .elc file can be found at "M:/BrainVision Stuff/Cap Layouts/standard_MoBI_channel_locations" and must
+% the standard .elc file can be found at "M:BrainVision StuffCap Layoutsstandard_MoBI_channel_locations" and must
 % be copied into every subject's data folder (where the .xdf files are)
 bemobil_config.channel_locations_filename = '';
 
@@ -94,9 +94,6 @@ bemobil_config.parietal_channames = {'Pz','P1','P2','P3','P4'};
 
 % Prediction Error (2019) Study parameters and folder structure
 bemobil_config.subjects = 2:20;
-
-%%% Filename and folder structure informations. folders will be created automatically!
-bemobil_config.folders.study_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/';
 
 %% EEG and MOCAP epochs processing
 bemobil_config.epoching.event_epochs_boundaries = [-3  2]; % larger window for ERSP computation
@@ -156,7 +153,7 @@ bemobil_config.lda.approach = {'Windowmeans' ...
 %                 'Regularizer', 'shrinkage'}}}};
             
 % number of cross-validation folds and trial spacing margins for parameter search ('OptimizationScheme'),
-% and performance estimates ('EvaluationScheme'). this is for the default chronological/blockwise
+% and performance estimates ('EvaluationScheme'). this is for the default chronologicalblockwise
 % cross-validation scheme; see utl_crossval for other options. performance estimation can also be 
 % left out entirely.
 bemobil_config.lda.parafolds = 5;
@@ -179,10 +176,10 @@ bemobil_config.STUDY_clustering_weights = struct('dipoles', 1, 'scalp_topographi
 
 % dipoledensity clusters weighted by LDA
 bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', -35, 'z', 50); 
-%bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 20, 'y', -65, 'z', 30); % 20 -65 30 Visual Association Area / Cuneus
+%bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 20, 'y', -65, 'z', 30); % 20 -65 30 Visual Association Area  Cuneus
 %0 -40 30 Posterior Cingulate
 
-%     quality_measure_weights         - vector of weights for quality measures. 6 entries: subjects, ICs/subjects, normalized
+%     quality_measure_weights         - vector of weights for quality measures. 6 entries: subjects, ICssubjects, normalized
 %                                     spread, mean RV, distance from ROI, mahalanobis distance from median of multivariate
 %                                     distribution (put this very high to get the most "normal" solution)
 bemobil_config.STUDY_quality_measure_weights = [2,-2,-1,-1,-2,-1];
@@ -194,7 +191,7 @@ bemobil_config.outlier_sigma = 3;
 bemobil_config.n_iterations = 10000;
 bemobil_config.do_clustering = 1;
 bemobil_config.do_multivariate_data = 1;
-bemobil_config.STUDY_filepath_clustering_solutions = 'clustering_solutions/';
+bemobil_config.STUDY_filepath_clustering_solutions = 'clustering_solutions';
 bemobil_config.filename_clustering_solutions = 'solutions';
 bemobil_config.filepath_multivariate_data = '';
 bemobil_config.filename_multivariate_data = 'multivariate_data';
@@ -202,14 +199,14 @@ bemobil_config.filename_multivariate_data = 'multivariate_data';
 %% everything from here is according to the general pipeline, changes only recommended if you know the whole structure
 
 % general foldernames and filenames
-bemobil_config.raw_data_folder = '0_raw-data/';
-bemobil_config.mobilab_data_folder = '1_mobilab-data/';
-bemobil_config.raw_EEGLAB_data_folder = '2_basic-EEGLAB/';
-bemobil_config.spatial_filters_folder = '3_spatial-filters/';
-bemobil_config.spatial_filters_folder_AMICA = '3-1_AMICA/';
-bemobil_config.spatial_filters_folder_SSD = '3-2_SSD/';
-bemobil_config.single_subject_analysis_folder = '4_single-subject-analysis/';
-bemobil_config.study_level = '5_study_level/';
+bemobil_config.raw_data_folder = '0_raw-data';
+bemobil_config.mobilab_data_folder = '1_mobilab-data';
+bemobil_config.raw_EEGLAB_data_folder = '2_basic-EEGLAB';
+bemobil_config.spatial_filters_folder = '3_spatial-filters';
+bemobil_config.spatial_filters_folder_AMICA = '3-1_AMICA';
+bemobil_config.spatial_filters_folder_SSD = '3-2_SSD';
+bemobil_config.single_subject_analysis_folder = '4_single-subject-analysis';
+bemobil_config.study_level = '5_study_level';
 
 bemobil_config.merged_filename = 'merged.set';
 bemobil_config.preprocessed_filename = 'preprocessed.set';

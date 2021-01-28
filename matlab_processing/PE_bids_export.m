@@ -1,20 +1,26 @@
-%% declare settings and folders 
-
 clear all;
 
-cfg.subjects = 2:20;
+if ~exist('ALLEEG','var')
+	eeglab;
+	runmobilab;
+end
 
-cfg.study_folder = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\';
-cfg.filename_prefix = 's';
+%% declare settings and folders 
+bemobil_config.subjects = 2:20;
+
+% bemobil_config.study_folder = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\';
+bemobil_config.study_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data';
+
+bemobil_config.filename_prefix = 's';
 
 % be as specific as possible (uses regexp)
-cfg.unprocessed_data_streams = {'brainvision_rda_bpn-c012'};
-cfg.event_streams = {'unity_markers_prederror_BPN-C043'};
-cfg.rigidbody_streams = {'rigid_handr_BPN-C043','rigid_head_BPN-C043'};
+bemobil_config.unprocessed_data_streams = {'brainvision_rda_bpn-c012'};
+bemobil_config.event_streams = {'unity_markers_prederror_BPN-C043'};
+bemobil_config.rigidbody_streams = {'rigid_handr_BPN-C043','rigid_head_BPN-C043'};
 
 % enter channels that you did not use at all (e.g. with the MoBI 160 chan layout, only 157 chans are used):
-cfg.channels_to_remove = [];
-cfg.rename_channels = {'brainvision_rda_bpn-c012_Fp1' 'Fp1';
+bemobil_config.channels_to_remove = [];
+bemobil_config.rename_channels = {'brainvision_rda_bpn-c012_Fp1' 'Fp1';
     'brainvision_rda_bpn-c012_Fp2' 'Fp2';
     'brainvision_rda_bpn-c012_F7' 'F7';
     'brainvision_rda_bpn-c012_F3' 'F3';
@@ -80,72 +86,67 @@ cfg.rename_channels = {'brainvision_rda_bpn-c012_Fp1' 'Fp1';
     'brainvision_rda_bpn-c012_PO8' 'PO8'}; % 'E65' 'FCz'    
 
 % enter EOG channel names here:
-cfg.eog_channels  = {''};
-cfg.ref_channel = 'FCz';
+bemobil_config.eog_channels  = {''};
+bemobil_config.ref_channel = 'FCz';
 
 % leave this empty if you have standard channel names that should use standard locations:
 % the standard .elc file can be found at "M:\BrainVision Stuff\Cap Layouts\standard_MoBI_channel_locations" and must
 % be copied into every subject's data folder (where the .xdf files are)
-cfg.channel_locations_filename = '';
+bemobil_config.channel_locations_filename = '';
 
 % general foldernames and filenames
-cfg.raw_data_folder = '0_raw-data\';
-cfg.mobilab_data_folder = '1_mobilab-data\';
-cfg.raw_EEGLAB_data_folder = '2_basic-EEGLAB\';
+bemobil_config.raw_data_folder = '0_raw-data';
+bemobil_config.mobilab_data_folder = '1_mobilab-data';
+bemobil_config.raw_EEGLAB_data_folder = '2_basic-EEGLAB';
 
-cfg.merged_filename = 'merged.set';
-cfg.preprocessed_filename = 'preprocessed.set';
-cfg.interpolated_avRef_filename = 'interpolated_avRef.set';
-cfg.filtered_filename = 'filtered.set';
+bemobil_config.merged_filename = 'merged.set';
+bemobil_config.preprocessed_filename = 'preprocessed.set';
+bemobil_config.interpolated_avRef_filename = 'interpolated_avRef.set';
+bemobil_config.filtered_filename = 'filtered.set';
 
 % preprocessing
-cfg.mocap_lowpass = 6;
-cfg.rigidbody_derivatives = 2;
-cfg.resample_freq = 250;
+bemobil_config.mocap_lowpass = 6;
+bemobil_config.rigidbody_derivatives = 2;
+bemobil_config.resample_freq = 250;
 
 %% set to mobids export \ conversion: prepare data
 
-if ~exist('ALLEEG','var')
-	eeglab;
-	runmobilab;
-end
-
 % read data, align modalities and merge to one file
-for subject = cfg.subjects(3:end)
+for subject = bemobil_config.subjects
     
     %% get all xdf filename in subject folder
-    filenames = dir(fullfile(cfg.study_folder, cfg.raw_data_folder, [cfg.filename_prefix num2str(subject)]));
+    filenames = dir(fullfile(bemobil_config.study_folder, bemobil_config.raw_data_folder, [bemobil_config.filename_prefix num2str(subject)]));
     xdf_ix = find(contains({filenames.name}, 'xdf'));
     filenames = {filenames(xdf_ix).name};
     % remove prefix and suffix to keep compatible with below function...
     for i = 1:numel(filenames)
         % index of first underscore: participant id _ filename
         u_ix = find(ismember(filenames{i}, '_'), 1, 'first');
-        cfg.filenames{i} = filenames{i}(u_ix+1:end-4);
+        bemobil_config.filenames{i} = filenames{i}(u_ix+1:end-4);
     end
     
 	%% load xdf files and process them with mobilab, export to eeglab
     % this is taken from Marius Klug's bemobil pipeline bemobil_process_all_mobilab
-	bemobil_process_all_mobilab(subject, cfg, ALLEEG, CURRENTSET, mobilab, 0);
+	bemobil_process_all_mobilab(subject, bemobil_config, ALLEEG, CURRENTSET, mobilab, 0);
     
     % merge
     % load all _MoBI sets
-    for fname = cfg.filenames
-        EEG = pop_loadset(fullfile([cfg.study_folder ...
-                cfg.raw_EEGLAB_data_folder ...
-                cfg.filename_prefix num2str(subject)], ...
-                [cfg.filename_prefix num2str(subject) '_'...
+    for fname = bemobil_config.filenames
+        EEG = pop_loadset(fullfile([bemobil_config.study_folder ...
+                bemobil_config.raw_EEGLAB_data_folder ...
+                bemobil_config.filename_prefix num2str(subject)], ...
+                [bemobil_config.filename_prefix num2str(subject) '_'...
                 fname{1} '_MoBI.set']));
         [ALLEEG EEG index] = eeg_store(ALLEEG, EEG);
     end
     EEG = pop_mergeset(ALLEEG, 1:size(ALLEEG,2));
     
-    %% 9. save and clear
+    %% save
 
     EEG = eeg_checkset(EEG);
-    pop_saveset(EEG, 'filename', ['s' num2str(subject) '_full_MoBI'], 'filepath', fullfile([cfg.study_folder ...
-                cfg.raw_EEGLAB_data_folder ...
-                cfg.filename_prefix num2str(subject)]));
+    pop_saveset(EEG, 'filename', ['s' num2str(subject) '_full_MoBI'], 'filepath', fullfile([bemobil_config.study_folder ...
+                bemobil_config.raw_EEGLAB_data_folder ...
+                bemobil_config.filename_prefix num2str(subject)]));
     
     % clear EEG sets
     ALLEEG = pop_delset(ALLEEG, 1:size(ALLEEG,2));
@@ -160,12 +161,7 @@ end
 %% set to mobids definitions and export
 % This script provides the transformation of raw EEG and motion capture 
 % data (XDF, extensible data format) recorded from participants in the 
-% invisible maze task. First, raw data is corrected manually for 
-% experimenter shortcomings and non-informative events. Second, EEGLAB 
-% compatible '.set' files are created and parsed.
-
-% Ultimately, '.set' files are exported to (MoBI) BIDS format with
-% information of participant descriptives.
+% predicition error task. 
 
 % L. Gehrke - June 2020
 
@@ -174,7 +170,8 @@ end
 %--------------------------------------------------------------------------
 
 % add the path to the bids matlab tools folder 
-addpath(genpath('C:\Users\Lukas\Documents\MATLAB\bids-matlab-tools'));
+% addpath(genpath('C:\Users\Lukas\Documents\MATLAB\bids-matlab-tools'));
+addpath(genpath('/Users/lukasgehrke/Documents/MATLAB/toolboxes'));
 
 % directories
 % -----------
@@ -183,7 +180,8 @@ subjects = [2:20];
 participantIDArray = {'s2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's13', 's14', 's15', 's16', 's17', 's18', 's19', 's20'};
 
 % path to the .set files 
-eegFileFolder         = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\2_basic-EEGLAB';
+% eegFileFolder         = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\2_basic-EEGLAB';
+eegFileFolder         = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/2_basic-EEGLAB';
 
 % EEG file suffix (participant ID string + suffix = EEG file name)
 eegFileSuffix         = '_full_MoBI.set';   
@@ -195,7 +193,8 @@ eegFileSuffix         = '_full_MoBI.set';
 
 % warning : target path will be emptied and overwritten when you run
 %           the export function
-targetFolder          = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\BIDS';
+% targetFolder          = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\BIDS';
+targetFolder          = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/BIDS';
 
 % general information for dataset_description.json file
 % -----------------------------------------------------
@@ -239,7 +238,8 @@ tInfo.EOGChannelCount = 0;
 
 % participant information for participants.tsv file
 % -------------------------------------------------
-tmp = readtable('P:\Lukas_Gehrke\studies\Prediction_Error\admin\questionnaires_PE_2018.xlsx', 'Sheet', 'Matlab Import');
+% tmp = readtable('P:\Lukas_Gehrke\studies\Prediction_Error\admin\questionnaires_PE_2018.xlsx', 'Sheet', 'Matlab Import');
+tmp = readtable('/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/admin/questionnaires_PE_2018.xlsx', 'Sheet', 'Matlab Import');
 varnames = tmp.Properties.VariableNames;
 pInfo = table2cell(tmp);
 pInfo = [varnames;pInfo];
@@ -406,7 +406,7 @@ eInfoDesc.ipq_question_nr_4_answer.Units = 'Likert';
 
 bids_export(subject,                                                ...
     'targetdir', targetFolder,                                      ... 
-    'taskName', 'IMT',                                              ...
+    'taskName', 'PE',                                              ...
     'gInfo', gInfo,                                           ...
     'pInfo', pInfo,                                                 ...
     'pInfoDesc', pInfoDesc,                                         ...

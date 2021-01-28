@@ -1,58 +1,24 @@
-%% clear all and load params (DONE)
-close all; clear all; clc;
-
-PE_config;
-
-%% processing loop (DONE)
+%close all; clear all; clc;
 
 if ~exist('ALLEEG','var')
 	eeglab;
-	runmobilab;
 end
 
-for subject = subjects
-    
-    % change fnames for s3
-    if subject == 3
-        ori_fnames = bemobil_config.filenames;
-        bemobil_config.filenames = bemobil_config.filenames_s3;
-    end
-	
-	% load xdf files and process them with mobilab, export to eeglab, split MoBI and merge all conditions for EEG
-	[ALLEEG, EEG_merged, CURRENTSET] = bemobil_process_all_mobilab(subject, bemobil_config, ALLEEG, CURRENTSET, mobilab, 1);
-    
-	% finally start the complete processing pipeline including AMICA
-	[ALLEEG, EEG_AMICA_final, CURRENTSET] = bemobil_process_all_AMICA(ALLEEG, EEG_merged, CURRENTSET, subject, bemobil_config);
-    
-    % create a merged mocap files
-    STUDY = []; CURRENTSTUDY = 0; ALLEEG = []; EEG=[]; CURRENTSET=[];
-    input_filepath = [bemobil_config.study_folder bemobil_config.raw_EEGLAB_data_folder bemobil_config.filename_prefix num2str(subject)];
-	output_filepath = [bemobil_config.study_folder bemobil_config.single_subject_analysis_folder bemobil_config.filename_prefix num2str(subject)];
-    for filename = bemobil_config.filenames
-        EEG = pop_loadset('filename',[ bemobil_config.filename_prefix num2str(subject) '_'...
-            filename{1} '_MOCAP.set' ], 'filepath', input_filepath);
-        EEG = pop_resample(EEG, bemobil_config.resample_freq);
-        [ALLEEG, EEG, CURRENTSET] = pop_newset(ALLEEG, EEG, 0,'study',0);
-    end
-    % and merge, saves merged file to single subject analysis folder
-    [ALLEEG, mocap, CURRENTSET] = bemobil_merge(ALLEEG,EEG,CURRENTSET,1:length(ALLEEG),...
-        [bemobil_config.filename_prefix num2str(subject) '_' bemobil_config.merged_filename_mocap], output_filepath);
-    
-    % change back fnames after processing s3
-    if subject == 3
-        bemobil_config.filenames = ori_fnames;
-    end
-	
-end
+% add downloaded analyses code to the path
+PE_config;
 
-%% save all topos for all subjects (DONE)
+% BIDS data download folder
+bemobil_config.study_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/BIDS/processing';
+bemobil_config.BIDS_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/BIDS';
 
-% to fix elocs of one subject
-for s = ALLEEG
-    pop_topoplot(s,0,[1:size(s.icasphere,1)]);
-    saveas(gcf, ['/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/5_study_level/analyses/topomaps/' s.filename(1:3) '.png']);
-    close(gcf);
-    close all;
+%% processing loop (DONE)
+
+for subject = bemobil_config.subjects-1
+    EEG = pop_loadset(fullfile(bemobil_config.BIDS_folder, sprintf('sub-%03d', subject), 'mobi', [sprintf('sub-%03d', subject) '_task-PE_mobi.set']));
+    [ALLEEG, EEG_AMICA_final, CURRENTSET] = bemobil_process_all_AMICA(ALLEEG, EEG, CURRENTSET, subject, bemobil_config);
+    
+    % todo save with weights and spheres
+    % for the time being copy AMICA results from previous dataset?
 end
 
 %% event and baseline epoching, clean epoch indices (autorej,3 function), mocap data (DONE)
@@ -61,29 +27,10 @@ if ~exist('ALLEEG','var'); eeglab; end
 pop_editoptions( 'option_storedisk', 0, 'option_savetwofiles', 1, 'option_saveversion6', 0, 'option_single', 0, 'option_memmapdata', 0, 'option_eegobject', 0, 'option_computeica', 1, 'option_scaleicarms', 1, 'option_rememberfolder', 1, 'option_donotusetoolboxes', 0, 'option_checkversion', 1, 'option_chat', 1);
 
 for subject = subjects
-    
-    
-    %% load EEG and mocap data
-	disp(['Subject #' num2str(subject)]);
-    
-    % filepaths
-	input_filepath = [bemobil_config.study_folder bemobil_config.single_subject_analysis_folder bemobil_config.filename_prefix num2str(subject)];
-	output_filepath = [bemobil_config.study_folder bemobil_config.single_subject_analysis_folder bemobil_config.filename_prefix num2str(subject)];
 	
-    %EEG: load data
-	EEG = pop_loadset('filename',[ bemobil_config.filename_prefix num2str(subject) '_'...
-		bemobil_config.epochs_filename], 'filepath', input_filepath);
-	[ALLEEG, EEG, CURRENTSET] = pop_newset(ALLEEG, EEG, 0,'study',0);
-    %MOCAP: load data
-    mocap = pop_loadset('filename',[ bemobil_config.filename_prefix num2str(subject) '_'...
-		bemobil_config.merged_filename_mocap], 'filepath', input_filepath);
-	[ALLEEG, mocap, CURRENTSET] = pop_newset(ALLEEG, mocap, 0,'study',0);
-	
+    %% load preprocessed EEG set
+    
     %% parsing event structure
-    
-    % parse events from urevent structure 
-    EEG = parse_events_PE(EEG);
-    mocap = parse_events_PE(mocap);
         
     % change field name of 'condition' so its not a study thing
     oldField = 'condition';
@@ -92,8 +39,8 @@ for subject = subjects
     EEG.event = rmfield(EEG.event,oldField);
     
     % get event indices
-    touch_ixs = find(strcmp({EEG.event.type}, 'box:touched'));
-    spawn_ixs = find(strcmp({EEG.event.type}, 'box:spawned'));
+    touch_ixs = find(strcmp({EEG.event.trial_type}, 'box:touched'));
+    spawn_ixs = find(strcmp({EEG.event.trial_type}, 'box:spawned'));
         
     %% build design matrix
     
