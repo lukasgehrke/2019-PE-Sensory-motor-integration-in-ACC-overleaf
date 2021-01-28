@@ -8,8 +8,8 @@ end
 %% declare settings and folders 
 bemobil_config.subjects = 2:20;
 
-% bemobil_config.study_folder = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\';
-bemobil_config.study_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data';
+bemobil_config.study_folder = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\';
+% bemobil_config.study_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data';
 
 bemobil_config.filename_prefix = 's';
 
@@ -128,6 +128,9 @@ for subject = bemobil_config.subjects
 	%% load xdf files and process them with mobilab, export to eeglab
     % this is taken from Marius Klug's bemobil pipeline bemobil_process_all_mobilab
 	bemobil_process_all_mobilab(subject, bemobil_config, ALLEEG, CURRENTSET, mobilab, 0);
+    
+    EEG = pop_loadset(fullfile(bemobil_config.BIDS_folder, sprintf('sub-%03d', subject), 'mobi', [sprintf('sub-%03d', subject) '_task-PE_mobi.set']));
+    [ALLEEG, EEG_AMICA_final, CURRENTSET] = bemobil_process_all_AMICA(ALLEEG, EEG, CURRENTSET, subject, bemobil_config);
     
     % merge
     % load all _MoBI sets

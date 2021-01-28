@@ -11,16 +11,6 @@ PE_config;
 bemobil_config.study_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/BIDS/processing';
 bemobil_config.BIDS_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/BIDS';
 
-%% processing loop (DONE)
-
-for subject = bemobil_config.subjects-1
-    EEG = pop_loadset(fullfile(bemobil_config.BIDS_folder, sprintf('sub-%03d', subject), 'mobi', [sprintf('sub-%03d', subject) '_task-PE_mobi.set']));
-    [ALLEEG, EEG_AMICA_final, CURRENTSET] = bemobil_process_all_AMICA(ALLEEG, EEG, CURRENTSET, subject, bemobil_config);
-    
-    % todo save with weights and spheres
-    % for the time being copy AMICA results from previous dataset?
-end
-
 %% event and baseline epoching, clean epoch indices (autorej,3 function), mocap data (DONE)
 
 if ~exist('ALLEEG','var'); eeglab; end
@@ -28,7 +18,7 @@ pop_editoptions( 'option_storedisk', 0, 'option_savetwofiles', 1, 'option_saveve
 
 for subject = subjects
 	
-    %% load preprocessed EEG set
+    %% load BIDS (with AMICA results) set
     
     %% parsing event structure
         
@@ -83,7 +73,7 @@ for subject = subjects
         end
     end
     
-    %% removing ICs and cleaning data
+    %% removing ICs and cleaning epochs
     
     no_brain = find(EEG.etc.ic_classification.ICLabel.classifications(:,1) < bemobil_config.brain_threshold);
     EEG = pop_subcomp(EEG, no_brain);
