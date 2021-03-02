@@ -1,9 +1,10 @@
 function [keys, types] = PE_set_to_mobids_events(eegFileName, eegFilePath)
 
-if ~exist('eeglab','var'); eeglab; end
+% if ~exist('eeglab','var'); eeglab; end
 
 EEG             = pop_loadset('filename', eegFileName, 'filepath', eegFilePath);
-EEG             = parse_events_PE(EEG); % function used for CHI submission
+% EEG             = parse_events_pe(EEG); % function used for CHI submission
+EEG.event = renamefields(EEG.event, 'trial_type', 'type');
 
 % change empty fields to 'n/a' and ':' to '_' 
 for i = 1:numel(EEG.event)
@@ -24,14 +25,15 @@ keys = fieldnames(EEG.event);
 keys = keys(~contains(keys,{'type', 'duration', 'latency', 'urevent', 'hedTag'}));
 % find all types of events
 % ---------------------------------------------------------------------
-types = unique({EEG.event.type});
+EEG.event = renamefields(EEG.event, 'type', 'trial_type');
+
+types = unique({EEG.event.trial_type});
 ipq_types = types(contains(types,'ipq')); % clean ipq events
 ipq_types = cellfun(@(x) x(1:end-2), ipq_types, 'un', 0);
 types = types(~contains(types,{'ipq', 'duplicate_event'}));
 types = unique([types, ipq_types]);
-EEG.event = renamefields(EEG.event, 'type', 'trial_type');
 
-pop_saveset(EEG, 'filename', eegFileName, 'filepath', eegFilePath);
+% pop_saveset(EEG, 'filename', eegFileName, 'filepath', eegFilePath);
 
 end
 

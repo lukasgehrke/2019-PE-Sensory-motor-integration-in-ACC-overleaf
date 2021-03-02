@@ -49,6 +49,8 @@ bemobil_config.warped_dipfitted_filename = 'warped_dipfitted.set';
 bemobil_config.copy_weights_interpolate_avRef_filename = 'interp_avRef_ICA.set';
 bemobil_config.single_subject_cleaned_ICA_filename = 'cleaned_with_ICA.set';
 bemobil_config.ssd_frontal_parietal_filename = 'ssd_frontal_parietal.set';
+bemobil_config.to_BIDS_filename = 'to_bids.set';
+bemobil_config.mocap_BIDS_filename = 'mocap.set';
 
 %% Processing Setup  
 
@@ -62,7 +64,7 @@ bemobil_config.channels_to_remove = [];
 bemobil_config.eog_channels  = {''};
 
 % if you add a channel here it needs to have a location as well. this means a new channel will be created and the old reference will be back in the dataset
-bemobil_config.ref_channel = 'FCz';
+bemobil_config.ref_channel = '';
 
 % it's possible to rename single channels here if needed. Enter matrices of channel names (from->to)
 bemobil_config.rename_channels = {'brainvision_rda_bpn-c012_Fp1' 'Fp1';
@@ -167,6 +169,7 @@ bemobil_config.zapline_plot = 1;
 bemobil_config.filter_lowCutoffFreqAMICA = 1.25; % 1.25 is 1Hz cutoff!
 bemobil_config.filter_AMICA_highPassOrder = 1650; % was used by Klug & Gramann (2020)
 bemobil_config.AMICA_autoreject = 1; % uses automatic rejection method of AMICA. no time-cleaning (manual or automatic) is needed then!
+bemobil_config.AMICA_n_rej = 3;
 
 %% Special Processing Parameters
 % everything from here is according to the general pipeline, changes not recommended 

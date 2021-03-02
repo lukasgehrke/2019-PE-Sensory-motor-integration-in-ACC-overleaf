@@ -5,11 +5,13 @@ if ~exist('ALLEEG','var')
 end
 
 % add downloaded analyses code to the path
-PE_config;
 
 % BIDS data download folder
-bemobil_config.study_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/BIDS/processing';
 bemobil_config.BIDS_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/BIDS';
+
+% processing output folder
+bemobil_config.study_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/BIDS/processing';
+
 
 %% event and baseline epoching, clean epoch indices (autorej,3 function), mocap data (DONE)
 
@@ -19,6 +21,12 @@ pop_editoptions( 'option_storedisk', 0, 'option_savetwofiles', 1, 'option_saveve
 for subject = subjects
 	
     %% load BIDS (with AMICA results) set
+    
+    mocap_chan_ix = find(ismember({EEG.chanlocs.type},'MOCAP'));
+    eeg_chan_ix = find(ismember({EEG.chanlocs.type},'EEG'));
+    
+    
+    EEG = 
     
     %% parsing event structure
         

@@ -1,9 +1,13 @@
-%% set to mobids export \ conversion: prepare data
+%% 
+config_XDF_pe;
+subjects = 2:20;
+eeglab;
+
+%% set to mobids export \ conversion: prepare data to include both EEG and mocap
 
 % read data, align modalities and merge to one file
-for subject = bemobil_config.subjects
+for subject = subjects
     
-    %% get all xdf filename in subject folder
     filenames = dir(fullfile(bemobil_config.study_folder, bemobil_config.raw_data_folder, [bemobil_config.filename_prefix num2str(subject)]));
     xdf_ix = find(contains({filenames.name}, 'xdf'));
     filenames = {filenames(xdf_ix).name};
@@ -14,40 +18,80 @@ for subject = bemobil_config.subjects
         bemobil_config.filenames{i} = filenames{i}(u_ix+1:end-4);
     end
     
-	%% load xdf files and process them with mobilab, export to eeglab
-    % this is taken from Marius Klug's bemobil pipeline bemobil_process_all_mobilab
-	bemobil_process_all_mobilab(subject, bemobil_config, ALLEEG, CURRENTSET, mobilab, 0);
-    
-    EEG = pop_loadset(fullfile(bemobil_config.BIDS_folder, sprintf('sub-%03d', subject), 'mobi', [sprintf('sub-%03d', subject) '_task-PE_mobi.set']));
-    [ALLEEG, EEG_AMICA_final, CURRENTSET] = bemobil_process_all_AMICA(ALLEEG, EEG, CURRENTSET, subject, bemobil_config);
-    
-    % merge
-    % load all _MoBI sets
+    % get mocap data
     for fname = bemobil_config.filenames
         EEG = pop_loadset(fullfile([bemobil_config.study_folder ...
-                bemobil_config.raw_EEGLAB_data_folder ...
-                bemobil_config.filename_prefix num2str(subject)], ...
-                [bemobil_config.filename_prefix num2str(subject) '_'...
-                fname{1} '_MoBI.set']));
+            bemobil_config.raw_EEGLAB_data_folder ...
+            bemobil_config.filename_prefix num2str(subject)], ...
+            [bemobil_config.filename_prefix num2str(subject) '_'...
+            fname{1} '_MoBI.set']));
         [ALLEEG EEG index] = eeg_store(ALLEEG, EEG);
     end
-    EEG = pop_mergeset(ALLEEG, 1:size(ALLEEG,2));
+    mocap = pop_resample(pop_mergeset(ALLEEG, 1:size(ALLEEG,2)), bemobil_config.resample_freq);
+    
+    % get processed EEG data
+    EEG = pop_loadset(fullfile([bemobil_config.study_folder ...
+        bemobil_config.single_subject_analysis_folder ...
+        bemobil_config.filename_prefix num2str(subject)], ...
+        [bemobil_config.filename_prefix num2str(subject) '_'...
+        bemobil_config.single_subject_cleaned_ICA_filename]));
+    
+    % hardcoded copy mocap channels to EEG set
+    if subject == 7
+        EEG.data(66:101,:) = mocap.data(129:end,:);
+        [EEG.chanlocs(66:101).labels] = deal(mocap.chanlocs(129:end).labels);
+    else
+        EEG.data(66:101,:) = mocap.data(65:end,:);
+        [EEG.chanlocs(66:101).labels] = deal(mocap.chanlocs(65:end).labels);
+    end
+    [EEG.chanlocs(66:101).type] = deal('MOCAP');
+    [EEG.chanlocs(66:101).ref] = deal('');
     
     %% save
 
     EEG = eeg_checkset(EEG);
-    pop_saveset(EEG, 'filename', ['s' num2str(subject) '_full_MoBI'], 'filepath', fullfile([bemobil_config.study_folder ...
-                bemobil_config.raw_EEGLAB_data_folder ...
-                bemobil_config.filename_prefix num2str(subject)]));
+    pop_saveset(EEG, 'filename', [bemobil_config.filename_prefix num2str(subject) '_' ...
+        bemobil_config.to_BIDS_filename], 'filepath', fullfile([bemobil_config.study_folder ...
+        bemobil_config.single_subject_analysis_folder ...
+        bemobil_config.filename_prefix num2str(subject)]));
     
     % clear EEG sets
-    ALLEEG = pop_delset(ALLEEG, 1:size(ALLEEG,2));
-    if size(ALLEEG,2)>1
-        for i = 2:size(ALLEEG,2)
-            ALLEEG(2) = [];
-        end
-    end
+    %ALLEEG = pop_delset(ALLEEG, 1:size(ALLEEG,2));
+%     if size(ALLEEG,2)>1
+%         for i = 2:size(ALLEEG,2)
+%             ALLEEG(2) = [];
+%         end
+%     end
 
+    ALLEEG = [];
+    bemobil_config.filenames = [];
+
+end
+
+%% load to_bids file, kick out the EEG data and channels and save as mocap in single_subject_analysis_folder
+for subject = subjects
+    
+    TO_BIDS = pop_loadset(fullfile([bemobil_config.study_folder ...
+        bemobil_config.single_subject_analysis_folder ...
+        bemobil_config.filename_prefix num2str(subject)], ...
+        [bemobil_config.filename_prefix num2str(subject) '_'...
+        bemobil_config.to_BIDS_filename]));
+    
+    TO_BIDS.data(1:65,:) = [];
+    TO_BIDS.chanlocs(1:65) = [];
+    TO_BIDS.icaact = [];
+    TO_BIDS.icawinv = [];
+    TO_BIDS.icaspehere = [];
+    TO_BIDS.icaweights = [];
+    TO_BIDS.icachansind = [];
+    TO_BIDS.ref = '';
+    
+    TO_BIDS = eeg_checkset(TO_BIDS);
+    pop_saveset(TO_BIDS, 'filename', [bemobil_config.filename_prefix num2str(subject) '_' ...
+        bemobil_config.mocap_BIDS_filename], 'filepath', fullfile([bemobil_config.study_folder ...
+        bemobil_config.single_subject_analysis_folder ...
+        bemobil_config.filename_prefix num2str(subject)]));
+    
 end
 
 %% set to mobids definitions and export
@@ -55,14 +99,14 @@ end
 % data (XDF, extensible data format) recorded from participants in the 
 % predicition error task. 
 
-% L. Gehrke - June 2020
+% L. Gehrke - February 2021
 
 %--------------------------------------------------------------------------
 % 0. General Information and Directory Management 
 %--------------------------------------------------------------------------
 
 % add the path to the bids matlab tools folder 
-addpath(genpath('C:\Users\Lukas\Documents\MATLAB\bids-matlab-tools'));
+addpath(genpath('P:\Lukas_Gehrke\toolboxes\bids-matlab-tools'));
 
 % directories
 % -----------
@@ -71,10 +115,12 @@ subjects = [2:20];
 participantIDArray = {'s2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's13', 's14', 's15', 's16', 's17', 's18', 's19', 's20'};
 
 % path to the .set files 
-eegFileFolder         = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\2_basic-EEGLAB';
-
+eegFileFolder         = fullfile(bemobil_config.study_folder, bemobil_config.single_subject_analysis_folder);
+    
 % EEG file suffix (participant ID string + suffix = EEG file name)
-eegFileSuffix         = '_full_MoBI.set';   
+% eegFileSuffix         = ['_', bemobil_config.single_subject_cleaned_ICA_filename];
+% eegFileSuffix         = ['_', bemobil_config.to_BIDS_filename];
+eegFileSuffix         = ['_', bemobil_config.mocap_BIDS_filename];
 
 % path to the chanloc files 
 %export chanlocs? - they are default chanlocs
@@ -83,18 +129,18 @@ eegFileSuffix         = '_full_MoBI.set';
 
 % warning : target path will be emptied and overwritten when you run
 %           the export function
-targetFolder          = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\BIDS';
+targetFolder          = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\BIDSmotion';
 
 % general information for dataset_description.json file
 % -----------------------------------------------------
 gInfo.Name    = 'Prediction Error';
 gInfo.BIDSVersion = '1.4';
-gInfo.License = '';
-gInfo.Authors = {"Lukas Gehrke, Sezen Akman, Albert Chen, Pedro Lopes, Klaus Gramann"};
-gInfo.Acknowledgements = '';
-gInfo.HowToAcknowledge = '';
-gInfo.ReferencesAndLinks = { "" };
-gInfo.DatasetDOI = '';
+gInfo.License = 'ODbL (https://opendatacommons.org/licenses/odbl/summary/)';
+gInfo.Authors = {"Lukas Gehrke", "Sezen Akman", "Albert Chen", "Pedro Lopes", "Klaus Gramann"};
+gInfo.Acknowledgements = 'We thank Avinash Singh, Tim Chen and C.-T. Lin from the Univsersity of Sydney (New South Wales, Australia) for their help developing the task.';
+gInfo.HowToAcknowledge = 'Please cite: Lukas Gehrke, Sezen Akman, Albert Chen, Pedro Lopes, Klaus Gramann (2021, March 1). Prediction Error: A reach-to-touch Mobile Brain/Body Imaging Dataset. https://doi.org/10.17605/OSF.IO/X7HNM';
+gInfo.ReferencesAndLinks = { "Detecting Visuo-Haptic Mismatches in Virtual Reality using the Prediction Error Negativity of Event-Related Brain Potentials. Lukas Gehrke, Sezen Akman, Pedro Lopes, Albert Chen, Avinash Kumar Singh, Hsiang-Ting Chen, Chin-Teng Lin and Klaus Gramann | In Proceedings of the 2019 CHI Conference on Human Factors in Computing Systems (CHI ’19). ACM, New York, NY, USA, Paper 427, 11 pages. DOI: https://doi.org/10.1145/3290605.3300657" };
+gInfo.DatasetDOI = 'DOI 10.17605/OSF.IO/X7HNM';
 
 % Content for README file
 % -----------------------
@@ -107,7 +153,7 @@ README = sprintf( [ '19 participants were tested in a virtual reality (VR) reach
 % Content for CHANGES file
 % ------------------------
 CHANGES = sprintf([ 'Revision history for prediction error dataset\n\n' ...
-                    'version 1.0 beta - 29 Jun 2020\n' ...
+                    'version 1.0 - 1 Mar 2021\n' ...
                     ' - Initial release\n' ]);
 
 % Task information for xxxx-eeg.json file
@@ -118,7 +164,7 @@ tInfo.InstitutionalDepartmentName = 'Biopsychology and Neuroergonomics';
 tInfo.PowerLineFrequency = 50;
 tInfo.ManufacturersModelName = 'n/a';
 tInfo.SamplingFrequency = 500;
-tInfo.TaskName = 'reach-to-touch prediction error';
+tInfo.TaskName = 'reach to touch prediction error';
 tInfo.EOGChannelCount = 0;
 
 %--------------------------------------------------------------------------
@@ -169,7 +215,7 @@ end
 % The new events will be saved in a new .set file, overwritting the old one. 
 % Every experiment has different markers, so everyone needs to modify this function.
 % Keys and types are assumed to be the same across all participants. 
-for subjectID = 1:numel(participantIDArray)
+for subjectID = 1%:numel(participantIDArray)
     
     [keys,types] = set_to_BIDS_events_pe([participantIDArray{subjectID} eegFileSuffix], fullfile(eegFileFolder, participantIDArray{subjectID}));
 
@@ -294,7 +340,7 @@ eInfoDesc.ipq_question_nr_4_answer.Units = 'Likert';
 
 bids_export(subject,                                                ...
     'targetdir', targetFolder,                                      ... 
-    'taskName', 'PE',                                              ...
+    'taskName', 'ReachToTouchPredictionError',                                              ...
     'gInfo', gInfo,                                           ...
     'pInfo', pInfo,                                                 ...
     'pInfoDesc', pInfoDesc,                                         ...
@@ -302,5 +348,4 @@ bids_export(subject,                                                ...
     'eInfoDesc', eInfoDesc,                                         ...
     'README', README,                                               ...
     'trialtype', trialType,                                         ...
-    'tInfo', tInfo,                                                 ...
-    'mobi', 1)
+    'tInfo', tInfo)

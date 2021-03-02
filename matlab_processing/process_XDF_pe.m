@@ -1,10 +1,15 @@
-% close all; clear
+close all; clear
 
 config_XDF_pe;
 
 % enter all subjects to process here (you can split it up in more MATLAB instances if you have more CPU power and RAM)
-subjects = 2%2:20;
-force_recomp = false;
+% subjects = 2:20;
+% subjects = 2:6;
+% subjects = 7:11;
+% subjects = 12:16;
+subjects = 17:20;
+
+force_recomp = true;
 
 %% processing loop
 
@@ -16,7 +21,7 @@ if ~exist('mobilab','var')
 	runmobilab;
 end
 
-%%
+%
 
 for subject = subjects
     
@@ -64,7 +69,7 @@ for subject = subjects
 % 	start the processing pipeline for AMICA
 	[ALLEEG, EEG, CURRENTSET] = bemobil_process_all_AMICA(ALLEEG, EEG_interp_avref, CURRENTSET, subject, bemobil_config, force_recomp);
 
-	STUDY = []; CURRENTSTUDY = 0; ALLEEG = [];  CURRENTSET=[]; EEG_interp_avref = [];
+	STUDY = []; CURRENTSTUDY = 0; ALLEEG = [];  CURRENTSET=[]; EEG_interp_avref = []; bemobil_config.filenames = [];
 
 
 	%% clean with IClabel
