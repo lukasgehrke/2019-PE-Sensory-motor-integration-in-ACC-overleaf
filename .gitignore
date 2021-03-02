@@ -1,4 +1,4 @@
-
+data/
 *.pptx
 *.icloud
 *.pdf
@@ -13,3 +13,4 @@ communication/
 .DS_Store
 chapters/._.DS_Store
 chapters/.DS_Store
+data.nosync/ds003552/
