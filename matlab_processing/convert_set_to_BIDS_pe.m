@@ -118,9 +118,9 @@ participantIDArray = {'s2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's1
 eegFileFolder         = fullfile(bemobil_config.study_folder, bemobil_config.single_subject_analysis_folder);
     
 % EEG file suffix (participant ID string + suffix = EEG file name)
-% eegFileSuffix         = ['_', bemobil_config.single_subject_cleaned_ICA_filename];
+eegFileSuffix         = ['_', bemobil_config.copy_weights_interpolate_avRef_filename];
 % eegFileSuffix         = ['_', bemobil_config.to_BIDS_filename];
-eegFileSuffix         = ['_', bemobil_config.mocap_BIDS_filename];
+% eegFileSuffix         = ['_', bemobil_config.mocap_BIDS_filename];
 
 % path to the chanloc files 
 %export chanlocs? - they are default chanlocs
@@ -129,13 +129,13 @@ eegFileSuffix         = ['_', bemobil_config.mocap_BIDS_filename];
 
 % warning : target path will be emptied and overwritten when you run
 %           the export function
-targetFolder          = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\BIDSmotion';
+targetFolder          = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\BIDSeeg';
 
 % general information for dataset_description.json file
 % -----------------------------------------------------
 gInfo.Name    = 'Prediction Error';
 gInfo.BIDSVersion = '1.4';
-gInfo.License = 'ODbL (https://opendatacommons.org/licenses/odbl/summary/)';
+gInfo.License = 'CC0';
 gInfo.Authors = {"Lukas Gehrke", "Sezen Akman", "Albert Chen", "Pedro Lopes", "Klaus Gramann"};
 gInfo.Acknowledgements = 'We thank Avinash Singh, Tim Chen and C.-T. Lin from the Univsersity of Sydney (New South Wales, Australia) for their help developing the task.';
 gInfo.HowToAcknowledge = 'Please cite: Lukas Gehrke, Sezen Akman, Albert Chen, Pedro Lopes, Klaus Gramann (2021, March 1). Prediction Error: A reach-to-touch Mobile Brain/Body Imaging Dataset. https://doi.org/10.17605/OSF.IO/X7HNM';
@@ -215,7 +215,7 @@ end
 % The new events will be saved in a new .set file, overwritting the old one. 
 % Every experiment has different markers, so everyone needs to modify this function.
 % Keys and types are assumed to be the same across all participants. 
-for subjectID = 1%:numel(participantIDArray)
+for subjectID = 1:numel(participantIDArray)
     
     [keys,types] = set_to_BIDS_events_pe([participantIDArray{subjectID} eegFileSuffix], fullfile(eegFileFolder, participantIDArray{subjectID}));
 
