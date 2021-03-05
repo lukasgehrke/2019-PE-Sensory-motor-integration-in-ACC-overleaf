@@ -1,45 +1,78 @@
-%close all; clear all; clc;
+clear all;
 
 if ~exist('ALLEEG','var')
 	eeglab;
 end
 
 % add downloaded analyses code to the path
+addpath(genpath('/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/matlab_processing'));
 
 % BIDS data download folder
-bemobil_config.BIDS_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/BIDS';
+bemobil_config.BIDS_folder = '/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/data.nosync/ds003552';
 
-% processing output folder
-bemobil_config.study_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/BIDS/processing';
+% Results output folder -> external drive
+bemobil_config.study_folder = fullfile('/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error', 'derivatives');
 
+% init
+config_processing_pe;
+subjects = 1:19;
 
-%% event and baseline epoching, clean epoch indices (autorej,3 function), mocap data (DONE)
+%% event and baseline epoching, clean epoch indices (autorej,3 function), motion data (DONE)
 
 if ~exist('ALLEEG','var'); eeglab; end
 pop_editoptions( 'option_storedisk', 0, 'option_savetwofiles', 1, 'option_saveversion6', 0, 'option_single', 0, 'option_memmapdata', 0, 'option_eegobject', 0, 'option_computeica', 1, 'option_scaleicarms', 1, 'option_rememberfolder', 1, 'option_donotusetoolboxes', 0, 'option_checkversion', 1, 'option_chat', 1);
 
 for subject = subjects
-	
+    
     %% load BIDS (with AMICA results) set
+    modality = 'eeg';
+    EEG = pop_loadset(fullfile(bemobil_config.BIDS_folder, ['sub-', sprintf('%03d', subject)], modality, ...
+        ['sub-', sprintf('%03d', subject), '_task-', bemobil_config.task, '_', modality, '.set']));
+    EEG.event = renamefields(EEG.event, 'trial_type', 'type');
     
-    mocap_chan_ix = find(ismember({EEG.chanlocs.type},'MOCAP'));
-    eeg_chan_ix = find(ismember({EEG.chanlocs.type},'EEG'));
+    %% exclude training trials
+
+    training = find(ismember({EEG.event.training}, 'true'));
+    training_block_start = intersect(training, find(ismember({EEG.event.block}, 'start')));
+    training_block_end = intersect(training, find(ismember({EEG.event.block}, 'end')));
     
+    training_start_end_ixs = [training_block_start(1)];
+    tmp_end_ix = 1;
+    for i = 2:size(training_block_start,2)
+        if training_block_start(i) > training_block_end(tmp_end_ix)
+            training_start_end_ixs = [training_start_end_ixs, training_block_end(tmp_end_ix), training_block_start(i)];
+            tmp_end_ix = tmp_end_ix + 1;
+        end
+    end
+    training_start_end_ixs = [training_start_end_ixs, training_block_end(tmp_end_ix)];
     
-    EEG = 
+    if size(training_start_end_ixs,2) > 2
+        training_start_end_ixs = reshape(training_start_end_ixs, size(training_start_end_ixs,2)/2, 2)';
+    end
+    
+    rem_events = [];
+    for i = 1:size(training_start_end_ixs,1)
+        rem_events = [rem_events, training_start_end_ixs(i,1):training_start_end_ixs(i,2)];
+    end
+    EEG.event(rem_events) = [];
     
     %% parsing event structure
         
-    % change field name of 'condition' so its not a study thing
+    % change field name of 'condition' so its not an eeglab study thing
     oldField = 'condition';
     newField = 'feedback';
     [EEG.event.(newField)] = EEG.event.(oldField);
     EEG.event = rmfield(EEG.event,oldField);
     
+    % catching marker mistakes
+    if subject == 15
+        EEG.event(501) = [];
+    end
+    
     % get event indices
-    touch_ixs = find(strcmp({EEG.event.trial_type}, 'box:touched'));
-    spawn_ixs = find(strcmp({EEG.event.trial_type}, 'box:spawned'));
-        
+    touch_ixs = find(strcmp({EEG.event.type}, 'box_touched'));
+    spawn_ixs = find(strcmp({EEG.event.type}, 'box_spawned'));
+    
     %% build design matrix
     
     design = EEG;
@@ -83,15 +116,15 @@ for subject = subjects
     
     %% removing ICs and cleaning epochs
     
-    no_brain = find(EEG.etc.ic_classification.ICLabel.classifications(:,1) < bemobil_config.brain_threshold);
-    EEG = pop_subcomp(EEG, no_brain);
-    EEG = eeg_checkset(EEG); % recomp ICA activation
+%     no_brain = find(EEG.etc.ic_classification.ICLabel.classifications(:,1) < bemobil_config.brain_threshold);
+%     EEG = pop_subcomp(EEG, no_brain);
+%     EEG = eeg_checkset(EEG); % recomp ICA activation
     
     % overwrite events with clean epoch events
     clean_EEG = EEG;
     clean_EEG.event = clean_EEG.event(touch_ixs); % touches
     
-    % ERPs: both EEG and mocap
+    % ERPs: both EEG and motion
     clean_EEG = pop_epoch( clean_EEG, bemobil_config.epoching.event_epoching_event, bemobil_config.epoching.event_epochs_boundaries, 'newname',...
         'epochs', 'epochinfo', 'yes');
     
@@ -162,11 +195,11 @@ for subject = subjects
         win = bemobil_config.epoching.base_win * 1000;
         EEG.etc.analysis.ersp.tf_base_raw_power(comp,:,:) = squeezemean(abs(tfdata(:,find(ersp_times>win(1),1,'first'):find(ersp_times<=win(2),1,'last'),:)).^2,2);
 
-% test grand mean ersp: everything looks good, 14.02.2020
-        ev = squeezemean(EEG.etc.analysis.ersp.tf_event_raw_power,3);
-        base = squeezemean(EEG.etc.analysis.ersp.tf_base_raw_power,2);
-        ev_db = 10.*log10(ev./base);
-        figure;imagesc(EEG.etc.analysis.ersp.tf_event_times, EEG.etc.analysis.ersp.tf_event_freqs, ev_db, [-1 1]);axis xy;cbar;
+%         % test grand mean ersp: everything looks good, 02.03.2021
+%         ev = squeezemean(EEG.etc.analysis.ersp.tf_event_raw_power,4);
+%         base = squeezemean(EEG.etc.analysis.ersp.tf_base_raw_power,3);
+%         ev_db = 10.*log10(squeeze(ev(comp,:,:))./base(comp,:)');
+%         figure;imagesc(EEG.etc.analysis.ersp.tf_event_times, EEG.etc.analysis.ersp.tf_event_freqs, ev_db, [-1 1]);axis xy;cbar;
   
         toc
     end
@@ -175,25 +208,31 @@ for subject = subjects
     EEG.etc.analysis.ersp.tf_event_times = ersp_times_ev;
     EEG.etc.analysis.ersp.tf_event_freqs = ersp_freqs_ev;
     
-    %% add_xyz MOCAP: Velocity at time points before events of interest
+    %% add_xyz motion: Velocity at time points before events of interest
     
-    % mocap
-    mocap.event = EEG.event(touch_ixs);
-    mocap = pop_epoch( mocap, bemobil_config.epoching.event_epoching_event, bemobil_config.epoching.event_epochs_boundaries, 'newname',...
+    % load BIDS formatted motion data
+    modality = 'motion';
+    motion = pop_loadset(fullfile(bemobil_config.BIDS_folder, ['sub-', sprintf('%03d', subject)], modality, ...
+        ['sub-', sprintf('%03d', subject), '_task-', bemobil_config.task, '_', modality, '.set']));
+    motion.event = renamefields(EEG.event, 'trial_type', 'type');
+    
+    % motion
+    motion.event = EEG.event(touch_ixs);
+    motion = pop_epoch( motion, bemobil_config.epoching.event_epoching_event, bemobil_config.epoching.event_epochs_boundaries, 'newname',...
         'epochs', 'epochinfo', 'yes');    
     
     % save x,y,z of hand
-    EEG.etc.analysis.mocap.x = mocap.data(7,:,:);
-    EEG.etc.analysis.mocap.y = mocap.data(8,:,:);
-    EEG.etc.analysis.mocap.z = mocap.data(9,:,:);
+    EEG.etc.analysis.motion.x = motion.data(7,:,:);
+    EEG.etc.analysis.motion.y = motion.data(8,:,:);
+    EEG.etc.analysis.motion.z = motion.data(9,:,:);
     
     % save 3D magnitude of velocity and acceleration
-    EEG.etc.analysis.mocap.mag_vel = squeeze(sqrt(mocap.data(7,:,:).^2 +...
-            mocap.data(8,:,:).^2 +...
-            mocap.data(9,:,:).^2));
-    EEG.etc.analysis.mocap.mag_acc = squeeze(sqrt(mocap.data(13,:,:).^2 +...
-            mocap.data(14,:,:).^2 +...
-            mocap.data(15,:,:).^2));
+    EEG.etc.analysis.motion.mag_vel = squeeze(sqrt(motion.data(7,:,:).^2 +...
+            motion.data(8,:,:).^2 +...
+            motion.data(9,:,:).^2));
+    EEG.etc.analysis.motion.mag_acc = squeeze(sqrt(motion.data(13,:,:).^2 +...
+            motion.data(14,:,:).^2 +...
+            motion.data(15,:,:).^2));
     
     %% prepare for study, i.e. epoch and save
     
@@ -201,13 +240,16 @@ for subject = subjects
     EEG.event = EEG.event(touch_ixs);
     EEG = pop_epoch( EEG, bemobil_config.epoching.event_epoching_event, bemobil_config.epoching.event_epochs_boundaries, 'newname',...
         'epochs', 'epochinfo', 'yes');
-%     
-%     % save
-    pop_saveset(EEG, 'filename', [bemobil_config.filename_prefix num2str(subject) '_' bemobil_config.epochs_filename] , 'filepath', output_filepath);
+    
+    out_folder = fullfile(bemobil_config.study_folder, 'epochs');
+    if ~exist(out_folder, 'dir')
+        mkdir(out_folder);
+    end
+    pop_saveset(EEG, 'filename', ['sub-', sprintf('%03d', subject), '_epochs.set'] , 'filepath', out_folder);
     
 end
 
-%% run BCI using Matlab2014a (DONE)
+%% run BCI using Matlab2014a ()
 
 bcilab;
 
@@ -217,18 +259,16 @@ dipoles_t = [];
 
 for subject = subjects
     
-    % load EEG and mocap data
+    % load EEG and motion data
 	disp(['Subject #' num2str(subject)]);
     
-    % filepaths
-	input_filepath = [bemobil_config.study_folder bemobil_config.single_subject_analysis_folder bemobil_config.filename_prefix num2str(subject)];
-	output_filepath = [bemobil_config.study_folder bemobil_config.single_subject_analysis_folder bemobil_config.filename_prefix num2str(subject)];
-	
-    %EEG: load data
-    EEG = pop_loadset('filename',[ bemobil_config.filename_prefix num2str(subject) '_'...
-		bemobil_config.copy_weights_interpolate_avRef_filename], 'filepath', input_filepath);
-	epochs = pop_loadset('filename',[ bemobil_config.filename_prefix num2str(subject) '_'...
-		bemobil_config.epochs_filename], 'filepath', input_filepath);
+    modality = 'eeg';
+    EEG = pop_loadset(fullfile(bemobil_config.BIDS_folder, ['sub-', sprintf('%03d', subject)], modality, ...
+        ['sub-', sprintf('%03d', subject), '_task-', bemobil_config.task, '_', modality, '.set']));
+    EEG.event = renamefields(EEG.event, 'trial_type', 'type');
+    
+    epochs = pop_loadset(fullfile(bemobil_config.study_folder, 'epochs', ['sub-', sprintf('%03d', subject), '_epochs.set']));
+    epochs.event = renamefields(EEG.event, 'trial_type', 'type');
     
     % remove non brain ICs, same as above but need to do again since
     % version incompatibilities
@@ -236,10 +276,10 @@ for subject = subjects
     no_brain = find(EEG.etc.ic_classification.ICLabel.classifications(:,1) < .5);
     EEG = pop_subcomp(EEG, no_brain);
     EEG = eeg_checkset(EEG); % recompute icaact
-    EEG = parse_events_PE(EEG);
+%     EEG = parse_events_PE(EEG);
     
     % get event indices
-    touch_ixs = find(strcmp({EEG.event.type}, 'box:touched'));
+    touch_ixs = find(strcmp({EEG.event.type}, 'box_touched'));
     % select touch events
     EEG.event = EEG.event(touch_ixs);
     % remove bad epochs
@@ -334,12 +374,9 @@ lda_results.ttest.p = P;
 lda_results.ttest.ci = CI;
 lda_results.ttest.stats = STATS;
 
-save([bemobil_config.study_folder bemobil_config.study_level 'lda_results_05_prob_brain_base_removal_0-05.mat'], 'lda_results');
+save(fullfile(bemobil_config.study_folder, 'lda_results_05_prob_brain_base_removal_0-05.mat'), 'lda_results');
 
-%% build eeglab study (DONE)
-
-input_path = [bemobil_config.study_folder bemobil_config.single_subject_analysis_folder];
-output_path = [bemobil_config.study_folder bemobil_config.study_level];
+%% build eeglab study ()
 
 if ~exist('ALLEEG','var'); eeglab; end
 pop_editoptions( 'option_storedisk', 1, 'option_savetwofiles', 1, 'option_saveversion6', 0,...
@@ -350,9 +387,7 @@ STUDY = []; CURRENTSTUDY = 0; ALLEEG = []; EEG=[]; CURRENTSET=[];
 
 for subject = subjects
     disp(['Subject #' num2str(subject) ]);
-    input_filepath = [input_path bemobil_config.filename_prefix num2str(subject)];
-    EEG = pop_loadset('filename',[ bemobil_config.filename_prefix num2str(subject) '_'...
-		bemobil_config.epochs_filename], 'filepath', input_filepath);
+    EEG = pop_loadset(fullfile(bemobil_config.study_folder, 'epochs', ['sub-', sprintf('%03d', subject), '_epochs.set']));
     [ALLEEG, EEG, CURRENTSET] = eeg_store( ALLEEG, EEG, 0 );
 end
 eeglab redraw
@@ -377,12 +412,12 @@ disp('Precomputing topographies and spectra.')
 % save study
 disp('Saving STUDY...')
 mkdir(output_path)
-[STUDY EEG] = pop_savestudy( STUDY, EEG, 'filename', bemobil_config.study_filename,'filepath',output_path);
+[STUDY EEG] = pop_savestudy( STUDY, EEG, 'filename', bemobil_config.study_filename, 'filepath', bemobil_config.study_folder);
 CURRENTSTUDY = 1; EEG = ALLEEG; CURRENTSET = [1:length(EEG)];
 eeglab redraw
 disp('...done')
 
-%% override icaersp by own computations (DONE)
+%% override icaersp by own computations ()
 
 input_path = [bemobil_config.study_folder bemobil_config.single_subject_analysis_folder];
 for subject = subjects  % do it for all subjects
@@ -434,7 +469,7 @@ for subject = subjects  % do it for all subjects
 end % for every participant
 disp('Done.')
 
-%% pre clustering (DONE)
+%% pre clustering ()
 
 % set fpaths
 input_path = [bemobil_config.study_folder bemobil_config.single_subject_analysis_folder];
@@ -467,7 +502,7 @@ CURRENTSTUDY = 1; EEG = ALLEEG; CURRENTSET = [1:length(EEG)];
 eeglab redraw
 disp('...done')
 
-%% repeated clustering (DONE)
+%% repeated clustering ()
 
 input_path = [bemobil_config.study_folder bemobil_config.single_subject_analysis_folder];
 output_path = [bemobil_config.study_folder bemobil_config.study_level];

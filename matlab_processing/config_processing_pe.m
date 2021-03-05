@@ -1,11 +1,19 @@
+%% metadata
+bemobil_config.task = 'ReachToTouchPredictionError';
+
+% IC_label settings
+% -1 uses the popularity classifier, i.e. every IC gets the class with the highest probability. set a specific threshold
+% otherwise, i.e. 0.4 (40% brain probability)
+bemobil_config.brain_threshold = -1;
+
 %% EEG and MOCAP epochs processing
 bemobil_config.epoching.event_epochs_boundaries = [-3  2]; % larger window for ERSP computation
-bemobil_config.epoching.event_epoching_event = {'box:touched'}; 
+bemobil_config.epoching.event_epoching_event = {'box_touched'}; 
 
 % ERSPs
 bemobil_config.epoching.base_epochs_boundaries = [-1  1];
 bemobil_config.epoching.base_win = [-.2 0];
-bemobil_config.epoching.base_epoching_event = {'box:spawned'}; 
+bemobil_config.epoching.base_epoching_event = {'box_spawned'}; 
 
 % settings
 fft_options = struct();
