@@ -1,15 +1,22 @@
 %% load results
 
-% params
-PE_config;
+% add downloaded analyses code to the path
+addpath(genpath('/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/matlab_processing'));
+
+% BIDS data download folder
+bemobil_config.BIDS_folder = '/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/data.nosync/ds003552';
+
+% Results output folder -> external drive
+bemobil_config.study_folder = fullfile('/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error', 'derivatives');
+
+% init
+config_processing_pe;
+subjects = 1:19;
 
 % load
 brain_prob = 5;
-%fname = '_prob_brain_base_removal_-05-0';
-fname = '_prob_brain_base_removal_0-05';
-%fname = '_prob_brain';
-%fname = '_prob_brain_base_removal_full_wnds';
-load([bemobil_config.study_folder bemobil_config.study_level 'lda_results_0' num2str(brain_prob)' fname '.mat']);
+fname = ['_prob_brain_base_removal_' num2str(bemobil_config.lda.approach{3}{4}(1)) '-'  num2str(bemobil_config.lda.approach{3}{4}(2))];
+load(fullfile(bemobil_config.study_folder, ['lda_results_0' num2str(brain_prob)' fname '.mat']));
 
 % inspect
 lda_results

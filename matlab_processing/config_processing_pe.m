@@ -39,6 +39,10 @@ bemobil_config.channels_of_int_labels = {'Fz', 'Cz', 'Pz', 'FCz'};
 % 65: FCz
 
 %% Classifier approach: LDA using windowed means from ERPs as features
+
+% IC threshold
+bemobil_config.lda.brain_threshold = .8; %0; % .8
+
 wnds = [.05 .1;.1 .15; .15 .2;.2 .25; .25 .3; .3 .35; .35 .4; .4 .45];
 base_win = [.0 .05];
 bemobil_config.lda.targetmarkers = {'normal','conflict'};
@@ -87,7 +91,9 @@ bemobil_config.study_filename = 'PE_lda_ersp.study';
 bemobil_config.STUDY_clustering_weights = struct('dipoles', 1, 'scalp_topographies', 0, 'spectra', 0, 'ersp', 0, 'erp', 0);
 
 % dipoledensity clusters weighted by LDA
-bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', -35, 'z', 50); 
+% bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', -35, 'z', 50);
+bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 5, 'z', 35); % anterior midcingulate
+
 %bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 20, 'y', -65, 'z', 30); % 20 -65 30 Visual Association Area  Cuneus
 %0 -40 30 Posterior Cingulate
 
@@ -100,7 +106,7 @@ bemobil_config.STUDY_quality_measure_weights = [2,-2,-1,-1,-2,-1];
 % clusters
 bemobil_config.IC_percentage = 1;
 bemobil_config.outlier_sigma = 3;
-bemobil_config.n_iterations = 10000;
+bemobil_config.n_iterations = 100;
 bemobil_config.do_clustering = 1;
 bemobil_config.do_multivariate_data = 1;
 bemobil_config.STUDY_filepath_clustering_solutions = 'clustering_solutions';
