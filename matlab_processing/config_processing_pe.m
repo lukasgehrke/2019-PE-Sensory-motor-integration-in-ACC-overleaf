@@ -41,7 +41,7 @@ bemobil_config.channels_of_int_labels = {'Fz', 'Cz', 'Pz', 'FCz'};
 %% Classifier approach: LDA using windowed means from ERPs as features
 
 % IC threshold
-bemobil_config.lda.brain_threshold = .8; %0; % .8
+bemobil_config.lda.brain_threshold = 0; %0; % .8
 
 wnds = [.05 .1;.1 .15; .15 .2;.2 .25; .25 .3; .3 .35; .35 .4; .4 .45];
 base_win = [.0 .05];
@@ -57,7 +57,7 @@ bemobil_config.lda.approach = {'Windowmeans' ...
             'Learner', {'lda' ...
                 'Regularizer', 'shrinkage'}}}};
 
-% without baseline
+% % without baseline
 % bemobil_config.lda.approach = {'Windowmeans' ...
 %     'SignalProcessing', {'Resampling','off',...
 %         'EpochExtraction',[min(wnds(:)) max(wnds(:))],'SpectralSelection',[0.1 15]},...

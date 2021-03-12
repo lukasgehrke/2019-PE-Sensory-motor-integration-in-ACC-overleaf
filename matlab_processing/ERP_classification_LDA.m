@@ -19,7 +19,7 @@ for subject = subjects
     
     %% load BIDS (with AMICA results) set
 
-    modality = 'eeg';
+    modality = 'motion';
     EEG = pop_loadset(fullfile(bemobil_config.BIDS_folder, ['sub-', sprintf('%03d', subject)], modality, ...
         ['sub-', sprintf('%03d', subject), '_task-', bemobil_config.task, '_', modality, '.set']));
 
@@ -27,7 +27,6 @@ for subject = subjects
 
     EEG = pe_remove_training_block(EEG);
     EEG.event(find(strcmp({EEG.event.condition}, 'ems'))) = [];
-    EEG.event = renamefields(EEG.event, 'condition', 'feedback'); % change field name of 'condition' so its not an eeglab study thing
 
     if subject == 15
         EEG.event(1:min(find(ismember({EEG.event.hedTag}, 'n/a')))) = [];
@@ -35,8 +34,6 @@ for subject = subjects
 
     [EEG.etc.analysis.design, touch_event_ixs] = pe_build_dmatrix(EEG, bemobil_config);
     EEG.etc.analysis.design.bad_touch_epochs = sort([EEG.etc.analysis.design.slow_rt_ixs, pe_clean_epochs(EEG, touch_event_ixs, bemobil_config)]); % combine noisy epochs with epochs of long reaction times
-    EEG.event = renamefields(EEG.event, 'trial_type', 'type');
-
     touch_event_ixs(EEG.etc.analysis.design.bad_touch_epochs) = [];
     EEG.event = EEG.event(touch_event_ixs);
     
@@ -46,7 +43,8 @@ for subject = subjects
     
 end
 
-%% 
+%% Run LDA
+
 bcilab;
 
 patterns_t = [];
@@ -54,136 +52,116 @@ weights_t = [];
 dipoles_t = [];
 
 modality = 'eeg';
-threshs = [0, .5, .7, .8, .9];
-for this_thresh = threshs
-    bemobil_config.lda.brain_threshold = this_thresh;
 
-    for subject = subjects
+for subject = subjects
 
-        %% load BIDS (with AMICA results) set
+    %% load BIDS (with AMICA results) set
 
-%         EEG = pop_loadset(fullfile(bemobil_config.study_folder, 'data', ...
-%             ['sub-', sprintf('%03d', subject), '_task-', bemobil_config.task, '_', modality '_for_BCI.set']));
-        
-        modality = 'eeg';
-        EEG = pop_loadset(fullfile(bemobil_config.BIDS_folder, ['sub-', sprintf('%03d', subject)], modality, ...
-            ['sub-', sprintf('%03d', subject), '_task-', bemobil_config.task, '_', modality, '.set']));
+    rawEEG = pop_loadset(fullfile(bemobil_config.study_folder, 'data', ...
+        ['sub-', sprintf('%03d', subject), '_task-', bemobil_config.task, '_', modality '_for_BCI.set']));
 
-        %% make design matrix, exclude training trials and EMS condition, clean up, find bad epochs
+    %% select ICs to project out of channel data
 
-        EEG = pe_remove_training_block(EEG);
-        EEG.event(find(strcmp({EEG.event.condition}, 'ems'))) = [];
-        EEG.event = renamefields(EEG.event, 'condition', 'feedback'); % change field name of 'condition' so its not an eeglab study thing
+    [EEG, bemobil_config] = select_ICs_pe(rawEEG, bemobil_config);
 
-        if subject == 15
-            EEG.event(1:min(find(ismember({EEG.event.hedTag}, 'n/a')))) = [];
-        end
+    %% select classes and match the number of epochs in classes
 
-        [EEG.etc.analysis.design, touch_event_ixs] = pe_build_dmatrix(EEG, bemobil_config);
-        EEG.etc.analysis.design.bad_touch_epochs = sort([EEG.etc.analysis.design.slow_rt_ixs, pe_clean_epochs(EEG, touch_event_ixs, bemobil_config)]); % combine noisy epochs with epochs of long reaction times
-        EEG.event = renamefields(EEG.event, 'trial_type', 'type');
-        
-        touch_event_ixs(EEG.etc.analysis.design.bad_touch_epochs) = [];
-        EEG.event = EEG.event(touch_event_ixs);
+    % make event classes: synchronous and asynchronous
+    async_ixs = find(strcmp({EEG.event.normal_or_conflict}, 'conflict'));
+    sync_ixs = find(strcmp({EEG.event.normal_or_conflict}, 'normal'));
 
-        %% select ICs to project out of channel data
+    % match class size
+    sync_ixs = randsample(sync_ixs, size(async_ixs,2));
+    EEG.event = EEG.event(union(async_ixs, sync_ixs));
 
-        [EEG, bemobil_config] = select_ICs_pe(EEG, bemobil_config);
+    % targetmarkers to type field
+    [EEG.event.type] = EEG.event.normal_or_conflict;
 
-        %% select classes and match the number of epochs in classes
+%         EEGnormal = pop_epoch(EEG, {'normal'}, [0 .5]);
+%         EEGconflict = pop_epoch(EEG, {'conflict'}, [0 .5]);
+%         figure;plot(mean(EEGconflict.data(65,:,:),3));hold on;plot(mean(EEGnormal.data(65,:,:),3));
 
-        % make event classes: synchronous and asynchronous
-        async_ixs = find(strcmp({EEG.event.normal_or_conflict}, 'conflict'));
-        sync_ixs = find(strcmp({EEG.event.normal_or_conflict}, 'normal'));
+    % training the classifier! (assuming you have some data loaded as 'EEG')
+    [trainloss, model, stats] = bci_train('Data', EEG,...
+        'Approach', bemobil_config.lda.approach,...
+        'TargetMarkers', bemobil_config.lda.targetmarkers,...
+        'EvaluationScheme', {'chron', bemobil_config.lda.evalfolds, bemobil_config.lda.evalmargin},...
+        'OptimizationScheme', {'chron', bemobil_config.lda.parafolds, bemobil_config.lda.paramargin});
 
-        % match class size
-        sync_ixs = randsample(sync_ixs, size(async_ixs,2));
-        % select those events
-        EEG.event = EEG.event(union(async_ixs, sync_ixs));
-        % copy targetmarkers
-        [EEG.event.type] = EEG.event.normal_or_conflict;
+    disp(['training mis-classification rate: ' num2str(trainloss*100,3) '%'])
+    %bci_visualize(model)
 
-        % training the classifier! (assuming you have some data loaded as 'EEG')
-        [trainloss, model, stats] = bci_train('Data', EEG,...
-            'Approach', bemobil_config.lda.approach,...
-            'TargetMarkers', bemobil_config.lda.targetmarkers,...
-            'EvaluationScheme', {'chron', bemobil_config.lda.evalfolds, bemobil_config.lda.evalmargin},...
-            'OptimizationScheme', {'chron', bemobil_config.lda.parafolds, bemobil_config.lda.paramargin});
+    %% calculate results
+    correct(subject) = 100 - trainloss*100;
+    chance = simulateChance([size(sync_ixs,2), size(async_ixs,2)], .05);
+    chance_level(subject) = chance(3);
 
-        disp(['training mis-classification rate: ' num2str(trainloss*100,3) '%'])
-        %bci_visualize(model)
+    % stats contains some statistics. for example, the classifier accuracy is 1-stats.mcr,
+    % and stats.TP, stats.TN, etc. contain the true positive, true negative etc. rates.
+    % those figures reflect the mean across folds; stats.per_fold contains the individual values.
+    all_stats(subject) = stats;
 
-        %% calculate results
-        correct(subject) = 100 - trainloss*100;
-        chance = simulateChance([size(sync_ixs,2), size(async_ixs,2)], .05);
-        chance_level(subject) = chance(3);
+    % model is the calibrated model, containing i.a. LDA filter weights ...
+    ldaweights = model.predictivemodel.model.w;
+    % ... which can also be transformed into patterns
+    ldapatterns = (reshape(ldaweights, numel(model.featuremodel.chanlocs), [])' * model.featuremodel.cov)';
 
-        % stats contains some statistics. for example, the classifier accuracy is 1-stats.mcr,
-        % and stats.TP, stats.TN, etc. contain the true positive, true negative etc. rates.
-        % those figures reflect the mean across folds; stats.per_fold contains the individual values.
-        all_stats(subject) = stats;
+    % getting source dipole weights by projecting LDA weights through ICA unmixing matrix
+    weights = (EEG.icaweights * EEG.icasphere) * ldapatterns;
+    weights = abs(weights);
+    % normalizing across time windows
+    weights = weights / sum(weights(:));
 
-        % model is the calibrated model, containing i.a. LDA filter weights ...
-        ldaweights = model.predictivemodel.model.w;
-        % ... which can also be transformed into patterns
-        ldapatterns = (reshape(ldaweights, numel(model.featuremodel.chanlocs), [])' * model.featuremodel.cov)';
+    % computing control signal for each window
+    ldaweights = reshape(model.predictivemodel.model.w, numel(model.featuremodel.chanlocs), []);
 
-        % getting source dipole weights by projecting LDA weights through ICA unmixing matrix
-        weights = (EEG.icaweights * EEG.icasphere) * ldapatterns;
-        weights = abs(weights);
-        % normalizing across time windows
-        weights = weights / sum(weights(:));
-
-        % computing control signal for each window
-        ldaweights = reshape(model.predictivemodel.model.w, numel(model.featuremodel.chanlocs), []);
-
-        % for each window compute control singal
-        % first filter 
-        EEG = pop_eegfiltnew(EEG, bemobil_config.filter_plot_low, bemobil_config.filter_plot_high);
-        for window = 1:size(ldaweights,2) % 3rd dimension in results is window
-            windowweights = ldaweights(:, window);
-            % rms-normalising ldaweights
-            windowweights = windowweights / rms(windowweights); 
-            % epoch data synchronous class
-            ERP_sync = pop_epoch( EEG, {'normal'}, [-.2 .8], 'newname', 'epochs', 'epochinfo', 'yes');
-            control_signal(subject,1,window,:) = mean(bsxfun(@times, mean(ERP_sync.data, 3), windowweights)); %2nd dimension is class
-            % epoch data asynchronous class
-            ERP_async = pop_epoch( EEG, {'conflict'}, [-.2 .8], 'newname', 'epochs', 'epochinfo', 'yes');
-            control_signal(subject,2,window,:) = mean(bsxfun(@times, mean(ERP_async.data, 3), windowweights)); %2nd dimension is class
-        end
-
-        % save all subjects
-        patterns_t = vertcat(patterns_t, ldapatterns);
-        weights_t = vertcat(weights_t, weights);
-        dipoles_t = vertcat(dipoles_t, get_dipoles(EEG));
-
-        clear EEG tmpEEG
+    % for each window compute control singal
+    % first filter 
+    EEG = pop_eegfiltnew(EEG, bemobil_config.filter_plot_low, bemobil_config.filter_plot_high);
+    for window = 1:size(ldaweights,2) % 3rd dimension in results is window
+        windowweights = ldaweights(:, window);
+        % rms-normalising ldaweights
+        windowweights = windowweights / rms(windowweights); 
+        % epoch data synchronous class
+        ERP_sync = pop_epoch( EEG, {'normal'}, [-.2 .8], 'newname', 'epochs', 'epochinfo', 'yes');
+        control_signal(subject,1,window,:) = mean(bsxfun(@times, mean(ERP_sync.data, 3), windowweights)); %2nd dimension is class
+        % epoch data asynchronous class
+        ERP_async = pop_epoch( EEG, {'conflict'}, [-.2 .8], 'newname', 'epochs', 'epochinfo', 'yes');
+        control_signal(subject,2,window,:) = mean(bsxfun(@times, mean(ERP_async.data, 3), windowweights)); %2nd dimension is class
     end
 
-    correct = correct(subjects);
-    chance_level = chance_level(subjects);
-    all_stats = all_stats(subjects);
-    control_signal = control_signal(subjects,:,:,:);
+    % save all subjects
+    patterns_t = vertcat(patterns_t, ldapatterns);
+    weights_t = vertcat(weights_t, weights);
+    dipoles_t = vertcat(dipoles_t, get_dipoles(EEG));
 
-    lda_results = struct('patterns', patterns_t,...
-        'weights', weights_t,...
-        'dipoles', dipoles_t,...
-        'correct', correct,...
-        'chance_level', chance_level,...
-        'all_stats', all_stats,...
-        'control_signal', control_signal);
+    clear EEG
 
-    % ttest between chance and correct (DONE)
-    [H,P,CI,STATS] = ttest(lda_results.correct,lda_results.chance_level);
-    % save results
-    lda_results.ttest.h = H;
-    lda_results.ttest.p = P;
-    lda_results.ttest.ci = CI;
-    lda_results.ttest.stats = STATS;
-
-    fname = ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_base_removal-' num2str(bemobil_config.lda.approach{3}{4}(1)) '-'  num2str(bemobil_config.lda.approach{3}{4}(2))];
-    save(fullfile(bemobil_config.study_folder, ['lda_results-' fname '.mat']), 'lda_results');
 end
+
+correct = correct(subjects);
+chance_level = chance_level(subjects);
+all_stats = all_stats(subjects);
+control_signal = control_signal(subjects,:,:,:);
+
+lda_results = struct('patterns', patterns_t,...
+    'weights', weights_t,...
+    'dipoles', dipoles_t,...
+    'correct', correct,...
+    'chance_level', chance_level,...
+    'all_stats', all_stats,...
+    'control_signal', control_signal);
+
+% ttest between chance and correct (DONE)
+[H,P,CI,STATS] = ttest(lda_results.correct,lda_results.chance_level);
+% save results
+lda_results.ttest.h = H;
+lda_results.ttest.p = P;
+lda_results.ttest.ci = CI;
+lda_results.ttest.stats = STATS;
+
+fname = ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_base_removal-' num2str(bemobil_config.lda.approach{3}{4}(1)) '-'  num2str(bemobil_config.lda.approach{3}{4}(2))];
+save(fullfile(bemobil_config.study_folder, ['lda_results-' fname '.mat']), 'lda_results');
 
 %% inspect results
 

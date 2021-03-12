@@ -22,7 +22,7 @@ dmatrix.rt_spawned_touched = latency_diff;
 dmatrix.isitime = str2double({design.epoch.eventisiTime});
 
 % factor: oddball
-dmatrix.haptics = categorical({design.epoch.eventfeedback})=='vibro';
+dmatrix.haptics = categorical({design.epoch.eventcondition})=='vibro';
 
 % factor: haptics
 dmatrix.oddball = categorical({design.epoch.eventnormal_or_conflict})=='conflict';
