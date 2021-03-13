@@ -1,14 +1,17 @@
 % run BCI using Matlab2014a
 
 % add downloaded analyses code to the path
-addpath(genpath('/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/matlab_processing'));
+addpath(genpath('P:\Lukas_Gehrke\studies\Prediction_Error\publications\2019-PE-Sensory-motor-integration-in-ACC-overleaf\matlab_processing'));
 % TODO add to path bemobil_pipeline repository download folder
 % TODO add to path custom scripts repository Lukas Gehrke folder
 
+% add path BCILAB
+addpath(genpath('P:\Lukas_Gehrke\studies\Prediction_Error\BCILAB'));
+
 % BIDS data download folder
-bemobil_config.BIDS_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/ds003552';
+bemobil_config.BIDS_folder = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\BIDS';
 % Results output folder -> external drive
-bemobil_config.study_folder = fullfile('/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error', 'derivatives');
+bemobil_config.study_folder = fullfile('P:\Lukas_Gehrke\studies\Prediction_Error\data', 'derivatives');
 
 % init
 config_processing_pe;
@@ -47,121 +50,142 @@ end
 
 bcilab;
 
-patterns_t = [];
-weights_t = [];
-dipoles_t = [];
+threshs = [0, .5, .7, .8, .9];
+for t = threshs
+    
+    bemobil_config.lda.brain_threshold = t;
+    
+    patterns_t = [];
+    weights_t = [];
+    dipoles_t = [];
 
-modality = 'eeg';
+    modality = 'eeg';
 
-for subject = subjects
+    for subject = subjects
 
-    %% load BIDS (with AMICA results) set
+        %% load BIDS (with AMICA results) set
 
-    rawEEG = pop_loadset(fullfile(bemobil_config.study_folder, 'data', ...
-        ['sub-', sprintf('%03d', subject), '_task-', bemobil_config.task, '_', modality '_for_BCI.set']));
+        EEG = pop_loadset(fullfile(bemobil_config.BIDS_folder, ['sub-', sprintf('%03d', subject)], modality,...
+            ['sub-', sprintf('%03d', subject), '_task-', bemobil_config.task, '_', modality '.set']));
 
-    %% select ICs to project out of channel data
+        %% make design matrix, exclude training trials and EMS condition, clean up, find bad epochs
 
-    [EEG, bemobil_config] = select_ICs_pe(rawEEG, bemobil_config);
+        EEG = pe_remove_training_block(EEG);
+        EEG.event(find(strcmp({EEG.event.condition}, 'ems'))) = [];
 
-    %% select classes and match the number of epochs in classes
+        if subject == 15
+            EEG.event(1:min(find(ismember({EEG.event.hedTag}, 'n/a')))) = [];
+        end
 
-    % make event classes: synchronous and asynchronous
-    async_ixs = find(strcmp({EEG.event.normal_or_conflict}, 'conflict'));
-    sync_ixs = find(strcmp({EEG.event.normal_or_conflict}, 'normal'));
+        [EEG.etc.analysis.design, touch_event_ixs] = pe_build_dmatrix(EEG, bemobil_config);
+        EEG.etc.analysis.design.bad_touch_epochs = sort([EEG.etc.analysis.design.slow_rt_ixs, pe_clean_epochs(EEG, touch_event_ixs, bemobil_config)]); % combine noisy epochs with epochs of long reaction times
+        touch_event_ixs(EEG.etc.analysis.design.bad_touch_epochs) = [];
+        EEG.event = EEG.event(touch_event_ixs);
 
-    % match class size
-    sync_ixs = randsample(sync_ixs, size(async_ixs,2));
-    EEG.event = EEG.event(union(async_ixs, sync_ixs));
+        %% select ICs to project out of channel data
 
-    % targetmarkers to type field
-    [EEG.event.type] = EEG.event.normal_or_conflict;
+        [EEG, bemobil_config] = select_ICs_pe(EEG, bemobil_config);
 
-%         EEGnormal = pop_epoch(EEG, {'normal'}, [0 .5]);
-%         EEGconflict = pop_epoch(EEG, {'conflict'}, [0 .5]);
-%         figure;plot(mean(EEGconflict.data(65,:,:),3));hold on;plot(mean(EEGnormal.data(65,:,:),3));
+        %% select classes and match the number of epochs in classes
 
-    % training the classifier! (assuming you have some data loaded as 'EEG')
-    [trainloss, model, stats] = bci_train('Data', EEG,...
-        'Approach', bemobil_config.lda.approach,...
-        'TargetMarkers', bemobil_config.lda.targetmarkers,...
-        'EvaluationScheme', {'chron', bemobil_config.lda.evalfolds, bemobil_config.lda.evalmargin},...
-        'OptimizationScheme', {'chron', bemobil_config.lda.parafolds, bemobil_config.lda.paramargin});
+        % make event classes: synchronous and asynchronous
+        async_ixs = find(strcmp({EEG.event.normal_or_conflict}, 'conflict'));
+        sync_ixs = find(strcmp({EEG.event.normal_or_conflict}, 'normal'));
 
-    disp(['training mis-classification rate: ' num2str(trainloss*100,3) '%'])
-    %bci_visualize(model)
+        % match class size
+        sync_ixs = randsample(sync_ixs, size(async_ixs,2));
+        EEG.event = EEG.event(union(async_ixs, sync_ixs));
 
-    %% calculate results
-    correct(subject) = 100 - trainloss*100;
-    chance = simulateChance([size(sync_ixs,2), size(async_ixs,2)], .05);
-    chance_level(subject) = chance(3);
+        % targetmarkers to type field
+        [EEG.event.type] = EEG.event.normal_or_conflict;
 
-    % stats contains some statistics. for example, the classifier accuracy is 1-stats.mcr,
-    % and stats.TP, stats.TN, etc. contain the true positive, true negative etc. rates.
-    % those figures reflect the mean across folds; stats.per_fold contains the individual values.
-    all_stats(subject) = stats;
+    %         EEGnormal = pop_epoch(EEG, {'normal'}, [0 .5]);
+    %         EEGconflict = pop_epoch(EEG, {'conflict'}, [0 .5]);
+    %         figure;plot(mean(EEGconflict.data(65,:,:),3));hold on;plot(mean(EEGnormal.data(65,:,:),3));
 
-    % model is the calibrated model, containing i.a. LDA filter weights ...
-    ldaweights = model.predictivemodel.model.w;
-    % ... which can also be transformed into patterns
-    ldapatterns = (reshape(ldaweights, numel(model.featuremodel.chanlocs), [])' * model.featuremodel.cov)';
+        % training the classifier! (assuming you have some data loaded as 'EEG')
+        [trainloss, model, stats] = bci_train('Data', EEG,...
+            'Approach', bemobil_config.lda.approach,...
+            'TargetMarkers', bemobil_config.lda.targetmarkers,...
+            'EvaluationScheme', {'chron', bemobil_config.lda.evalfolds, bemobil_config.lda.evalmargin},...
+            'OptimizationScheme', {'chron', bemobil_config.lda.parafolds, bemobil_config.lda.paramargin});
 
-    % getting source dipole weights by projecting LDA weights through ICA unmixing matrix
-    weights = (EEG.icaweights * EEG.icasphere) * ldapatterns;
-    weights = abs(weights);
-    % normalizing across time windows
-    weights = weights / sum(weights(:));
+        disp(['training mis-classification rate: ' num2str(trainloss*100,3) '%'])
+        %bci_visualize(model)
 
-    % computing control signal for each window
-    ldaweights = reshape(model.predictivemodel.model.w, numel(model.featuremodel.chanlocs), []);
+        %% calculate results
+        correct(subject) = 100 - trainloss*100;
+        chance = simulateChance([size(sync_ixs,2), size(async_ixs,2)], .05);
+        chance_level(subject) = chance(3);
 
-    % for each window compute control singal
-    % first filter 
-    EEG = pop_eegfiltnew(EEG, bemobil_config.filter_plot_low, bemobil_config.filter_plot_high);
-    for window = 1:size(ldaweights,2) % 3rd dimension in results is window
-        windowweights = ldaweights(:, window);
-        % rms-normalising ldaweights
-        windowweights = windowweights / rms(windowweights); 
-        % epoch data synchronous class
-        ERP_sync = pop_epoch( EEG, {'normal'}, [-.2 .8], 'newname', 'epochs', 'epochinfo', 'yes');
-        control_signal(subject,1,window,:) = mean(bsxfun(@times, mean(ERP_sync.data, 3), windowweights)); %2nd dimension is class
-        % epoch data asynchronous class
-        ERP_async = pop_epoch( EEG, {'conflict'}, [-.2 .8], 'newname', 'epochs', 'epochinfo', 'yes');
-        control_signal(subject,2,window,:) = mean(bsxfun(@times, mean(ERP_async.data, 3), windowweights)); %2nd dimension is class
+        % stats contains some statistics. for example, the classifier accuracy is 1-stats.mcr,
+        % and stats.TP, stats.TN, etc. contain the true positive, true negative etc. rates.
+        % those figures reflect the mean across folds; stats.per_fold contains the individual values.
+        all_stats(subject) = stats;
+
+        % model is the calibrated model, containing i.a. LDA filter weights ...
+        ldaweights = model.predictivemodel.model.w;
+        % ... which can also be transformed into patterns
+        ldapatterns = (reshape(ldaweights, numel(model.featuremodel.chanlocs), [])' * model.featuremodel.cov)';
+
+        % getting source dipole weights by projecting LDA weights through ICA unmixing matrix
+        weights = (EEG.icaweights * EEG.icasphere) * ldapatterns;
+        weights = abs(weights);
+        % normalizing across time windows
+        weights = weights / sum(weights(:));
+
+        % computing control signal for each window
+        ldaweights = reshape(model.predictivemodel.model.w, numel(model.featuremodel.chanlocs), []);
+
+        % for each window compute control singal
+        % first filter 
+        EEG = pop_eegfiltnew(EEG, bemobil_config.filter_plot_low, bemobil_config.filter_plot_high);
+        for window = 1:size(ldaweights,2) % 3rd dimension in results is window
+            windowweights = ldaweights(:, window);
+            % rms-normalising ldaweights
+            windowweights = windowweights / rms(windowweights); 
+            % epoch data synchronous class
+            ERP_sync = pop_epoch( EEG, {'normal'}, [-.2 .8], 'newname', 'epochs', 'epochinfo', 'yes');
+            control_signal(subject,1,window,:) = mean(bsxfun(@times, mean(ERP_sync.data, 3), windowweights)); %2nd dimension is class
+            % epoch data asynchronous class
+            ERP_async = pop_epoch( EEG, {'conflict'}, [-.2 .8], 'newname', 'epochs', 'epochinfo', 'yes');
+            control_signal(subject,2,window,:) = mean(bsxfun(@times, mean(ERP_async.data, 3), windowweights)); %2nd dimension is class
+        end
+
+        % save all subjects
+        patterns_t = vertcat(patterns_t, ldapatterns);
+        weights_t = vertcat(weights_t, weights);
+        dipoles_t = vertcat(dipoles_t, get_dipoles(EEG));
+
+        clear EEG
+
     end
 
-    % save all subjects
-    patterns_t = vertcat(patterns_t, ldapatterns);
-    weights_t = vertcat(weights_t, weights);
-    dipoles_t = vertcat(dipoles_t, get_dipoles(EEG));
+    correct = correct(subjects);
+    chance_level = chance_level(subjects);
+    all_stats = all_stats(subjects);
+    control_signal = control_signal(subjects,:,:,:);
 
-    clear EEG
+    lda_results = struct('patterns', patterns_t,...
+        'weights', weights_t,...
+        'dipoles', dipoles_t,...
+        'correct', correct,...
+        'chance_level', chance_level,...
+        'all_stats', all_stats,...
+        'control_signal', control_signal);
+
+    % ttest between chance and correct (DONE)
+    [H,P,CI,STATS] = ttest(lda_results.correct,lda_results.chance_level);
+    % save results
+    lda_results.ttest.h = H;
+    lda_results.ttest.p = P;
+    lda_results.ttest.ci = CI;
+    lda_results.ttest.stats = STATS;
+
+    fname = ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_base_removal-' num2str(bemobil_config.lda.approach{3}{4}(1)) '-'  num2str(bemobil_config.lda.approach{3}{4}(2))];
+    save(fullfile(bemobil_config.study_folder, ['lda_results-' fname '.mat']), 'lda_results');
 
 end
-
-correct = correct(subjects);
-chance_level = chance_level(subjects);
-all_stats = all_stats(subjects);
-control_signal = control_signal(subjects,:,:,:);
-
-lda_results = struct('patterns', patterns_t,...
-    'weights', weights_t,...
-    'dipoles', dipoles_t,...
-    'correct', correct,...
-    'chance_level', chance_level,...
-    'all_stats', all_stats,...
-    'control_signal', control_signal);
-
-% ttest between chance and correct (DONE)
-[H,P,CI,STATS] = ttest(lda_results.correct,lda_results.chance_level);
-% save results
-lda_results.ttest.h = H;
-lda_results.ttest.p = P;
-lda_results.ttest.ci = CI;
-lda_results.ttest.stats = STATS;
-
-fname = ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_base_removal-' num2str(bemobil_config.lda.approach{3}{4}(1)) '-'  num2str(bemobil_config.lda.approach{3}{4}(2))];
-save(fullfile(bemobil_config.study_folder, ['lda_results-' fname '.mat']), 'lda_results');
 
 %% inspect results
 
@@ -191,7 +215,7 @@ std(lda_results.correct)
 % plot all dipoles and save for supplements
 plot_weighteddipoledensity(lda_results.dipoles)
 
-plot_weighteddipoledensity(lda_results.dipoles,mean(lda_results.weights(:,1:4),2));
+plot_weighteddipoledensity(lda_results.dipoles,mean(lda_results.weights,2));
 
 plot_weighteddipoledensity(lda_results.dipoles,lda_results.weights(:,1));
 plot_weighteddipoledensity(lda_results.dipoles,lda_results.weights(:,2));

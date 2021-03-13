@@ -9,7 +9,8 @@ epoch_event_ixs = find(strcmp({EEG.event.trial_type}, bemobil_config.epoching.ev
 
 design = EEG;
 design.event = design.event(epoch_event_ixs);
-design.event = renamefields(design.event, 'trial_type', 'type');
+[design.event.type] = design.event.trial_type;
+%design.event = renamefields(design.event, 'trial_type', 'type');
 design = pop_epoch( design, bemobil_config.epoching.event_epoching_event, bemobil_config.epoching.event_epochs_boundaries, 'newname',...
     'epochs', 'epochinfo', 'yes');
 
