@@ -1,120 +1,121 @@
 %% clear all and load params
-close all; clear all; clc;
+clear all;
 
-PE_config;
+if ~exist('ALLEEG','var')
+	eeglab;
+end
+
+% add downloaded analyses code to the path
+addpath(genpath('/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/matlab_processing'));
+% TODO add to path bemobil_pipeline repository download folder
+% TODO add to path custom scripts repository Lukas Gehrke folder
+
+% BIDS data download folder
+bemobil_config.BIDS_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/ds003552';
+% Results output folder -> external drive
+bemobil_config.study_folder = fullfile('/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error', 'derivatives');
+
+% init
+config_processing_pe;
+subjects = 1:19;
 
 %% load study
 
 if ~exist('ALLEEG','var'); eeglab; end
 pop_editoptions( 'option_storedisk', 1, 'option_savetwofiles', 1, 'option_saveversion6', 0, 'option_single', 0, 'option_memmapdata', 0, 'option_eegobject', 0, 'option_computeica', 1, 'option_scaleicarms', 1, 'option_rememberfolder', 1, 'option_donotusetoolboxes', 0, 'option_checkversion', 1, 'option_chat', 1);
 
-% load IMT_v1 EEGLAB study struct, keeping at most 1 dataset in memory
-input_path_STUDY = [bemobil_config.study_folder bemobil_config.study_level];
 if isempty(STUDY)
-    STUDY = []; CURRENTSTUDY = 0; ALLEEG = []; EEG=[]; CURRENTSET=[];
-    [STUDY ALLEEG] = pop_loadstudy('filename', bemobil_config.study_filename, 'filepath', input_path_STUDY);
-    CURRENTSTUDY = 1; EEG = ALLEEG; CURRENTSET = [1:length(EEG)];
-    
+    [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
+    [STUDY ALLEEG] = pop_loadstudy('filename', ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_' bemobil_config.study_filename], 'filepath', bemobil_config.study_folder);
+    CURRENTSTUDY = 1; EEG = ALLEEG; CURRENTSET = [1:length(EEG)];    
     eeglab redraw
 end
 STUDY_sets = cellfun(@str2num, {STUDY.datasetinfo.subject});
 
-%% export for paraheat 22/10/2020, corrected 04/11/2020
+%% dependent variable movement
 
-% get participant descriptive: age, ipq, biological_sex
-ipq = table2array(readtable('/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/admin/ipq_long.csv'));
-p_desc = ipq(1:4:end,:,:); % select only item 1 on questionnaire which is the general presence item
-p_desc(:,end+1) = table2array(readtable('/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/admin/age.csv'));
-% p_desc(:,end+1) = table2array(readtable('/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/admin/biological_sex.csv'));
-p_desc_vars = {'pID', 'ipq_vibro', 'ipq_visual', 'age'};
+% compute these measures in the results scripts    
+%     EEG.etc.analysis.design.reaction_time = (EEG.etc.analysis.design.movements.movement_onset_sample - EEG.etc.analysis.design.spawn_event_sample) / EEG.srate;
+%     EEG.etc.analysis.design.action_time = (abs(event_sample_ix) - EEG.etc.analysis.design.movements.movement_onset_sample) / EEG.srate;
 
-% standardize the mocap data on the starting location for each trial?
-s_design = [];
-samples_after_touch = 250 * 3/10; % 300ms post touch
+%% build full design matrices and deploy analyses for ERP, MocapERP and ERSP
 
-for i = 1:size(ALLEEG,2)
-    
-    % first remove bad trials and keep only congruent trials -> simplifies analyses
-    keep_trials = logical(abs(ALLEEG(i).etc.analysis.design.oddball-1));
-    keep_trials(ALLEEG(i).etc.analysis.design.rm_ixs) = [];
-    tmp_trials = 1:size(ALLEEG(i).etc.analysis.design.trial_number,2);
-    tmp_trials(ALLEEG(i).etc.analysis.design.rm_ixs) = [];
-    trials = tmp_trials(keep_trials);
-    
-    rt = ALLEEG(i).etc.analysis.design.rt_spawned_touched;
-    rt = rt(trials);
-    start_sample = 750 - round(rt*250);
-    total_trials = size((ALLEEG(i).etc.analysis.design.trial_number),2);
-    nan_trials = nan(size(start_sample,2),total_trials, 4);
-    
-    for j = 1:size(start_sample,2)
-        
-        x = ALLEEG(i).etc.analysis.mocap.x(1,start_sample(j):751,j) - ALLEEG(i).etc.analysis.mocap.x(1,start_sample(1),j);
-        z = ALLEEG(i).etc.analysis.mocap.z(1,start_sample(j):751,j) - ALLEEG(i).etc.analysis.mocap.z(1,start_sample(1),j);
-        mag_vel = ALLEEG(i).etc.analysis.mocap.mag_vel(start_sample(j):751,j);
-        fcz_erp = ALLEEG(i).etc.analysis.filtered_erp.chan(4,start_sample(j):751,j);
-        
-        nan_trials(j,total_trials+1-size(start_sample(j):751,2):end,1) = x;
-        nan_trials(j,total_trials+1-size(start_sample(j):751,2):end,2) = z;
-        nan_trials(j,total_trials+1-size(start_sample(j):751,2):end,3) = mag_vel;
-        nan_trials(j,total_trials+1-size(start_sample(j):751,2):end,4) = fcz_erp;
-        
-    end
-
-    x = nan_trials(:,:,1)';
-    z = nan_trials(:,:,2)';
-    mag_vel = nan_trials(:,:,3)';
-    erp = nan_trials(:,:,4)';
-
-    haptics = ALLEEG(i).etc.analysis.design.haptics;
-    haptics = repelem(haptics(trials),size(nan_trials,2))';
-    
-    tr_nr = ALLEEG(i).etc.analysis.design.trial_number;
-    tr_nr = repelem(tr_nr(keep_trials),size(nan_trials,2))';
-
-    % add participant descriptives
-    pID = ones(size(tr_nr,1),1) * p_desc(i,1);
-    ipq_vibro = repmat(p_desc(i,2), size(tr_nr,1), 1);
-    ipq_vis = repmat(p_desc(i,3), size(tr_nr,1), 1);
-    age = repmat(p_desc(i,4), size(tr_nr,1), 1);
-
-    p_design = table(pID, ipq_vibro, ipq_vis, age, tr_nr, haptics, x(:), z(:), mag_vel(:), erp(:), 'VariableNames', {p_desc_vars{1}, p_desc_vars{2}, p_desc_vars{3}, p_desc_vars{4}, 'TrialNr', 'Haptics', 'X', 'Z', 'Mag_Vel', 'FCz_ERP'});
-    
-    % remove nans and exceeding edges
-    p_design = rmmissing(p_design);
-
-    p_design(p_design.X > 1.5, :)=[];
-    p_design(p_design.X < -1.5, :)=[];
-    p_design(p_design.Z > 1.5, :)=[];
-    p_design(p_design.Z < -.2, :)=[];
-    
-    s_design = [s_design; p_design];
-end
-
-% save to csv for paraheat
-writetable(s_design, '/Users/lukasgehrke/Documents/temp/chatham/pe_reach_all_good_s.csv');
-
-%% RT
+% predictors
+% model: measure ~ velocity*haptics + pes + base + reaction_time + action_time
 
 for subject = subjects
     
-    subject = subject - 1;
-    bad_trials = ALLEEG(subject).etc.analysis.design.rm_ixs;
-    async_trials = ALLEEG(subject).etc.analysis.design.oddball;
-    async_trials(bad_trials) = 0; % remove bad trials
-    % match number of async trials for sync trials
-    sync_trials = ~async_trials;
-    sync_trials(bad_trials) = 0; % remove bad trials
+    % dependent measure
+    dv = [mean(diff(ALLEEG(subject).etc.analysis.design.reaction_time)), diff(ALLEEG(subject).etc.analysis.design.reaction_time)]';
+%     dv = ALLEEG(subject).etc.analysis.design.movements.move_phase_max_vel';
     
-    % sync
-    rt_sync(subject,:) = mean(ALLEEG(subject).etc.analysis.design.rt_spawned_touched(sync_trials),2);
-    % async
-    rt_async(subject,:) = mean(ALLEEG(subject).etc.analysis.design.rt_spawned_touched(async_trials),2);
+    
+    % design
+    oddball = ALLEEG(subject).etc.analysis.design.oddball';
+    post_error = ["false"; oddball(1:end-1)];
+    isitime = ALLEEG(subject).etc.analysis.design.isitime';
+    sequence = ALLEEG(subject).etc.analysis.design.sequence';
+    trial_number = ALLEEG(subject).etc.analysis.design.trial_number';
+    haptics = ALLEEG(subject).etc.analysis.design.haptics';
+    direction = categorical(ALLEEG(subject).etc.analysis.design.direction');
+    reg_t = table(dv, post_error, isitime, sequence, haptics, trial_number, direction);
+    
+    % cleaning
+    if ~isfield(ALLEEG(subject).etc.analysis.design.movements, 'bad_movement_profile')
+        bad_trials = ALLEEG(subject).etc.analysis.design.bad_touch_epochs;
+    else
+        bad_trials = unique([ALLEEG(subject).etc.analysis.design.bad_touch_epochs, ALLEEG(subject).etc.analysis.design.movements.bad_movement_profile]);
+    end
+    reg_t(bad_trials,:)= [];
+    
+    % match trial count
+    match_ixs = find(reg_t.post_error=="false");
+    mismatch_ixs = find(reg_t.post_error=="true");
+    match_ixs = randsample(match_ixs, numel(mismatch_ixs));
+    reg_t = reg_t(union(match_ixs, mismatch_ixs),:);
+
+    % fit model
+    post_error_corrected = fitlm(reg_t, 'dv ~ post_error + sequence'); 
+    
+    % save results
+    post_error_slowing(subject,:) = [post_error_corrected.Coefficients.Estimate(1), post_error_corrected.Coefficients.Estimate(1)+post_error_corrected.Coefficients.Estimate(2)];
+    r2(subject) = post_error_corrected.Rsquared.Adjusted;
+
 end
 
-disp(['sync trials mean rt: ' num2str(mean(rt_sync,1)) ' and sd: ' num2str(std(rt_sync))]);
-disp(['async trials mean rt: ' num2str(mean(rt_async,1)) ' and sd: ' num2str(std(rt_async))]);
-disp(['rt difference: ' num2str((mean(rt_sync,1) - mean(rt_async,1))*1000)])
+[H,P,CI,STATS] = ttest(post_error_slowing(:,1), post_error_slowing(:,2))
+mean(post_error_slowing,1)
+mean(r2)
+
+% + increase ; - decrease in time
+
+
+% pes results -> export to R Studio for ttest plot
+
+% erp results
+
+% mocap results
+
+% ersp results
+
+%% ttest post error slowing
+
+for subject = subjects
+    post_error_trials = logical([0 ALLEEG(subject).etc.analysis.design.oddball(1:end-1)]);
+    dv = ALLEEG(subject).etc.analysis.design.pes(post_error_trials);
+    no_pes = ALLEEG(subject).etc.analysis.design.pes(~post_error_trials);
+    no_pes = randsample(no_pes, numel(dv));
+    
+    no(subject) = mean(no_pes);
+    yes(subject) = mean(dv);
+end    
+    
+[H,P,CI,STATS] = ttest(yes,no)
+
+% -> box whisker diagram ttest in paper !!
+
+
+
 
 %% (DONE & FIGURES READY) grand average velocity sync/async
 
@@ -237,97 +238,6 @@ for chan = 1:size(bemobil_config.channels_of_int,2)
     close(gcf);
     clear sync async
 end
-
-%% (DONE & FIGURES READY) grand average component ERP sync/async
-
-t1 = -2444; % -2444 (ersp start)
-tend = 1440; % 1440 (ersp end)
-baset1 = -50;
-baseend = 0;
-
-% load clustering solution
-cluster_path = '/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/matlab_processing/';
-load([cluster_path 'clustering_vaa.mat']); % clustering_parietal
-STUDY.cluster = clustering_results_STUDY_vaa; % clustering_parietal
-cluster = 9; % 8
-
-unique_setindices = unique(STUDY.cluster(cluster).sets);
-unique_subjects = STUDY_sets(unique_setindices);
-all_setindices = STUDY.cluster(cluster).sets;
-all_sets = STUDY_sets(all_setindices);
-all_comps = STUDY.cluster(cluster).comps;
-for subject = unique_subjects
-
-    % select components
-    this_sets = find(all_sets==subject);
-    comp = all_comps(this_sets);
-
-    % get trials
-    subject = subject-1; % STUDY index is -1 as first subject data is missing
-    bad_trials = ALLEEG(subject).etc.analysis.design.rm_ixs;
-    trials = 1:size(ALLEEG(subject).etc.analysis.design.oddball,2);
-    async_trials = ALLEEG(subject).etc.analysis.design.oddball;
-    async_trials(bad_trials) = 0; % remove bad trials
-
-    sync_trials = ~async_trials;
-    sync_trials(bad_trials) = 0; % remove bad trials
-    sync_trials = trials(sync_trials);
-    sync_trials = randsample(sync_trials, sum(async_trials)); % match number of trials
-
-    % match with times in velocity epoch
-    times = 1000*(bemobil_config.epoching.event_epochs_boundaries(1):(1/ALLEEG(subject).srate):bemobil_config.epoching.event_epochs_boundaries(end));
-    % find nearest element
-    [~, t1_ix] = min(abs(times-t1));
-    [~, tend_ix] = min(abs(times-tend));
-    ixs = t1_ix:tend_ix;
-    % find zero for plot
-    [~, xline_zero] = min(abs(times-0));
-    xline_zero = xline_zero - t1_ix;
-
-    % sync. velocity, no significicance test
-    sync_data = squeeze(ALLEEG(subject).etc.analysis.filtered_erp.comp(comp,ixs,sync_trials));
-    async_data = squeeze(ALLEEG(subject).etc.analysis.filtered_erp.comp(comp,ixs,async_trials));
-    if size(comp,2)>1
-        sync_data = squeezemean(sync_data,1);
-        async_data = squeezemean(async_data,1);
-    end
-    sync(subject+1,:) = squeezemean(sync_data,2); % first subject is missing
-    async(subject+1,:) = squeezemean(async_data,2);
-    
-    % subtract baseline?
-    sync(subject+1,:) = sync(subject+1,:) - mean(sync(subject+1,xline_zero-12:xline_zero),2); % 12.5 sample is 50 ms with 250 Hz EEG.srate
-    async(subject+1,:) = async(subject+1,:) - mean(async(subject+1,xline_zero-12:xline_zero),2); % 12.5 sample is 50 ms with 250 Hz EEG.srate
-    
-end
-sync = sync(unique_subjects,:); % remove missing subjects
-async = async(unique_subjects,:);
-
-% statistics: permutation t-test
-[~, ~, p_vals, ~] = statcond({permute(sync, [2,1]) permute(async,[2,1])},...
-    'method', 'perm', 'naccu', 10000);
-
-% prepare plot
-normal; % plot normal window, not docked
-%figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 300 200]);
-figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 960 200]);
-title(num2str(cluster));
-% plot condition 1
-colors = brewermap(5, 'Spectral');
-colors1 = colors(2, :);
-ploterp_lg(sync, [], [], xline_zero, 1, 'ERP \muV', '', '', colors1, '-');
-hold on
-% plot condition 2
-colors2 = colors(5, :);
-ploterp_lg(async, p_vals, .05, xline_zero, 1, '', '', '', colors2, '-.');
-
-% save
-save_path = '/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/figures/comp_erp_sync_async/';
-mkdir(save_path);
-savefig([save_path num2str(cluster) '_win_' num2str(t1) '-' num2str(tend)]);
-print(gcf, [save_path num2str(cluster) '_win_' num2str(t1) '-' num2str(tend) '.eps'], '-depsc');
-close(gcf);
-
-clear sync async
 
 %% (DONE & FIGURES READY) grand average ERSP sync and async (and diff)
 
@@ -930,4 +840,116 @@ res.stats(effect).t_stats(f,t)
 df
 res.stats(effect).betas_p_vals(f,t)
 
-%% correlation post error vel and prior ERSP
+
+
+%% resources
+%% RT
+
+for subject = subjects
+
+    bad_trials = ALLEEG(subject).etc.analysis.design.bad_touch_epochs;
+    async_trials = ALLEEG(subject).etc.analysis.design.oddball;
+    async_trials(bad_trials) = 0; % remove bad trials
+    % match number of async trials for sync trials
+    sync_trials = ~async_trials;
+    sync_trials(bad_trials) = 0; % remove bad trials
+    
+    % sync
+    rt_sync(subject,:) = mean(ALLEEG(subject).etc.analysis.design.rt_spawned_touched(sync_trials),2);
+    % async
+    rt_async(subject,:) = mean(ALLEEG(subject).etc.analysis.design.rt_spawned_touched(async_trials),2);
+end
+
+disp(['sync trials mean rt: ' num2str(mean(rt_sync,1)) ' and sd: ' num2str(std(rt_sync))]);
+disp(['async trials mean rt: ' num2str(mean(rt_async,1)) ' and sd: ' num2str(std(rt_async))]);
+disp(['rt difference: ' num2str((mean(rt_sync,1) - mean(rt_async,1))*1000)])
+%% (DONE & FIGURES READY) grand average component/cluster ERP sync/async
+
+t1 = -2444; % -2444 (ersp start)
+tend = 1440; % 1440 (ersp end)
+baset1 = -50;
+baseend = 0;
+
+% load clustering solution
+cluster_path = '/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/matlab_processing/';
+load([cluster_path 'clustering_vaa.mat']); % clustering_parietal
+STUDY.cluster = clustering_results_STUDY_vaa; % clustering_parietal
+cluster = 9; % 8
+
+unique_setindices = unique(STUDY.cluster(cluster).sets);
+unique_subjects = STUDY_sets(unique_setindices);
+all_setindices = STUDY.cluster(cluster).sets;
+all_sets = STUDY_sets(all_setindices);
+all_comps = STUDY.cluster(cluster).comps;
+for subject = unique_subjects
+
+    % select components
+    this_sets = find(all_sets==subject);
+    comp = all_comps(this_sets);
+
+    % get trials
+    subject = subject-1; % STUDY index is -1 as first subject data is missing
+    bad_trials = ALLEEG(subject).etc.analysis.design.rm_ixs;
+    trials = 1:size(ALLEEG(subject).etc.analysis.design.oddball,2);
+    async_trials = ALLEEG(subject).etc.analysis.design.oddball;
+    async_trials(bad_trials) = 0; % remove bad trials
+
+    sync_trials = ~async_trials;
+    sync_trials(bad_trials) = 0; % remove bad trials
+    sync_trials = trials(sync_trials);
+    sync_trials = randsample(sync_trials, sum(async_trials)); % match number of trials
+
+    % match with times in velocity epoch
+    times = 1000*(bemobil_config.epoching.event_epochs_boundaries(1):(1/ALLEEG(subject).srate):bemobil_config.epoching.event_epochs_boundaries(end));
+    % find nearest element
+    [~, t1_ix] = min(abs(times-t1));
+    [~, tend_ix] = min(abs(times-tend));
+    ixs = t1_ix:tend_ix;
+    % find zero for plot
+    [~, xline_zero] = min(abs(times-0));
+    xline_zero = xline_zero - t1_ix;
+
+    % sync. velocity, no significicance test
+    sync_data = squeeze(ALLEEG(subject).etc.analysis.filtered_erp.comp(comp,ixs,sync_trials));
+    async_data = squeeze(ALLEEG(subject).etc.analysis.filtered_erp.comp(comp,ixs,async_trials));
+    if size(comp,2)>1
+        sync_data = squeezemean(sync_data,1);
+        async_data = squeezemean(async_data,1);
+    end
+    sync(subject+1,:) = squeezemean(sync_data,2); % first subject is missing
+    async(subject+1,:) = squeezemean(async_data,2);
+    
+    % subtract baseline?
+    sync(subject+1,:) = sync(subject+1,:) - mean(sync(subject+1,xline_zero-12:xline_zero),2); % 12.5 sample is 50 ms with 250 Hz EEG.srate
+    async(subject+1,:) = async(subject+1,:) - mean(async(subject+1,xline_zero-12:xline_zero),2); % 12.5 sample is 50 ms with 250 Hz EEG.srate
+    
+end
+sync = sync(unique_subjects,:); % remove missing subjects
+async = async(unique_subjects,:);
+
+% statistics: permutation t-test
+[~, ~, p_vals, ~] = statcond({permute(sync, [2,1]) permute(async,[2,1])},...
+    'method', 'perm', 'naccu', 10000);
+
+% prepare plot
+normal; % plot normal window, not docked
+%figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 300 200]);
+figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 960 200]);
+title(num2str(cluster));
+% plot condition 1
+colors = brewermap(5, 'Spectral');
+colors1 = colors(2, :);
+ploterp_lg(sync, [], [], xline_zero, 1, 'ERP \muV', '', '', colors1, '-');
+hold on
+% plot condition 2
+colors2 = colors(5, :);
+ploterp_lg(async, p_vals, .05, xline_zero, 1, '', '', '', colors2, '-.');
+
+% save
+save_path = '/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/figures/comp_erp_sync_async/';
+mkdir(save_path);
+savefig([save_path num2str(cluster) '_win_' num2str(t1) '-' num2str(tend)]);
+print(gcf, [save_path num2str(cluster) '_win_' num2str(t1) '-' num2str(tend) '.eps'], '-depsc');
+close(gcf);
+
+clear sync async

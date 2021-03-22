@@ -10,13 +10,22 @@ addpath(genpath('/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sens
 % TODO add to path custom scripts repository Lukas Gehrke folder
 
 % BIDS data download folder
-bemobil_config.BIDS_folder = '/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/data.nosync/ds003552';
+bemobil_config.BIDS_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/ds003552';
 % Results output folder -> external drive
 bemobil_config.study_folder = fullfile('/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error', 'derivatives');
 
 % init
 config_processing_pe;
 subjects = 1:19;
+
+%% remove ICS from epochs files and save
+
+for subject = subjects
+    disp(['Subject #' num2str(subject) ]);
+    EEG = pop_loadset(fullfile(bemobil_config.study_folder, 'data', ['sub-', sprintf('%03d', subject), '_epochs_box_touched.set']));
+    [EEG, bemobil_config] = select_ICs_pe(EEG, bemobil_config);
+    pop_saveset(EEG, fullfile(bemobil_config.study_folder, 'data', ['sub-', sprintf('%03d', subject), '_epochs_box_touched.set']));
+end
 
 %% build eeglab study
 
@@ -66,16 +75,14 @@ for subject = subjects  % do it for all subjects
     disp(['Subject: ' num2str(subject)])
     
     EEG = pop_loadset(fullfile(bemobil_config.study_folder, 'data', ['sub-', sprintf('%03d', subject), '_epochs_box_touched.set']));
-    [EEG, bemobil_config] = select_ICs_pe(EEG, bemobil_config);
-    
+    comps = 1:size(EEG.icaact,1);
     load(fullfile(bemobil_config.study_folder, 'data', ['sub-', sprintf('%03d', subject), '_single_trial_dmatrix.mat']));
+    good_comps_ori_ix = find(EEG.etc.ic_classification.ICLabel.classifications(:,1) > bemobil_config.lda.brain_threshold);
 
     % good trials ixs
     good_trials = ones(1,size(EEG.etc.analysis.design.oddball,2));
     good_trials(EEG.etc.analysis.design.bad_touch_epochs) = 0;
     good_trials = logical(good_trials);
-    
-    comps = 1:size(EEG.icaact,1);
     
     % settings
     options = {};
@@ -92,8 +99,8 @@ for subject = subjects  % do it for all subjects
         disp(['IC: ' num2str(IC)])
         
         % load full grand average ERSP
-        all_ersp.(['comp' int2str(IC) '_ersp']) = squeezemean(single_trial_dmatrix.ersp.tf_event_raw_power(IC,:,:,good_trials),4);
-        all_ersp.(['comp' int2str(IC) '_erspbase']) = squeezemean(single_trial_dmatrix.ersp.tf_base_raw_power(IC,:,good_trials),3);
+        all_ersp.(['comp' int2str(IC) '_ersp']) = squeezemean(single_trial_dmatrix.ersp.tf_event_raw_power(good_comps_ori_ix(IC),:,:,good_trials),4);
+        all_ersp.(['comp' int2str(IC) '_erspbase']) = squeezemean(single_trial_dmatrix.ersp.tf_base_raw_power(good_comps_ori_ix(IC),:,good_trials),3);
         all_ersp.(['comp' int2str(IC) '_ersp']) = 10.*log10(all_ersp.(['comp' int2str(IC) '_ersp']) ./ all_ersp.(['comp' int2str(IC) '_erspbase'])');
         all_ersp.(['comp' int2str(IC) '_erspboot']) = [];
         
@@ -116,7 +123,7 @@ disp('Done.')
 %% pre-clustering
 
 [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
-[STUDY ALLEEG] = pop_loadstudy('filename', ['brain_thresh-' bemobil_config.lda.brain_threshold '_' bemobil_config.study_filename], 'filepath', bemobil_config.study_folder);
+[STUDY ALLEEG] = pop_loadstudy('filename', ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_' bemobil_config.study_filename], 'filepath', bemobil_config.study_folder);
 CURRENTSTUDY = 1; EEG = ALLEEG; CURRENTSET = [1:length(EEG)];
 
 % determine k for k-means clustering
@@ -147,9 +154,9 @@ disp('...done')
 
 %% repeated clustering to target ROI: 
 
-[ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
-[STUDY ALLEEG] = pop_loadstudy('filename', ['brain_thresh-' bemobil_config.lda.brain_threshold '_' bemobil_config.study_filename], 'filepath', bemobil_config.study_folder);
-CURRENTSTUDY = 1; EEG = ALLEEG; CURRENTSET = [1:length(EEG)];
+% [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
+% [STUDY ALLEEG] = pop_loadstudy('filename', ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_' bemobil_config.study_filename], 'filepath', bemobil_config.study_folder);
+% CURRENTSTUDY = 1; EEG = ALLEEG; CURRENTSET = [1:length(EEG)];
 
 % determine k for k-means clustering
 for i = 1:size(STUDY.datasetinfo,2)

@@ -30,132 +30,138 @@ for subject = subjects
     EEG = pop_loadset(fullfile(bemobil_config.BIDS_folder, ['sub-', sprintf('%03d', subject)], modality, ...
         ['sub-', sprintf('%03d', subject), '_task-', bemobil_config.task, '_', modality, '.set']));
     
-    %% make design matrix, exclude training trials and EMS condition, clean up, find bad epochs
+    %% clean up, get touch events
     
     EEG = pe_remove_training_block(EEG);
     EEG.event(find(strcmp({EEG.event.condition}, 'ems'))) = [];
-    EEG.event = renamefields(EEG.event, 'condition', 'feedback'); % change field name of 'condition' so its not an eeglab study thing
-    
+
     if subject == 15
         EEG.event(1:min(find(ismember({EEG.event.hedTag}, 'n/a')))) = [];
     end
     
-    [EEG.etc.analysis.design, touch_event_ixs] = pe_build_dmatrix(EEG, bemobil_config);
-    EEG.etc.analysis.design.bad_touch_epochs = sort([EEG.etc.analysis.design.slow_rt_ixs, pe_clean_epochs(EEG, touch_event_ixs, bemobil_config)]); % combine noisy epochs with epochs of long reaction times
     EEG.event = renamefields(EEG.event, 'trial_type', 'type');
+    touch_event_ixs = find(strcmp({EEG.event.type}, bemobil_config.epoching.event_epoching_event));
     
-    %% measure: filtered ERPs
-    
-    ERP = EEG;
-    ERP.event = ERP.event(touch_event_ixs); % touches
-    ERP = pop_eegfiltnew(ERP, bemobil_config.filter_plot_low, bemobil_config.filter_plot_high);
-    ERP = pop_epoch( ERP, bemobil_config.epoching.event_epoching_event, bemobil_config.epoching.event_epochs_boundaries, 'newname',...
-        'epochs', 'epochinfo', 'yes');
-    EEG.etc.analysis.filtered_erp.chan = ERP.data; %(bemobil_config.channels_of_int,:,:); % save space saving only channels of int FZ, PZ, FCz
-    EEG.etc.analysis.filtered_erp.comp = ERP.icaact;
-   
-    %% measure: ERSP
-    
-    ERSP_event = EEG;
-    ERSP_event.event = EEG.event(touch_event_ixs); % touches
-    ERSP_event = pop_epoch( ERSP_event, bemobil_config.epoching.event_epoching_event, bemobil_config.epoching.event_epochs_boundaries, 'newname',...
-        'epochs', 'epochinfo', 'yes');
-    
-    ERSP_base = EEG;
-    spawn_event_ixs = find(strcmp({EEG.event.type}, bemobil_config.epoching.base_epoching_event));
-    ERSP_base.event = EEG.event(spawn_event_ixs); % spawns
-    ERSP_base = pop_epoch( ERSP_base, bemobil_config.epoching.base_epoching_event, bemobil_config.epoching.base_epochs_boundaries, 'newname',...
-        'epochs', 'epochinfo', 'yes');
-    
-    for comp = 1:size(ERSP_event.icaact,1)
-        tic
-        
-        % event ersp
-        [~,~,~,ersp_times_ev,ersp_freqs_ev,~,~,tfdata] = newtimef(ERSP_event.icaact(comp,:,:),...
-            ERSP_event.pnts,...
-            [ERSP_event.times(1) ERSP_event.times(end)],...
-            EEG.srate,...
-            'cycles',fft_options.cycles,...
-            'freqs',fft_options.freqrange,...
-            'freqscale',fft_options.freqscale,...
-            'padratio',fft_options.padratio,...
-            'baseline',[NaN],... % no baseline, since that is only a subtraction of the freq values, we do it manually
-            'nfreqs',fft_options.n_freqs,...
-            'timesout',fft_options.timesout,...
-            'plotersp','off',...
-            'plotitc','off',...
-            'verbose','off');
-        EEG.etc.analysis.ersp.tf_event_raw_power(comp,:,:,:) = abs(tfdata).^2; %discard phase (complex valued)
-        
-        % base ersp
-        [~,~,~,ersp_times,ersp_freqs,~,~,tfdata] = newtimef(ERSP_base.icaact(comp,:,:),...
-            ERSP_base.pnts,...
-            [ERSP_base.times(1) ERSP_base.times(end)],...
-            EEG.srate,...
-            'cycles',fft_options.cycles,...
-            'freqs',fft_options.freqrange,...
-            'freqscale',fft_options.freqscale,...
-            'padratio',fft_options.padratio,...
-            'baseline',[NaN],... % no baseline, since that is only a subtraction of the freq values, we do it manually
-            'nfreqs',fft_options.n_freqs,...
-            'timesout',fft_options.timesout,...
-            'plotersp','off',...
-            'plotitc','off',...
-            'verbose','off');
-        % remove leading and trailing samples
-        win = bemobil_config.epoching.base_win * 1000;
-        EEG.etc.analysis.ersp.tf_base_raw_power(comp,:,:) = squeezemean(abs(tfdata(:,find(ersp_times>win(1),1,'first'):find(ersp_times<=win(2),1,'last'),:)).^2,2);
-
-%         % test grand mean ersp: everything looks good, 02.03.2021
-%         ev = squeezemean(EEG.etc.analysis.ersp.tf_event_raw_power,4);
-%         base = squeezemean(EEG.etc.analysis.ersp.tf_base_raw_power,3);
-%         ev_db = 10.*log10(squeeze(ev(comp,:,:))./base(comp,:)');
-%         figure;imagesc(EEG.etc.analysis.ersp.tf_event_times, EEG.etc.analysis.ersp.tf_event_freqs, ev_db, [-1 1]);axis xy;cbar;
-  
-        toc
-    end
-    
-    % save times and freqs
-    EEG.etc.analysis.ersp.tf_event_times = ersp_times_ev;
-    EEG.etc.analysis.ersp.tf_event_freqs = ersp_freqs_ev;
-    
-    %% measure: motion, Velocity at time points before events of interest
-    
-    modality = 'motion';
-    motion = pop_loadset(fullfile(bemobil_config.BIDS_folder, ['sub-', sprintf('%03d', subject)], modality, ...
-        ['sub-', sprintf('%03d', subject), '_task-', bemobil_config.task, '_', modality, '.set']));
-    motion.event = renamefields(EEG.event, 'trial_type', 'type');
-    motion.event = EEG.event(touch_event_ixs);
-    motion = pop_epoch( motion, bemobil_config.epoching.event_epoching_event, bemobil_config.epoching.event_epochs_boundaries, 'newname',...
-        'epochs', 'epochinfo', 'yes');    
-    
-    % save x,y,z of hand
-    EEG.etc.analysis.motion.x = motion.data(7,:,:);
-    EEG.etc.analysis.motion.y = motion.data(8,:,:);
-    EEG.etc.analysis.motion.z = motion.data(9,:,:);
-    
-    % save 3D magnitude of velocity and acceleration
-    EEG.etc.analysis.motion.mag_vel = squeeze(sqrt(motion.data(7,:,:).^2 +...
-            motion.data(8,:,:).^2 +...
-            motion.data(9,:,:).^2));
-    EEG.etc.analysis.motion.mag_acc = squeeze(sqrt(motion.data(13,:,:).^2 +...
-            motion.data(14,:,:).^2 +...
-            motion.data(15,:,:).^2));
-    
-    %% epoch for EEGLAB study structure and save
-    
+%     %% measure: filtered ERPs
+%     
+%     ERP = EEG;
+%     ERP.event = ERP.event(touch_event_ixs); % touches
+%     ERP = pop_eegfiltnew(ERP, bemobil_config.filter_plot_low, bemobil_config.filter_plot_high);
+%     ERP = pop_epoch( ERP, bemobil_config.epoching.event_epoching_event, bemobil_config.epoching.event_epochs_boundaries, 'newname',...
+%         'epochs', 'epochinfo', 'yes');
+%     EEG.etc.analysis.filtered_erp.chan = ERP.data; %(bemobil_config.channels_of_int,:,:); % save space saving only channels of int FZ, PZ, FCz
+%     EEG.etc.analysis.filtered_erp.comp = ERP.icaact;
+%    
+%     %% measure: ERSP
+%     
+%     ERSP_event = EEG;
+%     ERSP_event.event = EEG.event(touch_event_ixs); % touches
+%     ERSP_event = pop_epoch( ERSP_event, bemobil_config.epoching.event_epoching_event, bemobil_config.epoching.event_epochs_boundaries, 'newname',...
+%         'epochs', 'epochinfo', 'yes');
+%     
+%     ERSP_base = EEG;
+%     spawn_event_ixs = find(strcmp({EEG.event.type}, bemobil_config.epoching.base_epoching_event));
+%     ERSP_base.event = EEG.event(spawn_event_ixs); % spawns
+%     ERSP_base = pop_epoch( ERSP_base, bemobil_config.epoching.base_epoching_event, bemobil_config.epoching.base_epochs_boundaries, 'newname',...
+%         'epochs', 'epochinfo', 'yes');
+%     
+%     for comp = 1:size(ERSP_event.icaact,1)
+%         tic
+%         
+%         % event ersp
+%         [~,~,~,ersp_times_ev,ersp_freqs_ev,~,~,tfdata] = newtimef(ERSP_event.icaact(comp,:,:),...
+%             ERSP_event.pnts,...
+%             [ERSP_event.times(1) ERSP_event.times(end)],...
+%             EEG.srate,...
+%             'cycles',fft_options.cycles,...
+%             'freqs',fft_options.freqrange,...
+%             'freqscale',fft_options.freqscale,...
+%             'padratio',fft_options.padratio,...
+%             'baseline',[NaN],... % no baseline, since that is only a subtraction of the freq values, we do it manually
+%             'nfreqs',fft_options.n_freqs,...
+%             'timesout',fft_options.timesout,...
+%             'plotersp','off',...
+%             'plotitc','off',...
+%             'verbose','off');
+%         EEG.etc.analysis.ersp.tf_event_raw_power(comp,:,:,:) = abs(tfdata).^2; %discard phase (complex valued)
+%         
+%         % base ersp
+%         [~,~,~,ersp_times,ersp_freqs,~,~,tfdata] = newtimef(ERSP_base.icaact(comp,:,:),...
+%             ERSP_base.pnts,...
+%             [ERSP_base.times(1) ERSP_base.times(end)],...
+%             EEG.srate,...
+%             'cycles',fft_options.cycles,...
+%             'freqs',fft_options.freqrange,...
+%             'freqscale',fft_options.freqscale,...
+%             'padratio',fft_options.padratio,...
+%             'baseline',[NaN],... % no baseline, since that is only a subtraction of the freq values, we do it manually
+%             'nfreqs',fft_options.n_freqs,...
+%             'timesout',fft_options.timesout,...
+%             'plotersp','off',...
+%             'plotitc','off',...
+%             'verbose','off');
+%         % remove leading and trailing samples
+%         win = bemobil_config.epoching.base_win * 1000;
+%         EEG.etc.analysis.ersp.tf_base_raw_power(comp,:,:) = squeezemean(abs(tfdata(:,find(ersp_times>win(1),1,'first'):find(ersp_times<=win(2),1,'last'),:)).^2,2);
+% 
+% %         % test grand mean ersp: everything looks good, 02.03.2021
+% %         ev = squeezemean(EEG.etc.analysis.ersp.tf_event_raw_power,4);
+% %         base = squeezemean(EEG.etc.analysis.ersp.tf_base_raw_power,3);
+% %         ev_db = 10.*log10(squeeze(ev(comp,:,:))./base(comp,:)');
+% %         figure;imagesc(EEG.etc.analysis.ersp.tf_event_times, EEG.etc.analysis.ersp.tf_event_freqs, ev_db, [-1 1]);axis xy;cbar;
+%   
+%         toc
+%     end
+%     
+%     % save times and freqs
+%     EEG.etc.analysis.ersp.tf_event_times = ersp_times_ev;
+%     EEG.etc.analysis.ersp.tf_event_freqs = ersp_freqs_ev;
+%     
+%     %% measure: motion, Velocity at time points before events of interest
+%     
+%     modality = 'motion';
+%     motion = pop_loadset(fullfile(bemobil_config.BIDS_folder, ['sub-', sprintf('%03d', subject)], modality, ...
+%         ['sub-', sprintf('%03d', subject), '_task-', bemobil_config.task, '_', modality, '.set']));
+%     motion.event = renamefields(EEG.event, 'trial_type', 'type');
+%     motion.event = EEG.event(touch_event_ixs);
+%     motion = pop_epoch( motion, bemobil_config.epoching.event_epoching_event, bemobil_config.epoching.event_epochs_boundaries, 'newname',...
+%         'epochs', 'epochinfo', 'yes');    
+%     
+%     % save x,y,z of hand
+%     EEG.etc.analysis.motion.x = motion.data(7,:,:);
+%     EEG.etc.analysis.motion.y = motion.data(8,:,:);
+%     EEG.etc.analysis.motion.z = motion.data(9,:,:);
+%     
+%     % save 3D magnitude of velocity and acceleration
+%     EEG.etc.analysis.motion.mag_vel = squeeze(sqrt(motion.data(7,:,:).^2 +...
+%             motion.data(8,:,:).^2 +...
+%             motion.data(9,:,:).^2));
+%     EEG.etc.analysis.motion.mag_acc = squeeze(sqrt(motion.data(13,:,:).^2 +...
+%             motion.data(14,:,:).^2 +...
+%             motion.data(15,:,:).^2));
+%     
+%     %% epoch for EEGLAB study structure and save
+%     
     out_folder = fullfile(bemobil_config.study_folder, 'data');
     if ~exist(out_folder, 'dir')
         mkdir(out_folder);
     end
+%     
+%     % save precomputed EEG metrics and clear data heavy fields for faster processing later on
+%     single_trial_dmatrix = EEG.etc.analysis;
+%     save(fullfile(out_folder, ['sub-', sprintf('%03d', subject), '_single_trial_dmatrix.mat']), 'single_trial_dmatrix', '-v7.3');
+%     EEG.etc.analysis.filtered_erp = [];
+%     EEG.etc.analysis.ersp = [];
+%     EEG.etc.analysis.motion = [];
+
+    %% make design matrix, find noisy epochs, detect movements
     
-    % save precomputed EEG metrics and clear data heavy fields for faster processing later on
-    single_trial_dmatrix = EEG.etc.analysis;
-    save(fullfile(out_folder, ['sub-', sprintf('%03d', subject), '_single_trial_dmatrix.mat']), 'single_trial_dmatrix', '-v7.3');
-    EEG.etc.analysis.filtered_erp = [];
-    EEG.etc.analysis.ersp = [];
-    EEG.etc.analysis.motion = [];
-    
+    [EEG.etc.analysis.design, touch_event_ixs] = pe_build_dmatrix(EEG, bemobil_config);
+    EEG.etc.analysis.design.bad_touch_epochs = sort([EEG.etc.analysis.design.slow_rt_spawn_touch_events_ixs, pe_clean_epochs(EEG, touch_event_ixs, bemobil_config)]); % combine noisy epochs with epochs of long reaction times
+
+    event_sample_ix = bemobil_config.epoching.event_epochs_boundaries(1) * EEG.srate; % epoched [-3 2] seconds = 1250 samples
+    EEG.etc.analysis.design.movements = pe_get_motion_onset_single_trials(EEG, event_sample_ix, subject, bemobil_config);
+      
     EEG.event = EEG.event(touch_event_ixs);
     epochs = pop_epoch( EEG, bemobil_config.epoching.event_epoching_event, bemobil_config.epoching.event_epochs_boundaries, 'newname',...
         'epochs', 'epochinfo', 'yes');

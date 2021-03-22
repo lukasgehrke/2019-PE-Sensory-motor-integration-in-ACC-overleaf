@@ -17,35 +17,6 @@ bemobil_config.study_folder = fullfile('P:\Lukas_Gehrke\studies\Prediction_Error
 config_processing_pe;
 subjects = 1:19;
 
-%% prepare datasets for bcilab
-for subject = subjects
-    
-    %% load BIDS (with AMICA results) set
-
-    modality = 'motion';
-    EEG = pop_loadset(fullfile(bemobil_config.BIDS_folder, ['sub-', sprintf('%03d', subject)], modality, ...
-        ['sub-', sprintf('%03d', subject), '_task-', bemobil_config.task, '_', modality, '.set']));
-
-    %% make design matrix, exclude training trials and EMS condition, clean up, find bad epochs
-
-    EEG = pe_remove_training_block(EEG);
-    EEG.event(find(strcmp({EEG.event.condition}, 'ems'))) = [];
-
-    if subject == 15
-        EEG.event(1:min(find(ismember({EEG.event.hedTag}, 'n/a')))) = [];
-    end
-
-    [EEG.etc.analysis.design, touch_event_ixs] = pe_build_dmatrix(EEG, bemobil_config);
-    EEG.etc.analysis.design.bad_touch_epochs = sort([EEG.etc.analysis.design.slow_rt_ixs, pe_clean_epochs(EEG, touch_event_ixs, bemobil_config)]); % combine noisy epochs with epochs of long reaction times
-    touch_event_ixs(EEG.etc.analysis.design.bad_touch_epochs) = [];
-    EEG.event = EEG.event(touch_event_ixs);
-    
-    %% save
-    EEG = pop_saveset(EEG, fullfile(bemobil_config.study_folder, 'data', ...
-        ['sub-', sprintf('%03d', subject), '_task-', bemobil_config.task, '_', modality, '_for_BCI.set']));
-    
-end
-
 %% Run LDA
 
 bcilab;
@@ -76,9 +47,10 @@ for t = threshs
         if subject == 15
             EEG.event(1:min(find(ismember({EEG.event.hedTag}, 'n/a')))) = [];
         end
-
+        
+        EEG.event = renamefields(EEG.event, 'trial_type', 'type');
         [EEG.etc.analysis.design, touch_event_ixs] = pe_build_dmatrix(EEG, bemobil_config);
-        EEG.etc.analysis.design.bad_touch_epochs = sort([EEG.etc.analysis.design.slow_rt_ixs, pe_clean_epochs(EEG, touch_event_ixs, bemobil_config)]); % combine noisy epochs with epochs of long reaction times
+        EEG.etc.analysis.design.bad_touch_epochs = sort([EEG.etc.analysis.design.slow_rt_spawn_touch_events_ixs, pe_clean_epochs(EEG, touch_event_ixs, bemobil_config)]); % combine noisy epochs with epochs of long reaction times
         touch_event_ixs(EEG.etc.analysis.design.bad_touch_epochs) = [];
         EEG.event = EEG.event(touch_event_ixs);
 
@@ -192,9 +164,6 @@ end
 % add downloaded analyses code to the path
 addpath(genpath('/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/matlab_processing'));
 
-% BIDS data download folder
-bemobil_config.BIDS_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/ds003552';
-
 % Results output folder -> external drive
 bemobil_config.study_folder = fullfile('/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error', 'derivatives');
 
@@ -203,19 +172,25 @@ config_processing_pe;
 subjects = 1:19;
 
 % load
-fname = ['_prob_brain_base_removal_' num2str(bemobil_config.lda.approach{3}{4}(1)) '-'  num2str(bemobil_config.lda.approach{3}{4}(2))];
-load(fullfile(bemobil_config.study_folder, ['lda_results' fname '.mat']));
+for t = [0, .5, .7, .8, .9]
 
-% inspect
-lda_results
-mean(lda_results.correct)
-std(lda_results.correct)
-%dipole numbers / IClabel threhhold 412 .1 ; 320 .2 ; 290 .3 ; 217 .5
+    bemobil_config.lda.brain_threshold = t;
+    fname = ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_base_removal-' num2str(bemobil_config.lda.approach{3}{4}(1)) '-'  num2str(bemobil_config.lda.approach{3}{4}(2))];
+    load(fullfile(bemobil_config.study_folder, ['lda_results-' fname '.mat']));
+    
+    disp(['tstat: ', num2str(lda_results.ttest.stats.tstat), '; class acc.: ', num2str(mean(lda_results.correct)), '; thresh: ' num2str(t), ' number of dipoles: ', num2str(size(lda_results.dipoles,1))])
+
+end
+
+bemobil_config.lda.brain_threshold = .7;
+fname = ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_base_removal-' num2str(bemobil_config.lda.approach{3}{4}(1)) '-'  num2str(bemobil_config.lda.approach{3}{4}(2))];
+load(fullfile(bemobil_config.study_folder, ['lda_results-' fname '.mat']));
 
 % plot all dipoles and save for supplements
 plot_weighteddipoledensity(lda_results.dipoles)
 
 plot_weighteddipoledensity(lda_results.dipoles,mean(lda_results.weights,2));
+plot_weighteddipoledensity(lda_results.dipoles,mean(lda_results.weights(:,1:2),2));
 
 plot_weighteddipoledensity(lda_results.dipoles,lda_results.weights(:,1));
 plot_weighteddipoledensity(lda_results.dipoles,lda_results.weights(:,2));

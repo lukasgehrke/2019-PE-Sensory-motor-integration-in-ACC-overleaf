@@ -41,7 +41,7 @@ bemobil_config.channels_of_int_labels = {'Fz', 'Cz', 'Pz', 'FCz'};
 %% Classifier approach: LDA using windowed means from ERPs as features
 
 % IC threshold
-bemobil_config.lda.brain_threshold = 0; %0; % .8
+bemobil_config.lda.brain_threshold = 0.7; %0; % .8
 
 wnds = [.05 .1;.1 .15; .15 .2;.2 .25; .25 .3; .3 .35; .35 .4; .4 .45];
 base_win = [.0 .05];
@@ -92,21 +92,21 @@ bemobil_config.STUDY_clustering_weights = struct('dipoles', 1, 'scalp_topographi
 
 % dipoledensity clusters weighted by LDA
 % bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', -35, 'z', 50);
-bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 5, 'z', 35); % anterior midcingulate
+bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 9, 'z', 39); % anterior midcingulate -> from thomas toellner paper
 
 %bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 20, 'y', -65, 'z', 30); % 20 -65 30 Visual Association Area  Cuneus
 %0 -40 30 Posterior Cingulate
 
-%     quality_measure_weights         - vector of weights for quality measures. 6 entries: subjects, ICssubjects, normalized
+%     quality_measure_weights         - vector of weights for quality measures. 6 entries: subjects, ICs/subjects, normalized
 %                                     spread, mean RV, distance from ROI, mahalanobis distance from median of multivariate
 %                                     distribution (put this very high to get the most "normal" solution)
-bemobil_config.STUDY_quality_measure_weights = [2,-2,-1,-1,-2,-1];
+bemobil_config.STUDY_quality_measure_weights = [2,-2,-1,-1,-1,-1];
 
 % calculate how many ICs remain in the STUDY and take 70% of that for the k
 % clusters
 bemobil_config.IC_percentage = 1;
 bemobil_config.outlier_sigma = 3;
-bemobil_config.n_iterations = 100;
+bemobil_config.n_iterations = 1000;
 bemobil_config.do_clustering = 1;
 bemobil_config.do_multivariate_data = 1;
 bemobil_config.STUDY_filepath_clustering_solutions = 'clustering_solutions';
