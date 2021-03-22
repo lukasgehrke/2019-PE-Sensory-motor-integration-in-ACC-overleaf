@@ -159,8 +159,9 @@ for subject = subjects
     [EEG.etc.analysis.design, touch_event_ixs] = pe_build_dmatrix(EEG, bemobil_config);
     EEG.etc.analysis.design.bad_touch_epochs = sort([EEG.etc.analysis.design.slow_rt_spawn_touch_events_ixs, pe_clean_epochs(EEG, touch_event_ixs, bemobil_config)]); % combine noisy epochs with epochs of long reaction times
 
-    event_sample_ix = bemobil_config.epoching.event_epochs_boundaries(1) * EEG.srate; % epoched [-3 2] seconds = 1250 samples
-    EEG.etc.analysis.design.movements = pe_get_motion_onset_single_trials(EEG, event_sample_ix, subject, bemobil_config);
+    event_sample_ix = abs(bemobil_config.epoching.event_epochs_boundaries(1)) * EEG.srate; % epoched [-3 2] seconds = 1250 samples
+    thresh = .05;
+    EEG.etc.analysis.design.movements = pe_get_motion_onset_single_trials(EEG, event_sample_ix, thresh, subject, bemobil_config);
       
     EEG.event = EEG.event(touch_event_ixs);
     epochs = pop_epoch( EEG, bemobil_config.epoching.event_epoching_event, bemobil_config.epoching.event_epochs_boundaries, 'newname',...
