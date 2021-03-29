@@ -5,8 +5,9 @@ function [md] = pe_get_motion_onset_single_trials(peEEG, event_sample_ix, motion
 % - movement_onset_sample: the detected movement onset sample index
 % - peak velocity for the next peak following movement onset
 
-load(fullfile(bemobil_config.study_folder, 'data', ['sub-', sprintf('%03d', subject), '_single_trial_dmatrix.mat']));
-motion = single_trial_dmatrix.motion.mag_vel;
+% load(fullfile(bemobil_config.study_folder, 'data', ['sub-', sprintf('%03d', subject), '_single_trial_dmatrix.mat']));
+% motion = single_trial_dmatrix.motion.mag_vel;
+motion = peEEG.etc.analysis.motion.mag_vel;
 
 % make a subplot and save every 20th trial
 f = figure('visible','off');
@@ -21,6 +22,7 @@ for i = 1:size(peEEG.etc.analysis.design.trial_number,2)
         md.reach_onset_sample(i) = 0;
     else
         md.missing_spawn_event(i) = 0;
+        
         %% max velocity, acceleration reach and return movement
         reach_onset_segment = motion(peEEG.etc.analysis.design.spawn_event_sample(i):event_sample_ix,i);
         [md.reach_onset_sample(i), md.bad_reach_movement_profile(i)] = pe_movement_onset_detector(reach_onset_segment, motion_onset_threshold);

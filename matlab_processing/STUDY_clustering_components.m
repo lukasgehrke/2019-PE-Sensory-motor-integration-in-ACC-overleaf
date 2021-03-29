@@ -18,13 +18,15 @@ bemobil_config.study_folder = fullfile('/Volumes/Seagate Expansion Drive/work/st
 config_processing_pe;
 subjects = 1:19;
 
-%% remove ICS from epochs files and save
+%% remove ICs from epochs files and save
 
 for subject = subjects
     disp(['Subject #' num2str(subject) ]);
     EEG = pop_loadset(fullfile(bemobil_config.study_folder, 'data', ['sub-', sprintf('%03d', subject), '_epochs_box_touched.set']));
     [EEG, bemobil_config] = select_ICs_pe(EEG, bemobil_config);
-    pop_saveset(EEG, fullfile(bemobil_config.study_folder, 'data', ['sub-', sprintf('%03d', subject), '_epochs_box_touched.set']));
+    EEG.event = renamefields(EEG.event, 'condition', 'feedback');
+    EEG.epoch = renamefields(EEG.epoch, 'eventcondition', 'eventfeedback');
+    pop_saveset(EEG, fullfile(bemobil_config.study_folder, 'data', ['sub-', sprintf('%03d', subject), '_epochs_box_touched_pruned.set']));
 end
 
 %% build eeglab study
@@ -38,8 +40,7 @@ STUDY = []; CURRENTSTUDY = 0; ALLEEG = []; EEG=[]; CURRENTSET=[];
 
 for subject = subjects
     disp(['Subject #' num2str(subject) ]);
-    EEG = pop_loadset(fullfile(bemobil_config.study_folder, 'data', ['sub-', sprintf('%03d', subject), '_epochs_box_touched.set']));
-    [EEG, bemobil_config] = select_ICs_pe(EEG, bemobil_config);
+    EEG = pop_loadset(fullfile(bemobil_config.study_folder, 'data', ['sub-', sprintf('%03d', subject), '_epochs_box_touched_pruned.set']));
     [ALLEEG, EEG, CURRENTSET] = eeg_store( ALLEEG, EEG, 0 );
 end
 eeglab redraw
@@ -74,15 +75,10 @@ disp('...done')
 for subject = subjects  % do it for all subjects
     disp(['Subject: ' num2str(subject)])
     
-    EEG = pop_loadset(fullfile(bemobil_config.study_folder, 'data', ['sub-', sprintf('%03d', subject), '_epochs_box_touched.set']));
+    EEG = pop_loadset(fullfile(bemobil_config.study_folder, 'data', ['sub-', sprintf('%03d', subject), '_epochs_box_touched_pruned.set']));
     comps = 1:size(EEG.icaact,1);
-    load(fullfile(bemobil_config.study_folder, 'data', ['sub-', sprintf('%03d', subject), '_single_trial_dmatrix.mat']));
+    load(fullfile(bemobil_config.study_folder, 'data', ['sub-', sprintf('%03d', subject), '_ersp.mat']));
     good_comps_ori_ix = find(EEG.etc.ic_classification.ICLabel.classifications(:,1) > bemobil_config.lda.brain_threshold);
-
-    % good trials ixs
-    good_trials = ones(1,size(EEG.etc.analysis.design.oddball,2));
-    good_trials(EEG.etc.analysis.design.bad_touch_epochs) = 0;
-    good_trials = logical(good_trials);
     
     % settings
     options = {};
@@ -99,8 +95,8 @@ for subject = subjects  % do it for all subjects
         disp(['IC: ' num2str(IC)])
         
         % load full grand average ERSP
-        all_ersp.(['comp' int2str(IC) '_ersp']) = squeezemean(single_trial_dmatrix.ersp.tf_event_raw_power(good_comps_ori_ix(IC),:,:,good_trials),4);
-        all_ersp.(['comp' int2str(IC) '_erspbase']) = squeezemean(single_trial_dmatrix.ersp.tf_base_raw_power(good_comps_ori_ix(IC),:,good_trials),3);
+        all_ersp.(['comp' int2str(IC) '_ersp']) = squeezemean(ersp.tf_event_raw_power(good_comps_ori_ix(IC),:,:,:),4);
+        all_ersp.(['comp' int2str(IC) '_erspbase']) = squeezemean(ersp.tf_base_raw_power(good_comps_ori_ix(IC),:,:),3);
         all_ersp.(['comp' int2str(IC) '_ersp']) = 10.*log10(all_ersp.(['comp' int2str(IC) '_ersp']) ./ all_ersp.(['comp' int2str(IC) '_erspbase'])');
         all_ersp.(['comp' int2str(IC) '_erspboot']) = [];
         
@@ -108,8 +104,8 @@ for subject = subjects  % do it for all subjects
     
     % Save ERSP into file
     % -------------------
-    all_ersp.freqs      = single_trial_dmatrix.ersp.tf_event_freqs;
-    all_ersp.times      = single_trial_dmatrix.ersp.tf_event_times;
+    all_ersp.freqs      = ersp.tf_event_freqs;
+    all_ersp.times      = ersp.tf_event_times;
     all_ersp.datatype   = 'ERSP';
     all_ersp.datafiles  = bemobil_computeFullFileName( { EEG.filepath }, { EEG.filename });
     all_ersp.datatrials = trialindices;
@@ -147,16 +143,29 @@ STUDY.bemobil.clustering.n_clust = bemobil_config.STUDY_n_clust;
 
 % save study
 disp('Saving STUDY...')
-[STUDY EEG] = pop_savestudy( STUDY, EEG, 'filename', bemobil_config.study_filename,'filepath', bemobil_config.study_folder);
+[STUDY EEG] = pop_savestudy( STUDY, EEG, 'filename', ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_' bemobil_config.study_filename], 'filepath', bemobil_config.study_folder);
 CURRENTSTUDY = 1; EEG = ALLEEG; CURRENTSET = [1:length(EEG)];
 eeglab redraw
 disp('...done')
 
 %% repeated clustering to target ROI: 
 
-% [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
-% [STUDY ALLEEG] = pop_loadstudy('filename', ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_' bemobil_config.study_filename], 'filepath', bemobil_config.study_folder);
-% CURRENTSTUDY = 1; EEG = ALLEEG; CURRENTSET = [1:length(EEG)];
+% load study
+if ~exist('ALLEEG','var'); eeglab; end
+pop_editoptions( 'option_storedisk', 1, 'option_savetwofiles', 1, 'option_saveversion6', 0, 'option_single', 0, 'option_memmapdata', 0, 'option_eegobject', 0, 'option_computeica', 1, 'option_scaleicarms', 1, 'option_rememberfolder', 1, 'option_donotusetoolboxes', 0, 'option_checkversion', 1, 'option_chat', 1);
+
+if isempty(STUDY)
+    [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
+    [STUDY ALLEEG] = pop_loadstudy('filename', ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_' bemobil_config.study_filename], 'filepath', bemobil_config.study_folder);
+    CURRENTSTUDY = 1; EEG = ALLEEG; CURRENTSET = [1:length(EEG)];    
+    
+    % store essential info in STUDY struct for later reading
+    STUDY.bemobil.clustering.preclustparams = STUDY.cluster.preclust.preclustparams;
+    STUDY.bemobil.clustering.preclustparams.clustering_weights = bemobil_config.STUDY_clustering_weights;
+    STUDY.bemobil.clustering.n_clust = bemobil_config.STUDY_n_clust;
+
+    eeglab redraw
+end
 
 % determine k for k-means clustering
 for i = 1:size(STUDY.datasetinfo,2)
@@ -176,12 +185,12 @@ path_clustering_solutions = fullfile(bemobil_config.study_folder, bemobil_config
 [STUDY, ALLEEG, EEG] = bemobil_repeated_clustering_and_evaluation(STUDY, ALLEEG, EEG, bemobil_config.outlier_sigma,...
     bemobil_config.STUDY_n_clust, bemobil_config.n_iterations, bemobil_config.STUDY_cluster_ROI_talairach,...
     bemobil_config.STUDY_quality_measure_weights, 1,...
-    1, bemobil_config.study_folder, bemobil_config.study_filename, path_clustering_solutions,...
+    1, bemobil_config.study_folder, ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_' bemobil_config.study_filename], path_clustering_solutions,...
     bemobil_config.filename_clustering_solutions, path_clustering_solutions, bemobil_config.filename_multivariate_data);
     
 % save study
 disp('Saving STUDY...')
-[STUDY EEG] = pop_savestudy( STUDY, EEG, 'filename', bemobil_config.study_filename,'filepath',bemobil_config.study_folder);
+[STUDY EEG] = pop_savestudy( STUDY, EEG, 'filename', ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_' bemobil_config.study_filename], 'filepath',bemobil_config.study_folder);
 CURRENTSTUDY = 1; EEG = ALLEEG; CURRENTSET = [1:length(EEG)];
 eeglab redraw
 

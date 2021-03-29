@@ -1,177 +1,46 @@
-%% clear all and load params
-clear all;
 
-if ~exist('ALLEEG','var')
-	eeglab;
-end
-
-% add downloaded analyses code to the path
-addpath(genpath('/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/matlab_processing'));
-% TODO add to path bemobil_pipeline repository download folder
-% TODO add to path custom scripts repository Lukas Gehrke folder
-
-% BIDS data download folder
-bemobil_config.BIDS_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/ds003552';
-% Results output folder -> external drive
-bemobil_config.study_folder = fullfile('/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error', 'derivatives');
-
-% init
-config_processing_pe;
-subjects = 1:19;
-
-%% load study
-
-if ~exist('ALLEEG','var'); eeglab; end
-pop_editoptions( 'option_storedisk', 1, 'option_savetwofiles', 1, 'option_saveversion6', 0, 'option_single', 0, 'option_memmapdata', 0, 'option_eegobject', 0, 'option_computeica', 1, 'option_scaleicarms', 1, 'option_rememberfolder', 1, 'option_donotusetoolboxes', 0, 'option_checkversion', 1, 'option_chat', 1);
-
-if isempty(STUDY)
-    [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
-    [STUDY ALLEEG] = pop_loadstudy('filename', ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_' bemobil_config.study_filename], 'filepath', bemobil_config.study_folder);
-    CURRENTSTUDY = 1; EEG = ALLEEG; CURRENTSET = [1:length(EEG)];    
-    eeglab redraw
-end
-STUDY_sets = cellfun(@str2num, {STUDY.datasetinfo.subject});
-
-%% dependent variable movement
-
-% compute these measures in the results scripts    
-%     EEG.etc.analysis.design.reaction_time = (EEG.etc.analysis.design.movements.movement_onset_sample - EEG.etc.analysis.design.spawn_event_sample) / EEG.srate;
-%     EEG.etc.analysis.design.action_time = (abs(event_sample_ix) - EEG.etc.analysis.design.movements.movement_onset_sample) / EEG.srate;
-
-%% build full design matrices and deploy analyses for ERP, MocapERP and ERSP
-
-% predictors
-% model: measure ~ velocity*haptics + pes + base + reaction_time + action_time
-
-for subject = subjects
-    
-    % dependent measure
-    dv = [mean(diff(ALLEEG(subject).etc.analysis.design.reaction_time)), diff(ALLEEG(subject).etc.analysis.design.reaction_time)]';
-%     dv = ALLEEG(subject).etc.analysis.design.movements.move_phase_max_vel';
-    
-    
-    % design
-    oddball = ALLEEG(subject).etc.analysis.design.oddball';
-    post_error = ["false"; oddball(1:end-1)];
-    isitime = ALLEEG(subject).etc.analysis.design.isitime';
-    sequence = ALLEEG(subject).etc.analysis.design.sequence';
-    trial_number = ALLEEG(subject).etc.analysis.design.trial_number';
-    haptics = ALLEEG(subject).etc.analysis.design.haptics';
-    direction = categorical(ALLEEG(subject).etc.analysis.design.direction');
-    reg_t = table(dv, post_error, isitime, sequence, haptics, trial_number, direction);
-    
-    % cleaning
-    if ~isfield(ALLEEG(subject).etc.analysis.design.movements, 'bad_movement_profile')
-        bad_trials = ALLEEG(subject).etc.analysis.design.bad_touch_epochs;
-    else
-        bad_trials = unique([ALLEEG(subject).etc.analysis.design.bad_touch_epochs, ALLEEG(subject).etc.analysis.design.movements.bad_movement_profile]);
-    end
-    reg_t(bad_trials,:)= [];
-    
-    % match trial count
-    match_ixs = find(reg_t.post_error=="false");
-    mismatch_ixs = find(reg_t.post_error=="true");
-    match_ixs = randsample(match_ixs, numel(mismatch_ixs));
-    reg_t = reg_t(union(match_ixs, mismatch_ixs),:);
-
-    % fit model
-    post_error_corrected = fitlm(reg_t, 'dv ~ post_error + sequence'); 
-    
-    % save results
-    post_error_slowing(subject,:) = [post_error_corrected.Coefficients.Estimate(1), post_error_corrected.Coefficients.Estimate(1)+post_error_corrected.Coefficients.Estimate(2)];
-    r2(subject) = post_error_corrected.Rsquared.Adjusted;
-
-end
-
-[H,P,CI,STATS] = ttest(post_error_slowing(:,1), post_error_slowing(:,2))
-mean(post_error_slowing,1)
-mean(r2)
-
-% + increase ; - decrease in time
-
-
-% pes results -> export to R Studio for ttest plot
-
-% erp results
-
-% mocap results
-
-% ersp results
-
-%% ttest post error slowing
-
-for subject = subjects
-    post_error_trials = logical([0 ALLEEG(subject).etc.analysis.design.oddball(1:end-1)]);
-    dv = ALLEEG(subject).etc.analysis.design.pes(post_error_trials);
-    no_pes = ALLEEG(subject).etc.analysis.design.pes(~post_error_trials);
-    no_pes = randsample(no_pes, numel(dv));
-    
-    no(subject) = mean(no_pes);
-    yes(subject) = mean(dv);
-end    
-    
-[H,P,CI,STATS] = ttest(yes,no)
-
-% -> box whisker diagram ttest in paper !!
-
-
-
-
-%% (DONE & FIGURES READY) grand average velocity sync/async
-
-for subject = subjects
-    
-    % get trials
-    subject = subject-1; % STUDY index is -1 as first subject data is missing
-    bad_trials = ALLEEG(subject).etc.analysis.design.rm_ixs;
-    async_trials = ALLEEG(subject).etc.analysis.design.oddball;
-    async_trials(bad_trials) = 0; % remove bad trials
-    % match number of async trials for sync trials
-    sync_trials = ~async_trials;
-    sync_trials(bad_trials) = 0; % remove bad trials
-    sync_trials_ixs = randsample(find(sync_trials==1),sum(async_trials));
-    sync_trials = logical(zeros(1,size(async_trials,2)));
-    sync_trials(sync_trials_ixs)=1;
-    
-    % find ersp start and end times as anchors for vel plot
-    t1 = ALLEEG(subject).etc.analysis.ersp.tf_event_times(1);
-    tend = ALLEEG(subject).etc.analysis.ersp.tf_event_times(end);
-    % match with times in velocity epoch
-    times = 1000*(bemobil_config.epoching.event_epochs_boundaries(1):(1/ALLEEG(subject).srate):bemobil_config.epoching.event_epochs_boundaries(end));
-    % find nearest element
-    [~, t1_ix] = min(abs(times-t1));
-    [~, tend_ix] = min(abs(times-tend));
-    ixs = t1_ix:tend_ix;
-    % find zero for plot
-    [~, xline_zero] = min(abs(times-0));
-    xline_zero = xline_zero - t1_ix;
-    
-    % sync. velocity, no significicance test
-    sync(subject,:) = mean(ALLEEG(subject).etc.analysis.mocap.mag_vel(ixs,sync_trials),2);
-    async(subject,:) = mean(ALLEEG(subject).etc.analysis.mocap.mag_vel(ixs,async_trials),2);
-    
-end
-
-% prepare plot
-normal; % plot normal window, not docked
-figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 960 100]);
-
-% plot condition 1
-colors = brewermap(5, 'Spectral');
-colors1 = colors(2, :);
-ploterp_lg(sync, [], [], xline_zero, 1, 'ERV m/s', '', [0 .8], colors1, '-');
-hold on
-% plot condition 2
-colors2 = colors(5, :);
-ploterp_lg(async, [], [], xline_zero, 1, '', '', [0 .8], colors2, '-.');
-% add legend
-legend('sync.','async.');
-
-save_path = '/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/figures/vel_erp_sync_async/';
-mkdir(save_path)
-print(gcf, [save_path 'vel.eps'], '-depsc');
-close(gcf);
-clear sync async
+%% resources
+% %%
+% 
+%     % find ersp start and end times as anchors for vel plot
+%     t1 = ALLEEG(subject).etc.analysis.ersp.tf_event_times(1);
+%     tend = ALLEEG(subject).etc.analysis.ersp.tf_event_times(end);
+%     % match with times in velocity epoch
+%     times = 1000*(bemobil_config.epoching.event_epochs_boundaries(1):(1/ALLEEG(subject).srate):bemobil_config.epoching.event_epochs_boundaries(end));
+%     % find nearest element
+%     [~, t1_ix] = min(abs(times-t1));
+%     [~, tend_ix] = min(abs(times-tend));
+%     ixs = t1_ix:tend_ix;
+%     % find zero for plot
+%     [~, xline_zero] = min(abs(times-0));
+%     xline_zero = xline_zero - t1_ix;
+%     
+%     % sync. velocity, no significicance test
+%     sync(subject,:) = mean(ALLEEG(subject).etc.analysis.mocap.mag_vel(ixs,sync_trials),2);
+%     async(subject,:) = mean(ALLEEG(subject).etc.analysis.mocap.mag_vel(ixs,async_trials),2);
+%     
+% end
+% 
+% % prepare plot
+% normal; % plot normal window, not docked
+% figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 960 100]);
+% 
+% % plot condition 1
+% colors = brewermap(5, 'Spectral');
+% colors1 = colors(2, :);
+% ploterp_lg(sync, [], [], xline_zero, 1, 'ERV m/s', '', [0 .8], colors1, '-');
+% hold on
+% % plot condition 2
+% colors2 = colors(5, :);
+% ploterp_lg(async, [], [], xline_zero, 1, '', '', [0 .8], colors2, '-.');
+% % add legend
+% legend('sync.','async.');
+% 
+% save_path = '/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/figures/vel_erp_sync_async/';
+% mkdir(save_path)
+% print(gcf, [save_path 'vel.eps'], '-depsc');
+% close(gcf);
+% clear sync async
 
 %% (DONE & FIGURES READY) grand average channel ERP sync/async
 
@@ -238,7 +107,6 @@ for chan = 1:size(bemobil_config.channels_of_int,2)
     close(gcf);
     clear sync async
 end
-
 %% (DONE & FIGURES READY) grand average ERSP sync and async (and diff)
 
 % load clustering solution
@@ -381,11 +249,9 @@ p_vals(f,t)
 % diff = sy - asy;
 % subplot(3,1,3);
 % imagesclogy(ALLEEG(subject).etc.analysis.ersp.tf_event_times, ALLEEG(subject).etc.analysis.ersp.tf_event_freqs, diff, [-.5 .5]); axis xy; xline(0); cbar;
-
 %% statistics synchrony vs. asynchrony, this is a question whether to do it or not???
 % vel, 2 grand averages sync. and async., two-sample limo ttest tfce thresh
 % ersp, betas async., one-sample ttest
-
 %% (DONE & FIGURE READY) VEL statistics ASYNC ONLY, haptics and trial nr.
 % trial number to show there is no change over time in learning the trial
 % haptics to show whether it impacts stopping
@@ -508,7 +374,6 @@ mean(res.r2(:,i),1)
 % % save plot
 % print(gcf, [res.save_path(1:end-7) 'figures/vel_haptic.eps'], '-depsc');
 % close(gcf);
-
 %% (DONE & FIGURE READY) VEL post asynchrony detection adaptation / discussion
 
 % single-trial model fitting
@@ -623,226 +488,6 @@ legend('following sync.','follwing async.');
 % save plot
 print(gcf, [res.save_path(1:end-7) '/figures/vel_post_async.eps'], '-depsc');
 close(gcf);
-
-%% (DONE & FIGURE READY) ERSP statistics async only
-% ersp ~ vel_at_col * haptics + rt + base
-% velocity: does it impact multisensory integration during spatio-temporal binding
-% haptics: same as velocity, does object rigidity further perturb spatio-temporal binding
-% rt: is there a task clock? self initiated movement timing?
-% base: what activity at baseline impacts activity at spatio-temporal binding event -> that part of the activity is not processing related
-
-% single-trial model fitting
-res.model = 'ersp_sample ~ velocity * haptics + rt + base';
-zero = 750;
-test_multicoll = 1;
-t1 = -400; % -2444 (ersp start)
-tend = 1200; % 1440 (ersp end)
-
-% load clustering solution
-cluster_path = '/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/matlab_processing/';
-load([cluster_path 'clustering_parietal.mat']); % clustering_vaa
-STUDY.cluster = clustering_parietal; % clustering_results_STUDY_vaa
-cluster = 8; % vaa = 9
-
-% get matching datasets from EEGLAB Study struct
-unique_setindices = unique(STUDY.cluster(cluster).sets);
-unique_subjects = STUDY_sets(unique_setindices);
-all_setindices = STUDY.cluster(cluster).sets;
-all_sets = STUDY_sets(all_setindices);
-all_comps = STUDY.cluster(cluster).comps;
-
-count = 1;
-for subject = unique_subjects
-
-    % select components
-    this_sets = find(all_sets==subject);
-    comps = all_comps(this_sets);
-
-    % prepare design
-    subject = subject-1; % STUDY index is -1 as first subject data is missing
-    asynchrony = ALLEEG(subject).etc.analysis.design.oddball';
-    haptics = zscore(ALLEEG(subject).etc.analysis.design.haptics)'; % zscore
-    trial_nr = ALLEEG(subject).etc.analysis.design.trial_number';
-    direction = categorical(ALLEEG(subject).etc.analysis.design.direction)';
-    sequence = ALLEEG(subject).etc.analysis.design.sequence';
-    velocity = zscore(ALLEEG(subject).etc.analysis.mocap.mag_vel(zero,:))'; % zscore
-    rt = ALLEEG(subject).etc.analysis.design.rt_spawned_touched';
-
-    % find nearest element
-    [~, t1_ix] = min(abs(ALLEEG(subject).etc.analysis.ersp.tf_event_times-(t1)));
-    [~, tend_ix] = min(abs(ALLEEG(subject).etc.analysis.ersp.tf_event_times-tend));
-    ixs = t1_ix:tend_ix;
-
-    % fitlm for each time frequency pixel
-    tic
-    disp(['now fitting data for subject: ' num2str(subject) ' and model: ' res.model '...']);
-    for t = ixs
-        for f = 1:size(ALLEEG(subject).etc.analysis.ersp.tf_event_freqs,2)
-            % add ersp and baseline sample to design matrix
-            if size(comps,2) > 1
-                ersp_sample = squeezemean(ALLEEG(subject).etc.analysis.ersp.tf_event_raw_power(comps,f,t,:),1);
-                base = squeezemean(ALLEEG(subject).etc.analysis.ersp.tf_base_raw_power(comps,f,:),1);
-            else
-                ersp_sample = squeeze(ALLEEG(subject).etc.analysis.ersp.tf_event_raw_power(comps,f,t,:));
-                base = squeeze(ALLEEG(subject).etc.analysis.ersp.tf_base_raw_power(comps,f,:));
-            end
-
-            design = table(ersp_sample, base, asynchrony, haptics, trial_nr, direction, sequence, velocity, rt);    
-
-            % remove bad trials
-            design(ALLEEG(subject).etc.analysis.design.rm_ixs,:) = [];
-            % select only asynchronous
-            design(design.asynchrony==0,:) = [];
-            % test multicolinearity
-            if test_multicoll
-                res.corr.rt_vel(subject) = corr(rt, velocity);
-                test_multicoll = 0;
-            end
-
-            % fit model and save
-            mdl = fitlm(design, res.model);
-            res.betas(count,f,t-ixs(1)+1,:) = mdl.Coefficients.Estimate;
-            res.t(count,f,t-ixs(1)+1,:) = mdl.Coefficients.tStat;
-            res.p(count,f,t-ixs(1)+1,:) = mdl.Coefficients.pValue;
-            res.r2(count,f,t-ixs(1)+1,:) = mdl.Rsquared.Ordinary;
-            res.adj_r2(count,f,t-ixs(1)+1,:) = mdl.Rsquared.Adjusted;
-        end
-    end
-    toc
-    count = count + 1;
-    test_multicoll = 1;
-end
-
-% group-level statistics: settings
-res.predictor_names = string(mdl.CoefficientNames);
-res.times = ALLEEG(subject).etc.analysis.ersp.tf_event_times(ixs);
-res.freqs = ALLEEG(subject).etc.analysis.ersp.tf_event_freqs;
-res.save_path = ['/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/results/cluster_' num2str(cluster) '/async_trial/'];
-res.alpha = .05;
-res.perm = 1000;
-for i = 2:size(res.predictor_names,2)
-
-    % get betas per predictor
-    betas = res.betas(:,:,:,i);
-    betas = permute(betas, [2, 3, 1]);
-    zero = zeros(size(betas));
-
-    % permutation t-test
-    [res.stats(i).t_stats, ~, res.stats(i).betas_p_vals, res.stats(i).surrogate_data] = statcond({betas zero},...
-        'method', 'perm', 'naccu', res.perm);
-
-    % compute tfce transform of t_maps surrogate data, add max tfce
-    % dist
-    for j = 1:size(res.stats(i).surrogate_data,3)
-        tfce(j,:,:) = limo_tfce(2,squeeze(res.stats(i).surrogate_data(:,:,j)),[],0);
-        this_max = tfce(j,:,:);
-        res.stats(i).tfce_max_dist(j) = max(this_max(:));
-    end
-
-    % threshold true t_map
-    [~,~,~,STATS] = ttest(permute(betas, [3, 1, 2]));
-    res.stats(i).tfce_true = limo_tfce(2,squeeze(STATS.tstat),[],0);
-    res.stats(i).tfce_thresh = prctile(res.stats(i).tfce_max_dist,95);
-    res.stats(i).tfce_sig_mask = res.stats(i).tfce_true>res.stats(i).tfce_thresh;
-end
-
-% save res
-save([res.save_path 'res_' res.model '.mat'], 'res');
-
-% plot
-normal; % plot normal window, not docked
-figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 1400 300]);
-
-measures = 2:6;
-c = 1;
-for measure = measures
-    subplot(1,size(measures,2),measure-1);
-    to_plot = squeezemean(res.betas(:,:,:,measure),1);
-    p = res.stats(measure).betas_p_vals;
-
-    %figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 500 300]);
-    plotersp(res.times, res.freqs, to_plot, p, .05, 'frequency (Hz)', 'time (ms)', 'asynchrony', 'dB', 1);
-end
-
-% save plot
-%print(gcf, [res.save_path 'st_betas_' num2str(measure) '.eps'], '-depsc');
-%close(gcf);
-
-% extract stats
-
-% 1. alpha baseline post event
-effect = 2;
-t = 48; % 200 ms
-res.times(t)
-f = 21; % 9 Hz
-res.freqs(f)
-res.stats(effect).t_stats(f,t)
-df
-res.stats(effect).betas_p_vals(f,t)
-
-% 2. alpha rt post event
-effect = 5;
-t = 52; % 250 ms
-res.times(t)
-f = 26; % 12 Hz
-res.freqs(f)
-res.stats(effect).t_stats(f,t)
-df
-res.stats(effect).betas_p_vals(f,t)
-
-% 3. alpha rt pre event
-effect = 5;
-t = 16; % -200 ms
-res.times(t)
-f = 16; % 12 Hz
-res.freqs(f)
-res.stats(effect).t_stats(f,t)
-df
-res.stats(effect).betas_p_vals(f,t)
-
-% 4. alpha haptics post event
-effect = 3;
-t = 46; % 180 ms
-res.times(t)
-f = 11; % 5 Hz
-res.freqs(f)
-res.stats(effect).t_stats(f,t)
-df
-res.stats(effect).betas_p_vals(f,t)
-
-% 5. alpha haptics post event
-effect = 3;
-t = 46; % 180 ms
-res.times(t)
-f = 26; % 12 Hz
-res.freqs(f)
-res.stats(effect).t_stats(f,t)
-df
-res.stats(effect).betas_p_vals(f,t)
-
-% 6. alpha velocity pre event
-effect = 4;
-t = 16; % 180 ms
-res.times(t)
-f = 26; % 12 Hz
-res.freqs(f)
-res.stats(effect).t_stats(f,t)
-df
-res.stats(effect).betas_p_vals(f,t)
-
-% 7. theta interaction post event
-effect = 6;
-t = 46; % 180 ms
-res.times(t)
-f = 6; % 12 Hz
-res.freqs(f)
-res.stats(effect).t_stats(f,t)
-df
-res.stats(effect).betas_p_vals(f,t)
-
-
-
-%% resources
 %% RT
 
 for subject = subjects
