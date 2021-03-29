@@ -1,13 +1,45 @@
-\section{Discussion @ALL}
-
-% - discuss with spatial conflict processing: Savoie, & Simon Task results: cohen, cavanagh, toellner
-% - reference to self and body ownership, spatial computations between egocentric and allocentric? cite Ehrsson, Slater, Gonzales-Franco (uncanny valley of haptics)
-% - usage in online BCI applications detecting glitches etc., see CHI work, Zander, Blankertz
-% - single-trial regression challenges in mobile brain body imaging studies: energy of stimulus, Time-locked vs. continuous regressors/stimuli, EEG artifacts due to movement, Contrast desktop stimulation vs. wide FOV in VR, Higher cortical noise, Saliency of stimulus, necessary attention on stimulus %in terms of predictive coding,
-% - Study specific shortcomings: low N, both in subjects and in trials due to oddball paradigm
-
+\section{Discussion}% start with summary
+Coherent multisensory integration yields meaningful perceptual experiences and is central to adaptive behavior because it allows animals to perceive a world of coherent perceptual entities. In this work, we present evidence for neural signatures originating in central-parietal EEG sources during a spatio-temporal multisensory binding challenge. In order to carve out a signal separating cases of spatio-temporal synchrony from asynchronous cases we employed brain-computer interface technology. Through localization of the classifier weights we gained access to a node in the hierarchical inference network. Subsequent single-trial analysis on the spectral signatures exhibited a separation of alpha- and theta-band characteristics. In the time-domain, the signature can be employed for human-computer interaction purposes as we have shown it is accurately classifiable in two classes. Further, we functionally distinguished theta-band activity from alpha-band activity using single-trial regression. Alpha-band activity following spatio-temporal asynchrony was predicted by baseline activity as well as reaction time, the time elapsed to reach for the target. Both predictors allude to the general temporal task structure and hence may be separated from instantaneous processing. On the other hand, theta-band burst succeeding a binding challenge referred to the multisensory context, that is rendered physics and its interaction with the instantaneous hand velocity.
 
 %%%% writing ressources below
 % - discuss reasons for low R^2 and approaches to address it (experiment design and methods (unfolding other processes, adding regressors etc.)) is there a meta study on effect sizes in timefrequency resolved EEG studies. What does Johanna report, regarding effect size?
 % - is proprioceptive feedback important in our task: I'd argue against that because I consider vibration on the fingertip to be an exteroceptive sensation and do not consider it relevant where the hand was and how my joints were angled etc. during the mismatch event, therefore i stick to exteroceptive prediction errors only!
 % - On world stability: designing visuo-haptic mismatches in virtual environments means further complicating the action-perception cycle understood as hypothesis testing. By pseudo-randomizing when one of the 25 percent chance oddballs appears, hypothesis testing and subsequent evaluation of the latent variables causing the oddball to appear becomes meaningless.
+
+% then summarize results as below paper claim:
+%(touch epochs)
+%1. LDA location: Central-parietal EEG source activity discriminates between predicted and perturbed visuo-haptic perceptual experiences, in our case the touching of a cube on a desk, baring similarities to a classical simon task.
+%(full epochs)
+%2.1. ICs clustered to the centroid of the weighted ICs contributing the strongest to the LDA classifier were located to an area between precuneus and posterior cingulate cortex.
+%2.2. Hand velocity characteristics, an event-related potential as well as an event-related spectral signature were explained by adding a haptic channel, increasing the level of immersion in the perceptual experience.
+%2.3. Further, we observed responses locked to the feedback onset independent of differences in ongoing motor behavior between matching and mismatching classes. (description-level)
+%(touch epochs)
+%3.1. IC source dynamics following a visuo-haptic perturbation differ from predicted perceptual experiences (see 1., show difference erp and ersp)
+%3.2. Following a visuo-haptic perturbation, the context of said perturbation operationalized by hand velocity, haptic feedback and their interaction, impact IC source dynamics only faintly.
+%(next trial epochs)
+%4. Post perturbation behavioral adaptation is in line with previous findings and may be explainable through reinforcement learning like computations in the brain.
+
+% 1. start with a summary of the most important results
+% -> what was the goal of this research?
+% 2. situate findings in literature
+% -> challenges for mobi research and how to make stimuli more salient
+% -> bodily self perception
+% 3. link back to introduction and papers cited in introduction
+
+%so there are 2 things participants do in the task: 
+%1. they collide too early and immediately adapt hand movement and have mmn / frontal theta -> Prediction Error
+%2. they do RL using PE signal and adapt subsequent behavior (trial after mismatch)
+
+% some arguments why ERP:
+% - see Cohen 2014 muscle twitches: In our final set of analyses,we examined the ERPs—the time-domain EMG onset-locked EEG potential. Thiswas done mainly to replicate previous findings concerning the relationship between the ERP and partial errors.
+% - moving towards an applicable metric to detect things online, hence must be computationally inexpensive, therefore ERPs
+% - use ERP section as exemplary for understanding results
+% - In haptically richer environments, processing gets more accurate and hence amplifies the error signal originating in or near anterior cingulate cortex (ACC). Moving fast and experiencing richer haptic feedback impact error processing
+% - how does erp and ersp correlate. gamma and n200 occipital etc. filtering low frequency for erp does not mean higher ERSP frequency burst might not add to slow cortical ERPs -> therefore, approach is valid
+
+% - discuss with spatial conflict processing: Savoie, & Simon Task results: cohen, cavanagh, toellner
+% - reference to self and body ownership, spatial computations between egocentric and allocentric? cite Ehrsson, Slater, Gonzales-Franco (uncanny valley of haptics)
+% - single-trial regression challenges in mobile brain body imaging studies: energy of stimulus, Time-locked vs. continuous regressors/stimuli, EEG artifacts due to movement, Contrast desktop stimulation vs. wide FOV in VR, Higher cortical noise, Saliency of stimulus, necessary attention on stimulus %in terms of predictive coding,
+% - Study specific shortcomings: low N, both in subjects and in trials due to oddball paradigm
+% - assume frontal evaluation of asynchronoy guiding future action and therefore did bot correlate any EEG metric with a post-error slowing parameter.
+% - IC sources located near posterior cingulate cortex may anchor the self in the afforded reference frame, providing grounds for spatial predictions during ongoing perceptual experience.
