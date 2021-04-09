@@ -61,16 +61,16 @@ end
 
 %% settings results loop
 
-all_clusters = [10, 6, 4, 11, 7]; % 9
+all_clusters = [10, 6, 4, 11, 9];
 shuffled_baseline = 0;
 matched_trial_count = 1;
-time_window_for_analysis = [-100, 1000];
+time_window_for_analysis = [-700, 1400];
 models = {'ersp_sample ~ oddball*haptics + base',... % 'oddball ~ ersp_sample*haptics'
     'ersp_sample ~ haptics*velocity_at_impact + diff_at + base'}; 
 log_regression = [0, 0];
 
 clear fit reg_t
-for i = numel(bemobil_config.STUDY_cluster_ROI_talairach)
+for i = 1:numel(bemobil_config.STUDY_cluster_ROI_talairach)
     
     %% load cluster solution
     
@@ -334,7 +334,12 @@ for i = numel(bemobil_config.STUDY_cluster_ROI_talairach)
         fit.times = ersp.tf_event_times(ixs);
         fit.freqs = ersp.tf_event_freqs;
         
-        save(fullfile(bemobil_config.study_folder, 'results', num2str(cluster), ...
+        save(fullfile(bemobil_config.study_folder, 'results', ...
+            ['cluster_ROI_' ...
+            num2str(bemobil_config.STUDY_cluster_ROI_talairach(i).x) '_' ...
+            num2str(bemobil_config.STUDY_cluster_ROI_talairach(i).y) '_' ...
+            num2str(bemobil_config.STUDY_cluster_ROI_talairach(i).z)], ...        
+            num2str(cluster), ...
             [fit.model '_base-shuffled-' num2str(fit.base_shuffled) '_matched-trial-count-' num2str(fit.match_trial_count) ...
             '_log-regression-' num2str(fit.log_regression) '.mat']), 'fit'); 
 

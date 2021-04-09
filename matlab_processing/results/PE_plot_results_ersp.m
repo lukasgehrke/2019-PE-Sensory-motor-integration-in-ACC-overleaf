@@ -1,7 +1,7 @@
 
 %% plot cluster scalp map and dipoles, dipole location
 
-all_clusters = [10, 6, 4, 11, 9];
+all_clusters = [10, 6, 4, 11, 7];
 cluster = all_clusters(5);
 
 shuffled_baseline = 0;
@@ -12,8 +12,8 @@ model = {'ersp_sample ~ oddball*haptics + base' ,...
 log_regression = [0];
 
 load(fullfile('/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/derivatives/results', ...
-    num2str(cluster), [model{1} '_base-shuffled-0_matched-trial-count-1_log-regression-' num2str(log_regression) '.mat']))
-disp(['cluster: ', num2str(cluster), ', location: ', num2str(STUDY.cluster(cluster).dipole.posxyz)]);
+    num2str(cluster), [model{1,2} '_base-shuffled-0_matched-trial-count-1_log-regression-' num2str(log_regression) '.mat']))
+% disp(['cluster: ', num2str(cluster), ', location: ', num2str(STUDY.cluster(cluster).dipole.posxyz)]);
 
 % results windows
 t_lim = 9:48; % (700ms post event)
