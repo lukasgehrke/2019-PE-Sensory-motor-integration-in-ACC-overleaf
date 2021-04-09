@@ -41,21 +41,18 @@ for subject = subjects
         (ALLEEG(subject).etc.analysis.design.movements.reach_onset_sample - ALLEEG(subject).etc.analysis.design.spawn_event_sample) / ALLEEG(subject).srate;
     
     % 
-    event_sample_ix = abs(bemobil_config.epoching.event_epochs_boundaries(1)) * ALLEEG(subject).srate; % epoched [-3 2] seconds = 1250 samples
     ALLEEG(subject).etc.analysis.design.action_time = ...
-        (abs(event_sample_ix) - ALLEEG(subject).etc.analysis.design.movements.reach_onset_sample) / ALLEEG(subject).srate;
+        (abs(ALLEEG(subject).etc.analysis.design.movements.reach_off_sample) - ALLEEG(subject).etc.analysis.design.movements.reach_onset_sample) / ALLEEG(subject).srate;
     
     ALLEEG(subject).etc.analysis.design.time_to_reach_vel_peak = ...
         ALLEEG(subject).etc.analysis.design.movements.reach_max_vel_ix - ALLEEG(subject).etc.analysis.design.movements.reach_onset_sample;
     
+    event_sample_ix = abs(bemobil_config.epoching.event_epochs_boundaries(1)) * ALLEEG(subject).srate; % epoched [-3 2] seconds = 1250 samples
     ALLEEG(subject).etc.analysis.design.peak_vel_to_contact = ...
         event_sample_ix - ALLEEG(subject).etc.analysis.design.movements.reach_max_vel_ix;
     
-    ALLEEG(subject).etc.analysis.design.peak_vel_to_retract = ...
-        ALLEEG(subject).etc.analysis.design.movements.retract_onset_sample - ALLEEG(subject).etc.analysis.design.movements.reach_max_vel_ix;
-    
-    ALLEEG(subject).etc.analysis.design.full_outward_movement = ...
-        ALLEEG(subject).etc.analysis.design.movements.retract_onset_sample - ALLEEG(subject).etc.analysis.design.movements.reach_onset_sample;
+    ALLEEG(subject).etc.analysis.design.peak_vel_to_stop = ...
+        ALLEEG(subject).etc.analysis.design.movements.reach_off_sample - ALLEEG(subject).etc.analysis.design.movements.reach_max_vel_ix;
 end
 
 % compute these measures in the results scripts    
@@ -68,69 +65,145 @@ all_subjects_reg_t = table();
 
 for subject = subjects
     
-    % predictors: change from previous trial
-    rt = [mean(diff(ALLEEG(subject).etc.analysis.design.reaction_time)), diff(ALLEEG(subject).etc.analysis.design.reaction_time)]'; % spawn to movement onset
-    at = [mean(diff(ALLEEG(subject).etc.analysis.design.action_time)), diff(ALLEEG(subject).etc.analysis.design.action_time)]'; % from movement onset to touch
-    acc = [mean(diff(ALLEEG(subject).etc.analysis.design.time_to_reach_vel_peak)), diff(ALLEEG(subject).etc.analysis.design.time_to_reach_vel_peak)]' / ALLEEG(subject).srate; % from movement onset to peak vel
-    decel = [mean(diff(ALLEEG(subject).etc.analysis.design.peak_vel_to_retract)), diff(ALLEEG(subject).etc.analysis.design.peak_vel_to_retract)]' / ALLEEG(subject).srate; % from peak vel to contac
-    out_move = [mean(diff(ALLEEG(subject).etc.analysis.design.full_outward_movement)), diff(ALLEEG(subject).etc.analysis.design.full_outward_movement)]' / ALLEEG(subject).srate; % from peak vel to contac
+    % movement predictors
+    at = ALLEEG(subject).etc.analysis.design.action_time';
+    rt = ALLEEG(subject).etc.analysis.design.reaction_time';
+    peak_vel_reach = ALLEEG(subject).etc.analysis.design.movements.reach_max_vel';
+    vel_event = ALLEEG(subject).etc.analysis.motion.mag_vel(event_sample_ix,:)';
+    acc = ALLEEG(subject).etc.analysis.design.time_to_reach_vel_peak'/ ALLEEG(subject).srate;
+    decel = ALLEEG(subject).etc.analysis.design.peak_vel_to_contact' / ALLEEG(subject).srate;
+    decel_stop = ALLEEG(subject).etc.analysis.design.peak_vel_to_stop' / ALLEEG(subject).srate;
+    
+    % movement predictors: change from previous trial
+    diff_rt = [diff(ALLEEG(subject).etc.analysis.design.reaction_time), mean(diff(ALLEEG(subject).etc.analysis.design.reaction_time))]'; % spawn to movement onset
+    diff_at = [diff(ALLEEG(subject).etc.analysis.design.action_time), mean(diff(ALLEEG(subject).etc.analysis.design.action_time))]'; % from movement onset to touch
+    diff_acc = [diff(ALLEEG(subject).etc.analysis.design.time_to_reach_vel_peak), mean(diff(ALLEEG(subject).etc.analysis.design.time_to_reach_vel_peak))]' / ALLEEG(subject).srate; % from movement onset to peak vel
+    diff_decel = [diff(ALLEEG(subject).etc.analysis.design.peak_vel_to_contact), mean(diff(ALLEEG(subject).etc.analysis.design.peak_vel_to_contact))]' / ALLEEG(subject).srate; % from peak vel to contac
+    diff_decel_stop = [diff(ALLEEG(subject).etc.analysis.design.peak_vel_to_stop), mean(diff(ALLEEG(subject).etc.analysis.design.peak_vel_to_stop))]' / ALLEEG(subject).srate; % from peak vel to contac
+    
+    diff2_at = [0; 0; at(3:end) - at(1:end-2)];
     
     % predictors task
-    oddball = ALLEEG(subject).etc.analysis.design.oddball';
-    post_error = ["false"; oddball(1:end-1)];
-    post_error = double(post_error=='true');
+    oddball = double((ALLEEG(subject).etc.analysis.design.oddball=='true'))';
+    pre_error = [oddball(2:end); 0] * 2;
+    post_error = [0; oddball(1:end-1)] * 3;
+    pre_odd_post = sum([pre_error, oddball, post_error],2);
+    pre_odd_post(pre_odd_post==5)=3;
+    
     isitime = ALLEEG(subject).etc.analysis.design.isitime';
     sequence = ALLEEG(subject).etc.analysis.design.sequence';
     trial_number = ALLEEG(subject).etc.analysis.design.trial_number';
-    haptics = ALLEEG(subject).etc.analysis.design.haptics';
+    haptics = double(ALLEEG(subject).etc.analysis.design.haptics)';
     direction = categorical(ALLEEG(subject).etc.analysis.design.direction');
     pID = repmat(subject,size(direction,1),1);
     
-    reg_t = table(post_error, isitime, sequence, haptics, trial_number, direction, oddball, rt, at, acc, decel, out_move, pID);
+    reg_t = table(pID, isitime, sequence, haptics, trial_number, direction, oddball, ...
+        post_error, pre_error, pre_odd_post, ...
+        at, rt, peak_vel_reach, vel_event, acc, decel, decel_stop, ...
+        diff_at, diff_rt, diff_acc, diff_decel, diff_decel_stop, ...
+        diff2_at);
+    
     reg_t(ALLEEG(subject).etc.analysis.design.bad_touch_epochs,:)= [];
-    
-    % match trial count
-    match_ixs = find(reg_t.post_error==0);
-    mismatch_ixs = find(reg_t.post_error==1);
-    match_ixs = randsample(match_ixs, numel(mismatch_ixs));
-    reg_t = reg_t(union(match_ixs, mismatch_ixs),:);
-    
     all_subjects_reg_t = [all_subjects_reg_t; reg_t]; 
 end
 
-%% descriptives behavior
+%% inspect full table
+head(all_subjects_reg_t,5)
 
-modelfit_full = fitlme(all_subjects_reg_t, 'out_move ~ post_error + (1|pID)')
-modelfit_null = fitlme(all_subjects_reg_t, 'out_move ~ 1 + (1|pID)') 
+%%
+% mdl = fitlme(all_subjects_reg_t, 'diff_at ~ vel_event + (1|pID)')
+mdl = fitlme(all_subjects_reg_t, 'diff_at\ ~ vel_event + (1|pID)')
 
-compare(modelfit_null, modelfit_full)
+%% action time differs betweem oddball and no oddball trials
 
-%% fit models predicting behavior
+% remove preerror trials
+dmatrix = all_subjects_reg_t;
+dmatrix.pre_error = [dmatrix.oddball(2:end); 0];
+dmatrix(dmatrix.pre_error==1,:)=[];
 
-% loop over different statistical results and fits
-dv = 'post_error';
-models = {' ~ out_move + (1|pID)' ,...
-%     ' ~ acc + out_move + (1|pID)' ,...
-%     ' ~ at + (1|pID)' ,...
-%     ' ~ rt + (1|pID)' ,...
-%     ' ~ decel + (1|pID)' ,...
-    };
+% match trial count
+match_ixs = find(dmatrix.oddball==0);
+mismatch_ixs = find(dmatrix.oddball==1);
+match_ixs = randsample(match_ixs, numel(mismatch_ixs));
+dmatrix = dmatrix(union(match_ixs, mismatch_ixs),:);
 
-% odds of the trial being post_error given movement parameters and EEG
-% signature
-for model = models
+for dv = {'at', 'rt', 'acc', 'decel', 'decel_stop', ...
+        'diff_at', 'diff_rt', 'diff_acc', 'diff_decel', 'diff_decel_stop'}
+
+    modelfit_full = fitlme(dmatrix, [dv{1} ' ~ oddball + (1|pID)']);
+    modelfit_null = fitlme(dmatrix, [dv{1} ' ~ 1 + (1|pID)']);
+    compare(modelfit_null, modelfit_full);
     
-    modelfit = fitglme(all_subjects_reg_t, [dv, model{1}], 'Distribution','binomial'); % + acc + decel    
-    ypred = predict(modelfit);
-    ypred(ypred>=.5) = 1;
-    ypred(ypred<.5) = 0;
-    acc = sum(ypred==all_subjects_reg_t.(dv)) / size(all_subjects_reg_t.(dv),1);
-    disp([model, ', accuracy: ' num2str(acc)])
-    modelfit
-    
+    disp([dv{1} ' t_stat: ' num2str(modelfit_full.Coefficients.tStat(2))]);
 end
 
+modelfit_full = fitlme(dmatrix, 'diff_at ~ oddball + (1|pID)')
+ 
+%% cross validate across participants
+
+k = 10;
+indices = crossvalind('Kfold',dmatrix.oddball,k);
+for i = 1:k
+    test = indices==i;
+    train = ~test;
+    
+    modelfit = fitglme(dmatrix(train,:), 'oddball ~ diff_at + (1|pID)', 'Distribution','binomial');
+%     modelfit = fitlme(dmatrix(train,:), 'diff_at ~ vel_event + (1|pID)');
+    
+    ypred = predict(modelfit, dmatrix(test,:));
+    ypred(ypred>=.5) = 1;
+    ypred(ypred<.5) = 0;
+    acc(i) = sum(ypred==dmatrix(test,:).oddball) / size(dmatrix(test,:).oddball,1);
+    
+    pconf = simulateChance(round(sum(test)/2) * [1 1], .05);
+    sim_chance(i) = pconf(3);
+
+    disp(['accuracy: ' num2str(acc(i))])
+end
+
+ [H,P,CI,STATS] = ttest(acc,sim_chance)
+
+%% cv within participants
+
+for subject = subjects
+    dmatrix_s = dmatrix(dmatrix.pID==subject,:);
+%     k = 2;
+%     indices = crossvalind('Kfold',dmatrix_s.oddball,k);
+%     for i = 1:k
+%         test = indices==i;
+%         train = ~test;
+
+%         modelfit = fitglme(dmatrix_s(train,:), 'oddball ~ diff_at + (1|pID)', 'Distribution','binomial');
+        modelfit = fitglme(dmatrix_s, 'oddball ~ diff_at + (1|pID)', 'Distribution','binomial');
+%         ypred = predict(modelfit, dmatrix_s(test,:));
+        ypred = predict(modelfit, dmatrix_s);
+        ypred(ypred>=.5) = 1;
+        ypred(ypred<.5) = 0;
+%         acc(i) = sum(ypred==dmatrix_s(test,:).oddball) / size(dmatrix_s(test,:).oddball,1);
+        acc(subject) = sum(ypred==dmatrix_s.oddball) / size(dmatrix_s.oddball,1);
+
+%         pconf = simulateChance(round(sum(test)/2) * [1 1], .05);
+        pconf = simulateChance(round(size(dmatrix_s,1)/2) * [1 1], .05);
+%         sim_chance(i) = pconf(3);
+        sim_chance(subject) = pconf(3);
+
+%         disp(['accuracy: ' num2str(acc(i))])
+        disp(['accuracy: ' num2str(acc)])
+%     end
+    
+%     accs(subject) = mean(acc);
+%     chances(subject) = mean(sim_chance);
+
+end
+
+accs = mean(acc);
+chances = mean(sim_chance);
+
+[H,P,CI,STATS] = ttest(acc,sim_chance)
+
 %% interpreting log odds
+
+modelfit = fitglme(dmatrix, 'oddball ~ diff_at + (1|pID)', 'Distribution','binomial');
 
 coefs = exp(modelfit.Coefficients.Estimate);
 vals = -.3:0.001:.3;
@@ -143,10 +216,8 @@ scatter(vals, fit)
 
 % for interpreation see: https://stackoverflow.com/questions/41384075/r-calculate-and-interpret-odds-ratio-in-logistic-regression
 
-%% inspect full table
-head(all_subjects_reg_t,3)
 
-%% [] grand average velocity sync/async, aligned at movement onset
+%% [do i still need that? I dont think so...] grand average velocity sync/async, aligned at movement onset
 
 fit.model = 'vel ~ haptics*oddball';
 for subject = subjects

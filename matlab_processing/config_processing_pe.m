@@ -95,7 +95,9 @@ bemobil_config.STUDY_clustering_weights = struct('dipoles', 1, 'scalp_topographi
 
 % dipoledensity clusters weighted by LDA
 % bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', -35, 'z', 50);
-bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 9, 'z', 39); % anterior midcingulate -> from thomas toellner paper
+bemobil_config.STUDY_cluster_ROI_talairach = struct('x', {0, 0, 5, 0, 5}, 'y', {0, -40, -50, 0, -50}, 'z', {40, 20, 30, 35, 25}); % anterior midcingulate -> from thomas toellner paper
+% bemobil_config.STUDY_cluster_ROI_talairach = struct('x', {0}, 'y', {-40}, 'z', {20}); % anterior midcingulate -> from thomas toellner paper
+% bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 9, 'z', 39); % anterior midcingulate -> from thomas toellner paper
 
 %bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 20, 'y', -65, 'z', 30); % 20 -65 30 Visual Association Area  Cuneus
 %0 -40 30 Posterior Cingulate
@@ -103,7 +105,7 @@ bemobil_config.STUDY_cluster_ROI_talairach = struct('x', 0, 'y', 9, 'z', 39); % 
 %     quality_measure_weights         - vector of weights for quality measures. 6 entries: subjects, ICs/subjects, normalized
 %                                     spread, mean RV, distance from ROI, mahalanobis distance from median of multivariate
 %                                     distribution (put this very high to get the most "normal" solution)
-bemobil_config.STUDY_quality_measure_weights = [2,-2,-1,-1,-1,-1];
+bemobil_config.STUDY_quality_measure_weights = [2,-2,-1,-1,-2,-1];
 
 % calculate how many ICs remain in the STUDY and take 70% of that for the k
 % clusters

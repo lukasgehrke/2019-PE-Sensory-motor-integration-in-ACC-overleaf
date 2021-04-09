@@ -116,7 +116,7 @@ for subject = subjects  % do it for all subjects
 end % for every participant
 disp('Done.')
 
-%% pre-clustering
+%% pre-clustering (& kmeans clustering ICs)
 
 [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
 [STUDY ALLEEG] = pop_loadstudy('filename', ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_' bemobil_config.study_filename], 'filepath', bemobil_config.study_folder);
@@ -141,6 +141,12 @@ STUDY.bemobil.clustering.preclustparams = STUDY.cluster.preclust.preclustparams;
 STUDY.bemobil.clustering.preclustparams.clustering_weights = bemobil_config.STUDY_clustering_weights;
 STUDY.bemobil.clustering.n_clust = bemobil_config.STUDY_n_clust;
 
+% % cluster
+% rng(1)
+% [STUDY] = pop_clust(STUDY, ALLEEG, 'algorithm','kmeans','clus_num',  bemobil_config.STUDY_n_clust , 'outliers',  3 ); 
+% % find dipole locations, centroids, and residual variances of clusters
+% STUDY = bemobil_dipoles(STUDY,ALLEEG);
+
 % save study
 disp('Saving STUDY...')
 [STUDY EEG] = pop_savestudy( STUDY, EEG, 'filename', ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_' bemobil_config.study_filename], 'filepath', bemobil_config.study_folder);
@@ -159,10 +165,10 @@ if isempty(STUDY)
     [STUDY ALLEEG] = pop_loadstudy('filename', ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_' bemobil_config.study_filename], 'filepath', bemobil_config.study_folder);
     CURRENTSTUDY = 1; EEG = ALLEEG; CURRENTSET = [1:length(EEG)];    
     
-    % store essential info in STUDY struct for later reading
-    STUDY.bemobil.clustering.preclustparams = STUDY.cluster.preclust.preclustparams;
-    STUDY.bemobil.clustering.preclustparams.clustering_weights = bemobil_config.STUDY_clustering_weights;
-    STUDY.bemobil.clustering.n_clust = bemobil_config.STUDY_n_clust;
+%     % store essential info in STUDY struct for later reading
+%     STUDY.bemobil.clustering.preclustparams = STUDY.cluster.preclust.preclustparams;
+%     STUDY.bemobil.clustering.preclustparams.clustering_weights = bemobil_config.STUDY_clustering_weights;
+%     STUDY.bemobil.clustering.n_clust = bemobil_config.STUDY_n_clust;
 
     eeglab redraw
 end
@@ -173,31 +179,33 @@ for i = 1:size(STUDY.datasetinfo,2)
 end
 bemobil_config.STUDY_n_clust = round(bemobil_config.IC_percentage * median(nr_comps));
 
-path_clustering_solutions = fullfile(bemobil_config.study_folder, bemobil_config.study_filename(1:end-6), [...
-    [num2str(bemobil_config.STUDY_cluster_ROI_talairach.x) '_' num2str(bemobil_config.STUDY_cluster_ROI_talairach.y) '_' num2str(bemobil_config.STUDY_cluster_ROI_talairach.z)] '-location_'...
-    num2str(bemobil_config.STUDY_n_clust) '-cluster_' num2str(bemobil_config.outlier_sigma) ...
-    '-sigma_' num2str(bemobil_config.STUDY_clustering_weights.dipoles) '-dipoles_' num2str(bemobil_config.STUDY_clustering_weights.spectra) '-spec_'...
-    num2str(bemobil_config.STUDY_clustering_weights.scalp_topographies) '-scalp_' num2str(bemobil_config.STUDY_clustering_weights.erp) '-erp_'...
-    num2str(bemobil_config.n_iterations) '-iterations']);
+for i = 1:numel(bemobil_config.STUDY_cluster_ROI_talairach)
+    path_clustering_solutions = fullfile(bemobil_config.study_folder, bemobil_config.study_filename(1:end-6), [...
+        [num2str(bemobil_config.STUDY_cluster_ROI_talairach(i).x) '_' num2str(bemobil_config.STUDY_cluster_ROI_talairach(i).y) '_' num2str(bemobil_config.STUDY_cluster_ROI_talairach(i).z)] '-location_'...
+        num2str(bemobil_config.STUDY_n_clust) '-cluster_' num2str(bemobil_config.outlier_sigma) ...
+        '-sigma_' num2str(bemobil_config.STUDY_clustering_weights.dipoles) '-dipoles_' num2str(bemobil_config.STUDY_clustering_weights.spectra) '-spec_'...
+        num2str(bemobil_config.STUDY_clustering_weights.scalp_topographies) '-scalp_' num2str(bemobil_config.STUDY_clustering_weights.erp) '-erp_'...
+        num2str(bemobil_config.n_iterations) '-iterations']);
 
-% cluster the components repeatedly and use a region of interest and
-% quality measures to find the best fitting solution
-[STUDY, ALLEEG, EEG] = bemobil_repeated_clustering_and_evaluation(STUDY, ALLEEG, EEG, bemobil_config.outlier_sigma,...
-    bemobil_config.STUDY_n_clust, bemobil_config.n_iterations, bemobil_config.STUDY_cluster_ROI_talairach,...
-    bemobil_config.STUDY_quality_measure_weights, 1,...
-    1, bemobil_config.study_folder, ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_' bemobil_config.study_filename], path_clustering_solutions,...
-    bemobil_config.filename_clustering_solutions, path_clustering_solutions, bemobil_config.filename_multivariate_data);
+    % cluster the components repeatedly and use a region of interest and
+    % quality measures to find the best fitting solution
+    [STUDY, ALLEEG, EEG] = bemobil_repeated_clustering_and_evaluation(STUDY, ALLEEG, EEG, bemobil_config.outlier_sigma,...
+        bemobil_config.STUDY_n_clust, bemobil_config.n_iterations, bemobil_config.STUDY_cluster_ROI_talairach(i),...
+        bemobil_config.STUDY_quality_measure_weights, 1,...
+        1, bemobil_config.study_folder, ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_' bemobil_config.study_filename], path_clustering_solutions,...
+        bemobil_config.filename_clustering_solutions, path_clustering_solutions, bemobil_config.filename_multivariate_data);
     
-% save study
-disp('Saving STUDY...')
-[STUDY EEG] = pop_savestudy( STUDY, EEG, 'filename', ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_' bemobil_config.study_filename], 'filepath',bemobil_config.study_folder);
-CURRENTSTUDY = 1; EEG = ALLEEG; CURRENTSET = [1:length(EEG)];
-eeglab redraw
+    disp('Saving STUDY clustering solution')
+    cluster = {STUDY.cluster};
+    save(fullfile(bemobil_config.study_folder, ['cluster_ROI_' ...
+        num2str(bemobil_config.STUDY_cluster_ROI_talairach(i).x) '_' ...
+        num2str(bemobil_config.STUDY_cluster_ROI_talairach(i).y) '_' ...
+        num2str(bemobil_config.STUDY_cluster_ROI_talairach(i).z) '.mat']), 'cluster');
+    disp('...done')
+end
 
-disp('Saving STUDY clustering solution')
-cluster = {STUDY.cluster};
-save(fullfile(bemobil_config.study_folder, ['cluster_ROI_' ...
-    num2str(bemobil_config.STUDY_cluster_ROI_talairach.x) '_' ...
-    num2str(bemobil_config.STUDY_cluster_ROI_talairach.y) '_' ...
-    num2str(bemobil_config.STUDY_cluster_ROI_talairach.z) '.mat']));
-disp('...done')
+% % save study
+% disp('Saving STUDY...')
+% [STUDY EEG] = pop_savestudy( STUDY, EEG, 'filename', ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_' bemobil_config.study_filename], 'filepath',bemobil_config.study_folder);
+% CURRENTSTUDY = 1; EEG = ALLEEG; CURRENTSET = [1:length(EEG)];
+% eeglab redraw

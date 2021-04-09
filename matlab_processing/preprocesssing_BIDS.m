@@ -81,7 +81,7 @@ for subject = subjects
     event_sample_ix = abs(bemobil_config.epoching.event_epochs_boundaries(1)) * EEG.srate; % epoched [-3 2] seconds = 1250 samples
     thresh = .05;
     EEG.etc.analysis.design.movements = pe_get_motion_onset_single_trials(EEG, event_sample_ix, thresh, subject, bemobil_config);
-    
+ 
     %% measure: filtered ERPs
     
     ERP = EEG;

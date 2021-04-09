@@ -5,7 +5,7 @@ function [onset_sample, bad_movement_profile] = pe_movement_onset_detector(motio
 % returns movement onset in the give profile, additionally returns boolean
 % for segments where onset detection was difficult and might lack accuracy
 
-movement_detected = min(find(motion_segment>(max(motion_segment)*.6)));
+movement_detected = min(find(motion_segment>(max(motion_segment)*.99)));
 early_move_phase_reverse = flipud(motion_segment(1:movement_detected));
 
 try
