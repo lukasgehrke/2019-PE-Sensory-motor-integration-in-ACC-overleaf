@@ -68,6 +68,8 @@ for subject = subjects
     % movement predictors
     at = ALLEEG(subject).etc.analysis.design.action_time';
     rt = ALLEEG(subject).etc.analysis.design.reaction_time';
+    ct = rt+at;
+    
     peak_vel_reach = ALLEEG(subject).etc.analysis.design.movements.reach_max_vel';
     vel_event = ALLEEG(subject).etc.analysis.motion.mag_vel(event_sample_ix,:)';
     acc = ALLEEG(subject).etc.analysis.design.time_to_reach_vel_peak'/ ALLEEG(subject).srate;
@@ -77,6 +79,7 @@ for subject = subjects
     % movement predictors: change from previous trial
     diff_rt = [diff(ALLEEG(subject).etc.analysis.design.reaction_time), mean(diff(ALLEEG(subject).etc.analysis.design.reaction_time))]'; % spawn to movement onset
     diff_at = [diff(ALLEEG(subject).etc.analysis.design.action_time), mean(diff(ALLEEG(subject).etc.analysis.design.action_time))]'; % from movement onset to touch
+    diff_ct = diff_rt + diff_at;
     diff_acc = [diff(ALLEEG(subject).etc.analysis.design.time_to_reach_vel_peak), mean(diff(ALLEEG(subject).etc.analysis.design.time_to_reach_vel_peak))]' / ALLEEG(subject).srate; % from movement onset to peak vel
     diff_decel = [diff(ALLEEG(subject).etc.analysis.design.peak_vel_to_contact), mean(diff(ALLEEG(subject).etc.analysis.design.peak_vel_to_contact))]' / ALLEEG(subject).srate; % from peak vel to contac
     diff_decel_stop = [diff(ALLEEG(subject).etc.analysis.design.peak_vel_to_stop), mean(diff(ALLEEG(subject).etc.analysis.design.peak_vel_to_stop))]' / ALLEEG(subject).srate; % from peak vel to contac
@@ -99,8 +102,8 @@ for subject = subjects
     
     reg_t = table(pID, isitime, sequence, haptics, trial_number, direction, oddball, ...
         post_error, pre_error, pre_odd_post, ...
-        at, rt, peak_vel_reach, vel_event, acc, decel, decel_stop, ...
-        diff_at, diff_rt, diff_acc, diff_decel, diff_decel_stop, ...
+        at, rt, ct, peak_vel_reach, vel_event, acc, decel, decel_stop, ...
+        diff_at, diff_rt, diff_ct, diff_acc, diff_decel, diff_decel_stop, ...
         diff2_at);
     
     reg_t(ALLEEG(subject).etc.analysis.design.bad_touch_epochs,:)= [];
@@ -111,8 +114,8 @@ end
 head(all_subjects_reg_t,5)
 
 %%
-% mdl = fitlme(all_subjects_reg_t, 'diff_at ~ vel_event + (1|pID)')
-mdl = fitlme(all_subjects_reg_t, 'diff_at\ ~ vel_event + (1|pID)')
+mdl = fitlme(all_subjects_reg_t, 'diff_at ~ haptics + (1|pID)')
+% mdl = fitglme(all_subjects_reg_t, 'oddball ~ diff_ct*haptics + (1|pID)')
 
 %% action time differs betweem oddball and no oddball trials
 

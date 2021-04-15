@@ -37,10 +37,10 @@ all_clusters = [10, 6, 4, 11, 9];
 shuffled_baseline = 0;
 matched_trial_count = 1;
 models = {...
-    'ersp_sample ~ oddball*haptics + base',...
-    'ersp_sample ~ haptics*velocity_at_impact + diff_at + base',...
-    'ersp_sample ~ diff_at*haptics + base',... 
-    'ersp_sample ~ diff_at + base',...
+    'erp_sample ~ oddball*haptics',...
+    'erp_sample ~ haptics*velocity_at_impact + diff_at',...
+    'erp_sample ~ diff_at*haptics',... 
+    'erp_sample ~ diff_at',...
     }; 
 log_regression = [0, 0, 0, 0];
 
@@ -63,15 +63,9 @@ for i = 1:numel(all_clusters)
             num2str(bemobil_config.STUDY_cluster_ROI_talairach(i).x) '_' ...
             num2str(bemobil_config.STUDY_cluster_ROI_talairach(i).y) '_' ...
             num2str(bemobil_config.STUDY_cluster_ROI_talairach(i).z)], ...        
-            num2str(cluster), ...
+            num2str(cluster), 'erp', ...
             [models{j} '_base-shuffled-' num2str(shuffled_baseline) '_matched-trial-count-' num2str(matched_trial_count) ...
             '_log-regression-' num2str(log_regression(j)) '.mat'])); 
-
-        start_t_ix = min(find(fit.times>=start_t));
-        end_t_ix = min(find(fit.times>=end_t));
-        t_lim = start_t_ix:end_t_ix;
-        
-        freq_lim = min(find(fit.freqs>ceil_freq));
 
         % exclude participants not in cluster
         stat_fields = {'betas', 't', 'p'};
@@ -82,13 +76,12 @@ for i = 1:numel(all_clusters)
         
         %% group-level statistics
         clear tfce
-        fit.save_path = ['/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/results/cluster_' num2str(cluster)];
         fit.alpha = .05;
         fit.perm = 1000;
         for k = 2:size(fit.predictor_names,2)
 
             % get betas per predictor
-            betas = fit.betas(:,1:freq_lim,t_lim,k);
+            betas = fit.betas(:,:,k);
             betas = permute(betas, [2, 3, 1]);
             zero = zeros(size(betas));
 
@@ -111,11 +104,11 @@ for i = 1:numel(all_clusters)
         end
 
         %% plot
-        figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 1400 500]); normal;
-        measures = 2:size(fit.betas,4);
+        normal; figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 1400 500]);
+        measures = 2:size(fit.betas,3);
         for measure = measures
             subplot(1, size(measures,2),measure-1); sgtitle(num2str(cluster));
-            to_plot = squeezemean(fit.betas(:,1:freq_lim,t_lim,measure),1);
+            to_plot = squeezemean(fit.betas(:,:,measure),1);
             
 %             p = fit.stats(measure).betas_p_vals;
 %             [~, p_fdr_mask] = fdr(p, .05);
@@ -125,7 +118,10 @@ for i = 1:numel(all_clusters)
             p = fit.stats(measure).tfce_sig_mask;
 
             disp([fit.predictor_names{measure}, ' :', num2str(sum(fit.stats(measure).tfce_sig_mask(:)))]);
-            plotersp(fit.times(t_lim), fit.freqs(1:freq_lim), to_plot, p, [], 'auto', '-', 'frequency (Hz)', 'time (ms)', fit.predictor_names{measure}, 'dB', 1);
+            
+            plot(fit.stats(measure).tfce_true); hline(fit.stats(measure).tfce_thresh); title(fit.predictor_names{measure})
+%             plot_erp_LG;
+%             (fit.times(t_lim), fit.freqs(1:freq_lim), to_plot, p, [], 'auto', '-', 'frequency (Hz)', 'time (ms)', fit.predictor_names{measure}, 'dB', 1)
         end
 
         %% save
@@ -135,7 +131,7 @@ for i = 1:numel(all_clusters)
             num2str(bemobil_config.STUDY_cluster_ROI_talairach(i).x) '_' ...
             num2str(bemobil_config.STUDY_cluster_ROI_talairach(i).y) '_' ...
             num2str(bemobil_config.STUDY_cluster_ROI_talairach(i).z)], ...        
-            num2str(cluster), [num2str(start_t) '_' num2str(end_t)]);
+            num2str(cluster), 'erp'); % [num2str(start_t) '_' num2str(end_t)]
         
         if ~isfolder(out_folder)
             mkdir(out_folder);

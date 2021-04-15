@@ -66,12 +66,12 @@ shuffled_baseline = 0;
 matched_trial_count = 1;
 time_window_for_analysis = [-700, 1400];
 models = {...
-%     'ersp_sample ~ oddball*haptics + base',...
-%     'ersp_sample ~ haptics*velocity_at_impact + diff_at + base',...
-    'ersp_sample ~ diff_at*haptics + base',... 
-    'ersp_sample ~ diff_at + base',...
+    'erp_sample ~ oddball*haptics',...
+    'erp_sample ~ haptics*velocity_at_impact + diff_at',...
+    'erp_sample ~ diff_at*haptics',... 
+    'erp_sample ~ diff_at',...
     }; 
-log_regression = [0, 0];
+log_regression = [0, 0, 0, 0];
 
 clear fit reg_t
 for i = 1:numel(bemobil_config.STUDY_cluster_ROI_talairach)
@@ -257,19 +257,17 @@ for i = 1:numel(bemobil_config.STUDY_cluster_ROI_talairach)
             sample_time(end) = [];
 
             % load ersp
-            load(fullfile(bemobil_config.study_folder, 'data', ['sub-', sprintf('%03d', subject), '_ersp.mat']));
+            load(fullfile(bemobil_config.study_folder, 'data', ['sub-', sprintf('%03d', subject), '_filtered_erp.mat']));
 
             % remove ICs identical to Study IC selection
             good_comps_ori_ix = find(ALLEEG(subject).etc.ic_classification.ICLabel.classifications(:,1) > bemobil_config.lda.brain_threshold);
-            ersp.tf_event_raw_power = ersp.tf_event_raw_power(good_comps_ori_ix,:,:,:);
-            ersp.tf_base_raw_power = ersp.tf_base_raw_power(good_comps_ori_ix,:,:,:);
+            filtered_erp.comp = filtered_erp.comp(good_comps_ori_ix,:,:);
 
             % select time window
-            if ~isempty(time_window_for_analysis)
-                [~, t1_ix] = min(abs(ersp.tf_event_times-(time_window_for_analysis(1))));
-                [~, t2_ix] = min(abs(ersp.tf_event_times-(time_window_for_analysis(2))));
-                ixs = t1_ix:t2_ix;
-            end
+            t1_ix = time_window_for_analysis(1) * ALLEEG(subject).srate / 1000;
+            t2_ix = time_window_for_analysis(2) * ALLEEG(subject).srate / 1000;
+            ixs = t1_ix:t2_ix;
+            ixs = 750 + ixs;
 
             % fitlm for each time frequency pixel
             tic
@@ -277,62 +275,49 @@ for i = 1:numel(bemobil_config.STUDY_cluster_ROI_talairach)
             for t = ixs
 
                 % add matching velocity for this frame
-                [~, ix] = min(abs(sample_time - ersp.tf_event_times(t)));
-                velocity_this_frame = motion.mag_vel(ix,:)';
+                velocity_this_frame = motion.mag_vel(t,:)';
 
                 if fit.match_trial_count
                     velocity_this_frame = velocity_this_frame(matched_trials);
                 end
 
-                for f = 1:size(ersp.tf_event_freqs,2)
-
-                    % add ersp and baseline sample to design matrix
-                    if size(comps,2) > 1
-                        ersp_sample = squeezemean(ersp.tf_event_raw_power(comps,f,t,:),1);
-                        base = squeezemean(ersp.tf_base_raw_power(comps,f,:),1);
-                    else
-                        ersp_sample = squeeze(ersp.tf_event_raw_power(comps,f,t,:));
-                        base = squeeze(ersp.tf_base_raw_power(comps,f,:));
-                    end
-
-                    % random to get impact of baseline differnece in haptic
-                    % condition
-                    if fit.base_shuffled
-                        base = base(randperm(length(base)));
-                    end
-
-                    if fit.match_trial_count
-                        ersp_sample = ersp_sample(matched_trials);
-                        base = base(matched_trials);
-                    end
-                    
-                    reg_t = addvars(reg_t, ersp_sample, base, velocity_this_frame);
-
-                    % fit model and save
-                    if fit.log_regression
-                        mdl = fitglm(reg_t, fit.model);
-                        ypred = predict(mdl);
-                        ypred(ypred>=.5) = 1;
-                        ypred(ypred<.5) = 0;
-                        fit.acc(subject,f,t-ixs(1)+1,:) = sum(ypred==reg_t.oddball) / size(reg_t.oddball,1);
-                    else
-                        if ~contains(fit.model, 'oddball') % mismatch trials only
-                            tmp_reg_t = reg_t;
-                            tmp_reg_t(tmp_reg_t .oddball==0,:) = [];
-                            mdl = fitlm(tmp_reg_t, fit.model);
-                        else
-                            mdl = fitlm(reg_t, fit.model);
-                        end
-                    end
-
-                    fit.betas(subject,f,t-ixs(1)+1,:) = mdl.Coefficients.Estimate;
-                    fit.t(subject,f,t-ixs(1)+1,:) = mdl.Coefficients.tStat;
-                    fit.p(subject,f,t-ixs(1)+1,:) = mdl.Coefficients.pValue;
-                    fit.r2(subject,f,t-ixs(1)+1,:) = mdl.Rsquared.Ordinary;
-                    fit.adj_r2(subject,f,t-ixs(1)+1,:) = mdl.Rsquared.Adjusted;
-
-                    reg_t = removevars(reg_t, {'ersp_sample', 'base', 'velocity_this_frame'});
+                % add ersp and baseline sample to design matrix
+                if size(comps,2) > 1
+                    erp_sample = squeezemean(filtered_erp.comp(comps,t,:),1);
+                else
+                    erp_sample = squeeze(filtered_erp.comp(comps,t,:));
                 end
+
+                if fit.match_trial_count
+                    erp_sample = erp_sample(matched_trials);
+                end
+
+                reg_t = addvars(reg_t, erp_sample, velocity_this_frame);
+
+                % fit model and save
+                if fit.log_regression
+                    mdl = fitglm(reg_t, fit.model);
+                    ypred = predict(mdl);
+                    ypred(ypred>=.5) = 1;
+                    ypred(ypred<.5) = 0;
+                    fit.acc(subject,f,t-ixs(1)+1,:) = sum(ypred==reg_t.oddball) / size(reg_t.oddball,1);
+                else
+                    if ~contains(fit.model, 'oddball') % mismatch trials only
+                        tmp_reg_t = reg_t;
+                        tmp_reg_t(tmp_reg_t .oddball==0,:) = [];
+                        mdl = fitlm(tmp_reg_t, fit.model);
+                    else
+                        mdl = fitlm(reg_t, fit.model);
+                    end
+                end
+
+                fit.betas(subject,t-ixs(1)+1,:) = mdl.Coefficients.Estimate;
+                fit.t(subject,t-ixs(1)+1,:) = mdl.Coefficients.tStat;
+                fit.p(subject,t-ixs(1)+1,:) = mdl.Coefficients.pValue;
+                fit.r2(subject,t-ixs(1)+1,:) = mdl.Rsquared.Ordinary;
+                fit.adj_r2(subject,t-ixs(1)+1,:) = mdl.Rsquared.Adjusted;
+
+                reg_t = removevars(reg_t, {'erp_sample', 'velocity_this_frame'});
             end
             toc
             clear reg_t
@@ -340,15 +325,19 @@ for i = 1:numel(bemobil_config.STUDY_cluster_ROI_talairach)
         end
         
         fit.predictor_names = string(mdl.CoefficientNames);
-        fit.times = ersp.tf_event_times(ixs);
-        fit.freqs = ersp.tf_event_freqs;
         
-        save(fullfile(bemobil_config.study_folder, 'results', ...
+        out_folder = fullfile(bemobil_config.study_folder, 'results', ...
             ['cluster_ROI_' ...
             num2str(bemobil_config.STUDY_cluster_ROI_talairach(i).x) '_' ...
             num2str(bemobil_config.STUDY_cluster_ROI_talairach(i).y) '_' ...
             num2str(bemobil_config.STUDY_cluster_ROI_talairach(i).z)], ...        
-            num2str(cluster), ...
+            num2str(cluster), 'erp');
+        
+        if ~exist(out_folder)
+            mkdir(out_folder);
+        end
+        
+        save(fullfile(out_folder, ...
             [fit.model '_base-shuffled-' num2str(fit.base_shuffled) '_matched-trial-count-' num2str(fit.match_trial_count) ...
             '_log-regression-' num2str(fit.log_regression) '.mat']), 'fit'); 
 
