@@ -1,9 +1,88 @@
-\section{Introduction}
-Recent theories propose that brains actively sample their environment to confirm predictions of prior hypotheses~\cites{Clark2013, Friston2010, Rao1999}; this view might explain how a subject accurately infer what variables govern action in their environment, for example the effects of gravity. This active sampling and inference is inherently tied to the body's capacity to act on the environment, rendering the action-perception cycle of cognition into a deeply embodied process~\cite{Friston2012}. The minimisation of surprise, or prediction error, as the objective function of active inference, has been extensively studied with regards to perception in motor control. Here, active inference typically considers engaged viewing as reflected in saccadic eye movements as an observable manifestation of how the brain directs motor output during active sampling of the environment. However, environmental affordances surpass the visual domain. Particularly in humans and apes, a proclivity to use both hands to act on the environment has emerged and is greatly trusted upon. In fact, many tasks can be completed without concurrently consulting the visual domain, such as typewriting or even reaching for a cup; these typically rely heavily on the tactile and proprioceptive sense and as such are denoted as eyes-free interactions. On the modelling level, a "bidirectional cascade of cortical processing" arguably underlies such inferential processing \cite{Clark2013}. A hierarchical generative model of the environment, or forward model, is assumed that is trained to minimize prediction errors from elicited actions that test this forward model, or in other words "actively constructing explanations" \cites{Wolpert2011, Friston2018}.
+\section{Introduction} 
+% aim for 500-700 Words
+% What is the problem?
+Neural interface technology is finding fast application in virtual and augmented reality (VR/AR), enabling low-friction and fast interaction. However, for the user to feel in control of the interaction modality, the classified neural signal must be reliable. Hence, it is beneficial to target the signal's cortical origin directly [REF -> Beamforming? Zander2016, Krol2020?].
 
-The underlying assumption of most contemporary motor control theories is that a generative model explains potential variability between elicited motor commands, i.e., the movement they trigger, and changes in body pose and the environment \cites{Wolpert2011, Shadmehr2010}. Assuming the brain entertains models of its environment, such a forward model that predicts sensory consequences of an action given the current context and an efference copy of the motor command, meanwhile refining the models of the causes of those sensory consequences \cites{Pearson2011, Friston2010, Friston2016a}. Evidence about the exact nature of the computational level in the brain is converging on hierarchical Bayesian models computing inference of predictions from a generative model, or what is predicted to happen, taking into account sensory \textit{evidence}, or what is currently perceived as an action outcome \cite{Knill2004, Shams2010}. Taken together, model evidence is scored by an accuracy or surprise metric, for example, prediction errors. Importantly, in order to make predictions in a stable environment, where inference on the latent variables governing sensory events is useful, the brain must be a good model of this environment, grounded in causality \cite{Friston2016a}.
+% BLUF -> bottom line up first section: How did we approach the problem?
+In this work, we show an ~80 percent single-trial classification rate detecting visual and haptic glitches in a VR hand reaching task. We classified event-related potentials measured at the scalp using Linear Discriminant Analysis and localized the source origin of the classification signal. Midline cingulate and a distributed network of parietal EEG sources enabled the classification success. Inspecting the time-frequency decomposition in frontal midline sources, we found theta-band activity affected by haptic immersion, potentially modulating the detection of visuo-haptic glitches in VR.
 
-%high level comment by pedro
+\subsection{Prediction Errors} % just for organizing writing -> can be removed pre-submission
+
+% Big question: What is to be gained from solving the problem? -> How can this type of prediction error signal be best put to use in the future/scaling to other scenarios? -> check CHI paper again
+
+% Who is BCI for neuroscience useful for? Why is the presented pipeline useful?
+% {this could be used to determine optimal collider configurations in terms of minimizing prediction error response}
+
+% 1. (small question) What type of prediction error where we measuring? -> what types are there and how can they be separated?
+% - (bayesian) prediction errors, reward prediction error, visuomotor prediction error (use literature in folder '2021')
+
+% [] merge the below sections to one short and good one addressing the big question.
+
+Brains likely sample their environment to confirm predictions of prior hypotheses~\cites{Clark2013, Friston2010, Rao1999}; this view might explain how we accurately infer what variables govern action in our environment, for example the effects of gravity. This active inference is inherently tied to the body's capacity to act on the environment, rendering the action-perception cycle of cognition into a deeply embodied process~\cite{Friston2012}. 
+
+The underlying assumption of most contemporary motor control theories is that a generative model explains potential variability between elicited motor commands, i.e., the movement they trigger, and changes in body pose and the environment~\cites{Wolpert2011, Shadmehr2010}.
+
+Assuming the brain entertains models of its environment, such a forward model that predicts sensory consequences of an action given the current context and an efference copy of the motor command, meanwhile refining the models of the causes of those sensory consequences \cites{Pearson2011, Friston2010, Friston2016a}. Evidence about the exact nature of the computational level in the brain is converging on hierarchical Bayesian models computing inference of predictions from a generative model, or what is predicted to happen, taking into account sensory \textit{evidence}, or what is currently perceived as an action outcome \cite{Knill2004, Shams2010}. Taken together, model evidence is scored by an accuracy or surprise metric, for example, prediction errors. Importantly, in order to make predictions in a stable environment, where inference on the latent variables governing sensory events is useful, the brain must be a good model of this environment, grounded in causality \cite{Friston2016a}.
+
+Individual senses each excel in specific sensory domains with a combination of reliability-weighted sensory cues providing a holistic sample \cite{Fetsch2012, Cao2019}. Such sample gain their "significance through the meaning about their causes" \cite{Kording2007}. Thus, in order to efficiently infer what causes certain sensory events, a multisensory perceptual experience is preferable with temporal correlations and spatio-temporal congruency serving as causal binding cues \cite{Robertson2003}. 
+
+% move into computation now to adress the signal we measure(d)
+
+The minimisation of surprise, or prediction error, as the objective function of active inference, has been extensively studied with regards to perception in motor control. Here, active inference typically considers engaged viewing as reflected in saccadic eye movements as an observable manifestation of how the brain directs motor output during active sampling of the environment. However, environmental affordances surpass the visual domain. Particularly in humans and apes, a proclivity to use both hands to act on the environment has emerged and is greatly trusted upon. In fact, many tasks can be completed without concurrently consulting the visual domain, such as typewriting or even reaching for a cup; these typically rely heavily on the tactile and proprioceptive sense and as such are denoted as eyes-free interactions. 
+
+On the modelling level, a "bidirectional cascade of cortical processing" arguably underlies such inferential processing \cite{Clark2013}. A hierarchical generative model of the environment, or forward model, is assumed that is trained to minimize prediction errors from elicited actions that test this forward model, or in other words "actively constructing explanations" \cites{Wolpert2011, Friston2018}.
+
+\subsection{Neural origin of PEs} % just for organizing writing -> can be removed pre-submission
+
+% 2. What are there neural origins of the different prediction error signals and what functions do they possible fulfill (in terms of prediction error hierarchy)?
+
+On a neuroanatomical level, recent evidence points towards a parietal-frontal hierarchy binding sensory signals to a common source while segregating those from diverging and guiding future adaptation. Within this hierarchical causal inference, evidence abounds that primary sensory areas operate under the assumption of separate signal sources whereas parietal areas appear to compute under the assumption of common causes with precision-weighted modality-specific inputs. 
+
+Further, anterior parietal areas then add a reliability-weighting term to the holistic causal structure \cite{Cao2019, Rohe2019, Cohen2013a}. Ultimately, adaptation of future behavior is thought to be driven by parietal and/or frontal areas. Presumably depending on the broader context, for example valence assessments, behavioral adaptation and policy selection invoke frontal or parietal areas \cite{Pearson2011, Kolling2016, Holroyd2002}. {Our work emphasizes signals operating under the assumption of a causal fusion model}.
+
+Prominently, theta- and alpha-band activity have been implicated in cognitive processing. \citet{VanRullen2016} argued for the notion of \textit{perceptual cycles} alluding to these frequencies as the impulse generators of perception. \citet{Rohe2019} implicate prestimulus alpha frequencies in \textit{rhythmic perception} modulating the tendency whether following spatio-temporal binding challenges are more likely to resolve in binding or segregation. Parietal areas, as a location of arising alpha rhythms have been frequently linked to anchoring the bodily self during action-perception being ideally located for integration of spatial reference frames \cite{Blanke2015, Guterstam2015a, Halgren2019}. Further, connections to the hippocampus via retrosplenial cortices implicate a role in spatio-temporal context situating and reproduction \cite{Pearson2011, Clark2018, Gramann2009, Friston2016a}. The extensive research on theta frequencies, with a frequent localization to frontal source origin, have concluded a role in cognitive control \cite{Cavanagh2014}. Recently, \citet{Duprez2020} have demonstrated theta frequencies as a messenger directing behavioral adaptation through cognitive control. Following a cognitive demand for adaption, theta motivates rich behavioral policy changes exceeding simple reaction time measures \cite{Cooper2019}.
+
+% [x] merge this section with the 2_spatio-temporal file
+% [] check and add mendeley folder '2021'
+% [] move the rest of the intro text to the discussion
+
+% extra:
+% - haptics increase realism, link to  Legaspi Sense of Agency paper and link that back to prediction error?
+
+\subsection{Summary and Hypotheses} % just for organizing writing -> can be removed pre-submission
+
+% return to big question: % Big question: What is to be gained from solving the problem? -> How can this type of prediction error signal be best put to use in the future/scaling to other scenarios? -> check CHI paper again
+
+% ok we have different kinds of PEs and learnt a bit about their neural origins -> now specifically targeting certain kinds to design interface for HCI is useful.
+
+% Hypotheses
+% - classification success was assumed based on previous descriptive ERP inspection and Si-Mohammed work
+% - acc generator of PEN -> cite Holroyd, Zander, Singh, Cohen, Cavanagh?
+% - any hypotheses on acc theta?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 %%%%% writing ressources
