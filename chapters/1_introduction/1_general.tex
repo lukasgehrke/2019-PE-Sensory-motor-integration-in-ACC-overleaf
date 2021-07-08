@@ -1,12 +1,16 @@
 \section{Introduction}
 % aim for 500-700 Words
 % What is the problem?
-Neural interface technology enables low-friction and fast interaction and therefore, finds fast application in virtual and augmented reality (VR/AR). However, for the user to feel in control of the interaction, the neural signal employed for classification must be reliable. Hence, it is beneficial to directly target the signal's cortical origin, efficiently separating signal from noise~\cite{Zander2016}.
+Neural interface technology enables low-friction and fast interaction and therefore, finds increasing application in virtual and augmented reality (VR/AR). However, for the user to feel in control of the interaction, the neural signal employed for classification must be reliable. Hence, it is beneficial to directly target the signal's cortical origin, efficiently separating signal from noise~\cite{Zander2016}.
 
 % BLUF -> bottom line up first section: How did we approach the problem?
-In this work, we show an ~80 percent single-trial classification rate detecting visual and haptic glitches in a VR hand reaching task. We classified event-related potentials measured at the scalp using Linear Discriminant Analysis and localized the source origin of the classification signal. Midline cingulate and a distributed network of parietal EEG sources enabled the classification success. Inspecting the time-frequency decomposition in frontal midline sources, we found theta-band activity affected by haptic \textit{immersion}, potentially modulating the detection of visuo-haptic glitches in VR.
+In this work, we show an ~80 percent single-trial classification rate detecting visual and haptic glitches in a VR hand reaching task. We classified event-related potentials measured at the scalp using Linear Discriminant Analysis and localized the source origin of the classification signal. Midline cingulate and a distributed network of parietal EEG sources enabled the classification success. Inspecting the time-frequency decomposition in frontal midline sources, we found theta-band activity to be affected by haptic \textit{immersion}, potentially modulating the detection of visuo-haptic glitches in VR.
+
+% now close with a bold claim that targeting prediction error signals originating from in frontal midline sources can be leveraged for control purposes in VR applications. Additionally this can be supplemenented by movement adaptation markers (and others of course)
 
 \subsection{Prediction Errors} % just for organizing writing -> can be removed pre-submission
+
+% rate of change in action time as a measure of previous prediction error, argument that the experimental manipulation was indeed perceived and prediction errors caused behavioral adaptation -> need to have hypothesis about that!!! why would this change -> this must go into the intro
 
 % Big question: What is to be gained from solving the problem? -> How can this type of prediction error signal be best put to use in the future/scaling to other scenarios? -> check CHI paper again
 
@@ -18,11 +22,23 @@ In this work, we show an ~80 percent single-trial classification rate detecting 
 
 % [] merge the below sections to one short and good one addressing the big question.
 
-The predictive brain hypothesis posits, that brains sample their environment through motor action to confirm predictions of prior hypotheses~\cites{Clark2013, Friston2010, Rao1999}. Through predictive processing, we learn to accurately infer what variables govern action in our environment, for example the effects of gravity. This active inference is inherently tied to the body's capacity to act on the environment, rendering the action-perception cycle of cognition into a deeply embodied process~\cite{Friston2012}.
+The predictive brain hypothesis posits that brains sample their environment through motor action to confirm predictions of prior hypotheses~\cites{Clark2013, Friston2010, Rao1999}. Through predictive processing, we learn to accurately infer what variables govern action in our environment, for example the effects of gravity. This active inference is inherently tied to the body's capacity to act on the environment, rendering the action-perception cycle of cognition into a deeply embodied process~\cite{Friston2012}. Evidence on how the brain computes this function is converging on hierarchical Bayesian models updating predictions about what is about to happen, taking into account sensory \textit{evidence}, or what is currently perceived as an action outcome \cite{Knill2004, Shams2010}. Here, individual senses each excel in specific sensory domains with a combination of reliability-weighted sensory cues providing a holistic sensory sample \cite{Fetsch2012, Cao2019}. Such samples gain their "significance through the meaning about their causes" \cite{Kording2007}. Thus, in order to efficiently infer what causes certain sensory events, a multisensory perceptual experience is preferable with temporal correlations and spatio-temporal congruency serving as causal binding cues \cite{Robertson2003}.
 
-The underlying assumption of most contemporary motor control theories is that a generative model explains potential variability between elicited motor commands, i.e., the movement they trigger, and changes in body pose and the environment~\cites{Wolpert2011, Shadmehr2010}. Assuming the brain entertains models of its environment, forward models predict sensory consequences of an action given the current context and an efference copy of the motor command. Online, the models about the causes of those sensory consequences are refined~\cites{Pearson2011, Friston2010, Friston2016a}. Evidence on how the brain computes this function is converging on hierarchical Bayesian models updating predictions about what is about to happen, taking into account sensory \textit{evidence}, or what is currently perceived as an action outcome \cite{Knill2004, Shams2010}.
+\subsection{EEG source origin of Prediction Error signaling} % just for organizing writing -> can be removed pre-submission
 
-Individual senses each excel in specific sensory domains with a combination of reliability-weighted sensory cues providing a holistic sample \cite{Fetsch2012, Cao2019}. Such sample gain their "significance through the meaning about their causes" \cite{Kording2007}. Thus, in order to efficiently infer what causes certain sensory events, a multisensory perceptual experience is preferable with temporal correlations and spatio-temporal congruency serving as causal binding cues \cite{Robertson2003}. 
+% add a section here about ACC, what type of prediction errors are there and where we measuring?
+
+A parietal-frontal hierarchy binding sensory signals to a common source while segregating those from diverging and guiding future adaptation. 
+
+Within this hierarchical inference network, evidence abounds that primary sensory areas operate under the assumption of separate signal sources whereas parietal areas appear to compute under the assumption of common causes with precision-weighted modality-specific inputs.
+
+Minimising prediction error, the objective function of predictive processing, has been extensively studied with regards to perception in motor control. In neuroscientific experiments, engaged viewing as reflected in saccadic eye movements is a frequently studied observable manifestation of how the brain directs motor output during active sampling of the environment. However, environmental affordances surpass the visual domain. Particularly in humans and apes, a proclivity to use both hands to act on the environment has emerged and is greatly trusted upon. In fact, many tasks can be completed without concurrently consulting the visual domain, such as typewriting or even reaching for a cup; these typically rely heavily on the tactile and proprioceptive sense and as such are denoted as eyes-free interactions.
+
+
+%%%%% LG writing resources below
+
+
+%Individual senses each excel in specific sensory domains with a combination of reliability-weighted sensory cues providing a holistic sample \cite{Fetsch2012, Cao2019}. Such sample gain their "significance through the meaning about their causes" \cite{Kording2007}. Thus, in order to efficiently infer what causes certain sensory events, a multisensory perceptual experience is preferable with temporal correlations and spatio-temporal congruency serving as causal binding cues \cite{Robertson2003}. 
 
 % move into computation now to adress the signal we measure(d)
 % Taken together, model evidence is scored by an accuracy or surprise metric, for example, prediction errors. Importantly, in order to make predictions in a stable environment, where inference on the latent variables governing sensory events is useful, the brain must be a good model of this environment, grounded in causality \cite{Friston2016a}.
@@ -30,13 +46,18 @@ Individual senses each excel in specific sensory domains with a combination of r
 
 % Now questions what the cortical origin of such a signal might be and why? In which networks is it rooted?
 
-\subsection{EEG source origin of Prediction Error signaling} % just for organizing writing -> can be removed pre-submission
+% \subsection{EEG source origin of Prediction Error signaling} % just for organizing writing -> can be removed pre-submission
 
-The minimisation of surprise, or prediction error, as the objective function of active inference, has been extensively studied with regards to perception in motor control. Here, active inference typically considers engaged viewing as reflected in saccadic eye movements as an observable manifestation of how the brain directs motor output during active sampling of the environment. However, environmental affordances surpass the visual domain. Particularly in humans and apes, a proclivity to use both hands to act on the environment has emerged and is greatly trusted upon. In fact, many tasks can be completed without concurrently consulting the visual domain, such as typewriting or even reaching for a cup; these typically rely heavily on the tactile and proprioceptive sense and as such are denoted as eyes-free interactions.
+% A parietal-frontal hierarchy binding sensory signals to a common source while segregating those from diverging and guiding future adaptation. 
 
-% 2. What are there neural origins of the different prediction error signals and what functions do they possible fulfill (in terms of prediction error hierarchy)?
+% Within this hierarchical inference network, evidence abounds that primary sensory areas operate under the assumption of separate signal sources whereas parietal areas appear to compute under the assumption of common causes with precision-weighted modality-specific inputs.
 
-On a neuroanatomical level, recent evidence points towards a parietal-frontal hierarchy binding sensory signals to a common source while segregating those from diverging and guiding future adaptation. Within this hierarchical causal inference, evidence abounds that primary sensory areas operate under the assumption of separate signal sources whereas parietal areas appear to compute under the assumption of common causes with precision-weighted modality-specific inputs. 
+
+% The minimisation of surprise, or prediction error, as the objective function of active inference, has been extensively studied with regards to perception in motor control. Here, active inference typically considers engaged viewing as reflected in saccadic eye movements as an observable manifestation of how the brain directs motor output during active sampling of the environment. However, environmental affordances surpass the visual domain. Particularly in humans and apes, a proclivity to use both hands to act on the environment has emerged and is greatly trusted upon. In fact, many tasks can be completed without concurrently consulting the visual domain, such as typewriting or even reaching for a cup; these typically rely heavily on the tactile and proprioceptive sense and as such are denoted as eyes-free interactions.
+
+% % 2. What are there neural origins of the different prediction error signals and what functions do they possible fulfill (in terms of prediction error hierarchy)?
+
+% On a neuroanatomical level, recent evidence points towards a parietal-frontal hierarchy binding sensory signals to a common source while segregating those from diverging and guiding future adaptation. Within this hierarchical causal inference, evidence abounds that primary sensory areas operate under the assumption of separate signal sources whereas parietal areas appear to compute under the assumption of common causes with precision-weighted modality-specific inputs. 
 
 % Further, anterior parietal areas then add a reliability-weighting term to the holistic causal structure \cite{Cao2019, Rohe2019, Cohen2013a}. Ultimately, adaptation of future behavior is thought to be driven by parietal and/or frontal areas. Presumably depending on the broader context, for example valence assessments, behavioral adaptation and policy selection invoke frontal or parietal areas \cite{Pearson2011, Kolling2016, Holroyd2002}. {Our work emphasizes signals operating under the assumption of a causal fusion model}.
 
