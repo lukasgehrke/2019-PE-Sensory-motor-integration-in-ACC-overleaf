@@ -159,114 +159,47 @@ for t = threshs
 
 end
 
-%% inspect results
-
-% add downloaded analyses code to the path
-addpath(genpath('/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/matlab_processing'));
-
-% Results output folder -> external drive
-bemobil_config.study_folder = fullfile('/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error', 'derivatives');
-
-% init
-config_processing_pe;
-subjects = 1:19;
-
-% load
-for t = [0, .5, .7, .8, .9]
-
-    bemobil_config.lda.brain_threshold = t;
-    fname = ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_base_removal-' num2str(bemobil_config.lda.approach{3}{4}(1)) '-'  num2str(bemobil_config.lda.approach{3}{4}(2))];
-    load(fullfile(bemobil_config.study_folder, ['lda_results-' fname '.mat']));
-    
-    disp(['tstat: ', num2str(lda_results.ttest.stats.tstat), '; class acc.: ', num2str(mean(lda_results.correct)), '; thresh: ' num2str(t), ' number of dipoles: ', num2str(size(lda_results.dipoles,1))])
-
-end
+%% load results
 
 bemobil_config.lda.brain_threshold = .7;
 fname = ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_base_removal-' num2str(bemobil_config.lda.approach{3}{4}(1)) '-'  num2str(bemobil_config.lda.approach{3}{4}(2))];
 load(fullfile(bemobil_config.study_folder, ['lda_results-' fname '.mat']));
 
-% plot all dipoles and save for supplements
-plot_weighteddipoledensity(lda_results.dipoles)
-
-plot_weighteddipoledensity(lda_results.dipoles,mean(lda_results.weights,2));
-plot_weighteddipoledensity(lda_results.dipoles,mean(lda_results.weights(:,1:2),2));
-
-plot_weighteddipoledensity(lda_results.dipoles,lda_results.weights(:,1));
-plot_weighteddipoledensity(lda_results.dipoles,lda_results.weights(:,2));
-plot_weighteddipoledensity(lda_results.dipoles,lda_results.weights(:,3));
-plot_weighteddipoledensity(lda_results.dipoles,lda_results.weights(:,4)); % posterior, precuneus
-plot_weighteddipoledensity(lda_results.dipoles,lda_results.weights(:,5));
-plot_weighteddipoledensity(lda_results.dipoles,lda_results.weights(:,6));
-plot_weighteddipoledensity(lda_results.dipoles,lda_results.weights(:,7));
-plot_weighteddipoledensity(lda_results.dipoles,lda_results.weights(:,8));
-    
-%% plot patterns, sample EEG chanlocs have to be loaded (DONE & PLOTTED)
-
 save_path = '/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/figures/lda/';
 mkdir(save_path);
 normal;
 
-%ixs = 1:19;
-%ixs(7) = [];
-%figure;topoplot(mean(normalize(reshape(lda_results.patterns(ixs,i), 65, 19), 1), 2), locs)
+%% plot patterns, sample EEG chanlocs have to be loaded (DONE & PLOTTED)
 
-% s8 is bad for window 6
+locs = ALLEEG(1).chanlocs;
 
-%figure;
-%for j = 1:19 % for all subjects, save for supplements
-for i = 6 %1:8 
-%for j = 1:19 % for all subjects, save for supplements
-    
-    % plot
+for i = 1:8 
     mean_pattern = lda_results.patterns(:,i);
     mean_pattern = reshape(mean_pattern, [65,19]);
+
+    % wrong electrode loc CP2s7?
     mean_pattern(:,7) = [];
-    %mean_pattern = mean(mean_pattern,2);
-    %figure;topoplot(mean_pattern(:,j),locs);
-    figure;topoplot(mean(normalize(mean_pattern, 1), 2), locs);
     
-    %subplot(4,6,i);
-    %mean_pattern = mean_pattern(:,ixs);
-    %topoplot(mean_pattern,locs);
-    %topoplot(mean(normalize(mean_pattern, 1), 2), locs);
-        
-    % plot with normalization
-    %figure;topoplot(mean(normalize(lda_results.patterns(:,i), 65, 19), 1), 2), locs);
-    
-    % save with window name
-    print(gcf, [save_path '0' num2str(brain_prob)' fname '_lda_pattern_win_' num2str(i) '.eps'], '-depsc');     
-    % close figure
+    figure;topoplot(mean(normalize(mean_pattern, 1), 2), locs, ...
+        'electrodes', 'on'); cbar;
+    print(gcf, [save_path fname '_lda_pattern_win_' num2str(i) '.eps'], '-depsc');     
     close(gcf);
 end
-%end
 
 %% plot weighted dipoles at all timepoints (DONE & PLOTTED)
 
-save_path = '/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/figures/lda/';
-mkdir(save_path);
-normal;
-
 for i = 1:8
-    
-    % plot weighted dipoles
     plot_weighteddipoledensity(lda_results.dipoles,lda_results.weights(:,i));
-    % save with window name
-    print(gcf, [save_path '0' num2str(brain_prob)' fname '_win_' num2str(i) '.eps'], '-depsc');     
-    % close figure
+    print(gcf, [save_path fname '_dipdensity_win_' num2str(i) '.eps'], '-depsc');     
     close(gcf);
 end
 
 %% plot control signal ERP style: mark 2 classes (DONE & PLOTTED)
     
-save_path = '/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/figures/lda/';
-mkdir(save_path);
-normal;
 for i = 1:8 
     
-    % prepare plot
     figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 300 200]);
-    title('Control Signal 6th Window');
+    title(['Control Signal ' num2str(i) 'th Window']);
 
     % plot condition 1
     colors = brewermap(5, 'Spectral');
@@ -280,9 +213,7 @@ for i = 1:8
     async = squeeze(lda_results.control_signal(:,2,i,:));
     ploterp_lg(async, [], [], 50, 1, 'norm. \muV', '', '', colors2, '-.');
     
-    % save with window name
-    print(gcf, [save_path '0' num2str(brain_prob)' fname 'lda_control_signal_win_' num2str(i) '.eps'], '-depsc');     
-    % close figure
+    print(gcf, [save_path fname '_lda_control_signal_win_' num2str(i) '.eps'], '-depsc');     
     close(gcf);
 end
 

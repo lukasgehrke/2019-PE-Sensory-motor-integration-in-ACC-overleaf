@@ -59,16 +59,17 @@ end
 %     EEG.etc.analysis.design.reaction_time = (EEG.etc.analysis.design.movements.movement_onset_sample - EEG.etc.analysis.design.spawn_event_sample) / EEG.srate;
 %     EEG.etc.analysis.design.action_time = (abs(event_sample_ix) - EEG.etc.analysis.design.movements.movement_onset_sample) / EEG.srate;
 
-%% settings results loop
+%% settings results loop - cluster ERP
 
-all_clusters = [10, 6, 4, 11, 9];
+% all_clusters = [10, 6, 4, 11, 9];
+all_clusters = [10]
 shuffled_baseline = 0;
 matched_trial_count = 1;
-time_window_for_analysis = [-700, 1400];
+time_window_for_analysis = [-50, 600];
 models = {...
-    'erp_sample ~ oddball*haptics',...
-    'erp_sample ~ haptics*velocity_at_impact + diff_at',...
-    'erp_sample ~ diff_at*haptics',... 
+%     'erp_sample ~ oddball*haptics',...
+%     'erp_sample ~ haptics*velocity_at_impact + diff_at',...
+%     'erp_sample ~ diff_at*haptics',... 
     'erp_sample ~ diff_at',...
     }; 
 log_regression = [0, 0, 0, 0];
@@ -256,7 +257,7 @@ for i = 1:numel(bemobil_config.STUDY_cluster_ROI_talairach)
             sample_time = (-3:1/ALLEEG(subject).srate:2) * 1000;
             sample_time(end) = [];
 
-            % load ersp
+            % load erp
             load(fullfile(bemobil_config.study_folder, 'data', ['sub-', sprintf('%03d', subject), '_filtered_erp.mat']));
 
             % remove ICs identical to Study IC selection
@@ -264,8 +265,8 @@ for i = 1:numel(bemobil_config.STUDY_cluster_ROI_talairach)
             filtered_erp.comp = filtered_erp.comp(good_comps_ori_ix,:,:);
 
             % select time window
-            t1_ix = time_window_for_analysis(1) * ALLEEG(subject).srate / 1000;
-            t2_ix = time_window_for_analysis(2) * ALLEEG(subject).srate / 1000;
+            t1_ix = ceil(time_window_for_analysis(1) * ALLEEG(subject).srate / 1000);
+            t2_ix = ceil(time_window_for_analysis(2) * ALLEEG(subject).srate / 1000);
             ixs = t1_ix:t2_ix;
             ixs = 750 + ixs;
 
@@ -332,6 +333,142 @@ for i = 1:numel(bemobil_config.STUDY_cluster_ROI_talairach)
             num2str(bemobil_config.STUDY_cluster_ROI_talairach(i).y) '_' ...
             num2str(bemobil_config.STUDY_cluster_ROI_talairach(i).z)], ...        
             num2str(cluster), 'erp');
+        
+        if ~exist(out_folder)
+            mkdir(out_folder);
+        end
+        
+        save(fullfile(out_folder, ...
+            [fit.model '_base-shuffled-' num2str(fit.base_shuffled) '_matched-trial-count-' num2str(fit.match_trial_count) ...
+            '_log-regression-' num2str(fit.log_regression) '.mat']), 'fit'); 
+
+        clear fit
+    end
+
+end
+
+%% settings results loop - channel ERP
+
+chans = [65];
+shuffled_baseline = 0;
+matched_trial_count = 1;
+time_window_for_analysis = [-50, 600];
+models = {...
+    'erp_sample ~ diff_at',...
+    }; 
+log_regression = [0];
+
+clear fit reg_t
+for i = chans
+
+    %% single trials ERSP regressions
+    % ersp ~ vel_at_col * haptics + rt + base
+    % velocity: does it impact multisensory integration during spatio-temporal binding
+    % haptics: same as velocity, does object rigidity further perturb spatio-temporal binding
+    % rt: is there a task clock? self initiated movement timing?
+    % base: what activity at baseline impacts activity at spatio-temporal binding event -> that part of the activity is not processing related
+
+    for model_ix = 1:size(models,2)
+        fit.base_shuffled = shuffled_baseline;
+        fit.match_trial_count = matched_trial_count;
+        fit.log_regression = log_regression(model_ix);
+        fit.model = models{model_ix};
+
+        for subject = subjects
+
+            % predictors task
+            oddball = double((ALLEEG(subject).etc.analysis.design.oddball=='true'))';
+            post_error = [0; oddball(1:end-1)];
+            isitime = ALLEEG(subject).etc.analysis.design.isitime';
+            sequence = ALLEEG(subject).etc.analysis.design.sequence';
+            trial_number = ALLEEG(subject).etc.analysis.design.trial_number';
+            haptics = double(ALLEEG(subject).etc.analysis.design.haptics)';
+            direction = categorical(ALLEEG(subject).etc.analysis.design.direction');
+            pID = repmat(subject,size(direction,1),1);
+            diff_at = [diff(ALLEEG(subject).etc.analysis.design.action_time), mean(diff(ALLEEG(subject).etc.analysis.design.action_time))]'; % from movement onset to touch
+            velocity_at_impact = ALLEEG(subject).etc.analysis.motion.mag_vel(event_sample_ix,:)';
+
+            reg_t = table(post_error, isitime, sequence, haptics, trial_number, direction, oddball, diff_at, velocity_at_impact, pID);
+            reg_t(ALLEEG(subject).etc.analysis.design.bad_touch_epochs,:)= [];
+
+            % match trial count
+            if fit.match_trial_count
+                match_ixs = find(reg_t.oddball==0);
+                mismatch_ixs = find(reg_t.oddball==1);
+                match_ixs = randsample(match_ixs, numel(mismatch_ixs));
+                matched_trials = union(match_ixs, mismatch_ixs);
+                reg_t = reg_t(matched_trials,:);
+            end
+
+            % load movement
+            load(fullfile(bemobil_config.study_folder, 'data', ['sub-', sprintf('%03d', subject), '_motion.mat']));
+            motion.mag_vel(:, ALLEEG(subject).etc.analysis.design.bad_touch_epochs) = [];
+            sample_time = (-3:1/ALLEEG(subject).srate:2) * 1000;
+            sample_time(end) = [];
+
+            % load erp
+            load(fullfile(bemobil_config.study_folder, 'data', ['sub-', sprintf('%03d', subject), '_filtered_erp.mat']));
+
+            filtered_erp.chan = filtered_erp.chan(i,:,:);
+
+            % select time window
+            t1_ix = ceil(time_window_for_analysis(1) * ALLEEG(subject).srate / 1000);
+            t2_ix = ceil(time_window_for_analysis(2) * ALLEEG(subject).srate / 1000);
+            ixs = t1_ix:t2_ix;
+            ixs = 750 + ixs;
+
+            % fitlm for each time frequency pixel
+            tic
+            disp(['now fitting data for subject: ' num2str(subject) ' and model: ' fit.model '...']);
+            for t = ixs
+
+                % add matching velocity for this frame
+                velocity_this_frame = motion.mag_vel(t,:)';
+
+                if fit.match_trial_count
+                    velocity_this_frame = velocity_this_frame(matched_trials);
+                end
+
+                if fit.match_trial_count
+                    erp_sample = squeeze(filtered_erp.chan(1,t,matched_trials));
+                end
+
+                reg_t = addvars(reg_t, erp_sample, velocity_this_frame);
+
+                % fit model and save
+                if fit.log_regression
+                    mdl = fitglm(reg_t, fit.model);
+                    ypred = predict(mdl);
+                    ypred(ypred>=.5) = 1;
+                    ypred(ypred<.5) = 0;
+                    fit.acc(subject,f,t-ixs(1)+1,:) = sum(ypred==reg_t.oddball) / size(reg_t.oddball,1);
+                else
+                    if ~contains(fit.model, 'oddball') % mismatch trials only
+                        tmp_reg_t = reg_t;
+                        tmp_reg_t(tmp_reg_t .oddball==0,:) = [];
+                        mdl = fitlm(tmp_reg_t, fit.model);
+                    else
+                        mdl = fitlm(reg_t, fit.model);
+                    end
+                end
+
+                fit.betas(subject,t-ixs(1)+1,:) = mdl.Coefficients.Estimate;
+                fit.t(subject,t-ixs(1)+1,:) = mdl.Coefficients.tStat;
+                fit.p(subject,t-ixs(1)+1,:) = mdl.Coefficients.pValue;
+                fit.r2(subject,t-ixs(1)+1,:) = mdl.Rsquared.Ordinary;
+                fit.adj_r2(subject,t-ixs(1)+1,:) = mdl.Rsquared.Adjusted;
+
+                reg_t = removevars(reg_t, {'erp_sample', 'velocity_this_frame'});
+            end
+            toc
+            clear reg_t
+
+        end
+        
+        fit.predictor_names = string(mdl.CoefficientNames);
+        
+        out_folder = fullfile(bemobil_config.study_folder, 'results', ...
+            ['chan_' num2str(i), '_erp']);
         
         if ~exist(out_folder)
             mkdir(out_folder);

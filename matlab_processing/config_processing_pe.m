@@ -46,8 +46,8 @@ bemobil_config.channels_of_int_labels = {'Fz', 'Cz', 'Pz', 'FCz'};
 % IC threshold
 bemobil_config.lda.brain_threshold = 0.7; %0; % .8
 
-wnds = [.05 .1;.1 .15; .15 .2;.2 .25; .25 .3; .3 .35; .35 .4; .4 .45];
-base_win = [.0 .05];
+    wnds = [.05 .1;.1 .15; .15 .2;.2 .25; .25 .3; .3 .35; .35 .4; .4 .45];
+    base_win = [.0 .05];
 bemobil_config.lda.targetmarkers = {'normal','conflict'};
 % define approach
 bemobil_config.lda.approach = {'Windowmeans' ...
