@@ -111,7 +111,7 @@ for subject = subjects
 end
 
 %% inspect full table
-head(all_subjects_reg_t,5)
+head(all_subjects_reg_t,10)
 
 %% action time differs between oddball and no oddball trials
 
@@ -120,29 +120,64 @@ dmatrix = all_subjects_reg_t;
 dmatrix.pre_error = [dmatrix.oddball(2:end); 0];
 dmatrix(dmatrix.pre_error==1,:)=[];
 
-% match trial count
-match_ixs = find(dmatrix.oddball==0);
-mismatch_ixs = find(dmatrix.oddball==1);
-match_ixs = randsample(match_ixs, numel(mismatch_ixs));
-dmatrix = dmatrix(union(match_ixs, mismatch_ixs),:);
+% % match trial count
+% match_ixs = find(dmatrix.oddball==0);
+% mismatch_ixs = find(dmatrix.oddball==1);
+% match_ixs = randsample(match_ixs, numel(mismatch_ixs));
+% dmatrix = dmatrix(union(match_ixs, mismatch_ixs),:);
 
-for dv = {'at', 'rt', 'acc', 'decel', 'decel_stop', ...
-        'diff_at', 'diff_rt', 'diff_acc', 'diff_decel', 'diff_decel_stop'}
+% save this dmatrix where results where reported from
+% save(fullfile(bemobil_config.study_folder, 'dmatrix'), 'dmatrix');
 
-    modelfit_full = fitlme(dmatrix, [dv{1} ' ~ oddball + (1|pID)']);
-    modelfit_null = fitlme(dmatrix, [dv{1} ' ~ 1 + (1|pID)']);
-    compare(modelfit_null, modelfit_full);
-    
-    disp([dv{1} ' t_stat: ' num2str(modelfit_full.Coefficients.tStat(2))]);
-end
+% seq_1 = find(dmatrix.sequence==1);
+% match_ixs_seq_1 = intersect(match_ixs, seq_1);
+% mismatch_ixs = randsample(mismatch_ixs, numel(match_ixs_seq_1));
+% 
+% dmatrix = dmatrix(union(match_ixs_seq_1, mismatch_ixs),:);
 
-%% summary stats and raincloud plot
+% {'at', 'rt', 'acc', 'decel', 'decel_stop', ...
+%         'diff_at', 'diff_rt', 'diff_acc', 'diff_decel', 'diff_decel_stop'}
 
+% for dv = {'diff_at'}
+% 
+%     modelfit_full = fitlme(dmatrix, [dv{1} ' ~ oddball*sequence + (1|pID)']);
+%     modelfit_null = fitlme(dmatrix, [dv{1} ' ~ 1 + (1|pID)']);
+%     compare(modelfit_null, modelfit_full)
+%     
+%     disp([dv{1} ' t_stat: ' num2str(modelfit_full.Coefficients.tStat(3))]);
+% end
+
+% summary stats and raincloud plot
+summary_diff_at = groupsummary(dmatrix,{'pID','oddball'},'mean','at');
+a = summary_diff_at(summary_diff_at.oddball==0,:);
+b = summary_diff_at(summary_diff_at.oddball==1,:);
+to_plot = [a.mean_at, b.mean_at];
+mean(to_plot)
+std(to_plot)
+% ans =
+% 
+%     0.7418    0.6940
+% 
+% 
+% ans =
+% 
+%     0.1495    0.1532
+
+% summary stats and raincloud plot
 summary_diff_at = groupsummary(dmatrix,{'pID','oddball'},'mean','diff_at');
-
 a = summary_diff_at(summary_diff_at.oddball==0,:);
 b = summary_diff_at(summary_diff_at.oddball==1,:);
 to_plot = [a.mean_diff_at, b.mean_diff_at];
+mean(to_plot)
+std(to_plot)
+% ans =
+% 
+%     0.0007    0.0468
+% 
+% 
+% ans =
+% 
+%     0.0153    0.0362
 
 colors = brewermap(5, 'Spectral');
 colors1 = colors(2, :);
@@ -150,7 +185,7 @@ colors2 = colors(5, :);
 
 fig_position = [200 200 600 400]; % coordinates for figures
 alpha = .4;
-fig_dir = '/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/figures/behavior/';% fullfile(bemobil_config.study_folder, 'results', 'behavior');
+fig_dir = '/Users/lukasgehrke/Documents/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/figures/behavior/';% fullfile(bemobil_config.study_folder, 'results', 'behavior');
 fig_name = 'rate_of_change_action_time';
 
 f7 = figure('Position', fig_position);
@@ -159,7 +194,7 @@ h1 = raincloud_plot(to_plot(:,1), 'box_on', 1, 'color', colors1, 'alpha', alpha,
      'box_col_match', 0);
 h2 = raincloud_plot(to_plot(:,2), 'box_on', 1, 'color', colors2, 'alpha', alpha,...
      'box_dodge', 1, 'box_dodge_amount', .35, 'dot_dodge_amount', .35, 'box_col_match', 0);
-l = legend([h1{1} h2{1}], {'Match', 'Mismatch'});
+l = legend([h1{1} h2{1}], {'Match to Match Trial', 'Following Mismatch Trial'});
 l.FontSize = 20;
 
 h1{2}.SizeData = 40;
@@ -178,15 +213,16 @@ t.FontSize = 20;
 xlabel('change in action time (s)')
 ylabel('density')
 
-set(gca,'XLim', [-.1 .2], 'YLim', [-15 25]);
+set(gca,'XLim', [-.1 .2], 'YLim', [-35 45]);
 set(gca,'FontSize',22)
 box off
+grid on
 
 % save
 if ~exist(fig_dir)
     mkdir(fig_dir);
 end
-print(f7, fullfile(fig_dir, [fig_name, '.eps']), '-depsc');
+print(f7, fullfile(fig_dir, [fig_name, '_all_trials_.eps']), '-depsc');
 close(gcf);
 
 %% model rate of change in action time
@@ -197,7 +233,11 @@ close(gcf);
 % summary_diff_at = groupsummary(dmatrix,{'pID','oddball','haptics'},'mean','diff_at');
 % modelfit = fitlme(summary_diff_at, 'mean_diff_at ~ oddball*haptics + (1|pID)')
 
-modelfit = fitlme(dmatrix, 'diff_at ~ oddball*haptics + (1|pID)')
+% modelfit = fitlme(dmatrix, 'at ~ oddball*sequence + (1|pID)')
+
+modelfit = fitlme(dmatrix, 'diff_at ~ oddball + (1|pID)')
+modelfit_oddball = fitlme(dmatrix, 'diff_at ~ 1 + (1|pID)');
+compare(modelfit_oddball, modelfit)
 
 % why this model?
 % to check whether the introduction of vibrotactile feedback altered
@@ -213,8 +253,8 @@ for i = 1:k
     test = indices==i;
     train = ~test;
     
-%     modelfit = fitglme(dmatrix(train,:), 'oddball ~ diff_at + (1|pID)');
-    modelfit = fitglme(dmatrix(train,:), 'oddball ~ diff_at + (1|pID)', 'Distribution','binomial');
+    modelfit = fitglme(dmatrix(train,:), 'oddball ~ diff_at + (1|pID)');
+%     modelfit = fitglme(dmatrix(train,:), 'oddball ~ diff_at*sequence + (1|pID)', 'Distribution','binomial');
 %     modelfit = fitglme(dmatrix(train,:), 'oddball ~ diff_at + haptics + (1|pID)', 'Distribution','binomial');
 %     modelfit = fitlme(dmatrix(train,:), 'diff_at ~ vel_event + (1|pID)');
     
@@ -233,41 +273,48 @@ end
 
 %% cv within participants
 
+k = 5;
 for subject = subjects
     dmatrix_s = dmatrix(dmatrix.pID==subject,:);
-%     k = 2;
-%     indices = crossvalind('Kfold',dmatrix_s.oddball,k);
-%     for i = 1:k
-%         test = indices==i;
-%         train = ~test;
-
-%         modelfit = fitglme(dmatrix_s(train,:), 'oddball ~ diff_at + (1|pID)', 'Distribution','binomial');
-        modelfit = fitglme(dmatrix_s, 'oddball ~ diff_at + (1|pID)', 'Distribution','binomial');
-%         ypred = predict(modelfit, dmatrix_s(test,:));
-        ypred = predict(modelfit, dmatrix_s);
-        ypred(ypred>=.5) = 1;
-        ypred(ypred<.5) = 0;
-%         acc(i) = sum(ypred==dmatrix_s(test,:).oddball) / size(dmatrix_s(test,:).oddball,1);
-        acc(subject) = sum(ypred==dmatrix_s.oddball) / size(dmatrix_s.oddball,1);
-
-%         pconf = simulateChance(round(sum(test)/2) * [1 1], .05);
-        pconf = simulateChance(round(size(dmatrix_s,1)/2) * [1 1], .05);
-%         sim_chance(i) = pconf(3);
-        sim_chance(subject) = pconf(3);
-
-%         disp(['accuracy: ' num2str(acc(i))])
-        disp(['accuracy: ' num2str(acc)])
-%     end
     
-%     accs(subject) = mean(acc);
-%     chances(subject) = mean(sim_chance);
+    for i = 1:k
+    
+        indices = crossvalind('Kfold',dmatrix_s.oddball,k);
+        test = indices==i;
+        train = ~test;
+        
+        modelfit = fitglme(dmatrix_s(train,:), 'oddball ~ diff_at + (1|pID)', 'Distribution','binomial'); 
+        ypred = predict(modelfit, dmatrix_s(test,:));
+        
+        ypred(ypred>=.5) = 1;
+        ypred(ypred<.5) = 0;        
 
+        acc(i) = sum(ypred==dmatrix_s(test,:).oddball) / size(dmatrix_s(test,:).oddball,1);
+        pconf = simulateChance(round(sum(test)/2) * [1 1], .05);
+        sim_chance(i) = pconf(3);
+%         disp(['accuracy: ' num2str(acc(i))])
+
+%         modelfit = fitglme(dmatrix_s, 'oddball ~ diff_at + (1|pID)', 'Distribution','binomial');
+%         ypred = predict(modelfit, dmatrix_s);
+%         acc(subject) = sum(ypred==dmatrix_s.oddball) / size(dmatrix_s.oddball,1);
+%         pconf = simulateChance(round(size(dmatrix_s,1)/2) * [1 1], .05);
+%         sim_chance(subject) = pconf(3);
+%         disp(['accuracy: ' num2str(acc)])
+
+    end
+    
+    accuracies(subject) = mean(acc);
+    chances(subject) = mean(sim_chance);
+    
 end
 
-accs = mean(acc);
-chances = mean(sim_chance);
+mean(accuracies)
+std(accuracies)
 
-[H,P,CI,STATS] = ttest(acc,sim_chance)
+mean(chances)
+std(chances)
+
+[H,P,CI,STATS] = ttest(accuracies,chances)
 
 %% interpreting log odds
 
@@ -401,8 +448,21 @@ mkdir(save_path)
 print(gcf, [save_path 'vel.eps'], '-depsc');
 close(gcf);
 
+%% descriptives
 
+mean(match_touch/ ALLEEG(1).srate)
+std(match_touch/ALLEEG(1).srate)
 
+mean(mismatch_touch/ ALLEEG(1).srate)
+std(mismatch_touch/ALLEEG(1).srate)
+
+modelfit = fitlme(dmatrix, 'at ~ oddball*haptics + (1|pID)')
+summary_at = groupsummary(dmatrix,{'oddball'},'mean','at')
+summary_at = groupsummary(dmatrix,{'oddball'},'std','at')
+
+modelfit = fitlme(dmatrix, 'diff_at ~ oddball*haptics + (1|pID)')
+summary_at = groupsummary(dmatrix,{'oddball'},'mean','diff_at')
+summary_at = groupsummary(dmatrix,{'oddball'},'std','diff_at')
 
 
 

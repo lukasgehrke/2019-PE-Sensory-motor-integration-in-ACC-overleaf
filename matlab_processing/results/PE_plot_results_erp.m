@@ -6,7 +6,7 @@ if ~exist('ALLEEG','var')
 end
 
 % add downloaded analyses code to the path
-addpath(genpath('/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/matlab_processing'));
+addpath(genpath('/Users/lukasgehrke/Documents/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/matlab_processing'));
 % TODO add to path bemobil_pipeline repository download folder
 % TODO add to path custom scripts repository Lukas Gehrke folder
 
@@ -22,7 +22,7 @@ subjects = 1:19;
 %% load study
 
 if ~exist('ALLEEG','var'); eeglab; end
-pop_editoptions( 'option_storedisk', 1, 'option_savetwofiles', 1, 'option_saveversion6', 0, 'option_single', 0, 'option_memmapdata', 0, 'option_eegobject', 0, 'option_computeica', 1, 'option_scaleicarms', 1, 'option_rememberfolder', 1, 'option_donotusetoolboxes', 0, 'option_checkversion', 1, 'option_chat', 1);
+% pop_editoptions( 'option_storedisk', 1, 'option_savetwofiles', 1, 'option_saveversion6', 0, 'option_single', 0, 'option_memmapdata', 0, 'option_eegobject', 0, 'option_computeica', 1, 'option_scaleicarms', 1, 'option_rememberfolder', 1, 'option_donotusetoolboxes', 0, 'option_checkversion', 1, 'option_chat', 1);
 
 if isempty(STUDY)
     [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
@@ -260,7 +260,7 @@ for i = chans
     end
 end
 
-%% plot channel ERP with sig. test
+c%% plot channel ERP with sig. test
 
 cond1 = {};
 cond2 = {};
@@ -313,18 +313,40 @@ for subject = subjects
     cond2{subject}.xmax = .6;
 end
 
+%%
 channels = {'FCz', 'Fz', 'Cz', 'Pz'};
+delay = .05; % 'delaycorrection', delay, ...
+
 for channel = channels
     f = plot_erp_LG({cond1, cond2}, channel{1}, ...
-        'plotdiff', 0, ...
+        'figpos', [300 400 400 400], ...
+        'plotdiff', 1, ...
         'plotstd', 'fill', ...
         'fontsize', 24, ...
         'permute', 10000, ...
         'linewidth', 4,...
-        'labels', {'Mismatch', 'Match'});
+        'labels', {'Mismatch', 'Match'},...
+        'delaycorrection', delay);
 
     save_path = '/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/figures/channel_erp/';
     mkdir(save_path)
-    print(gcf, [save_path channel{1} '.eps'], '-depsc');
+    saveas(gcf, [save_path channel{1} '-with_diff-delay-corrected.eps'], 'svg'); % '_delay-' num2str(delay)
     close(gcf);
 end
+
+%% ttest results
+
+tp = 1:176;
+for t = tp
+    for subject=subjects
+        a(subject) = squeezemean(cond1{subject}.data(65,t,:),3);
+        b(subject) = squeezemean(cond2{subject}.data(65,t,:),3);
+    end
+    [H,P,CI,STATS] = ttest(a,b);
+    stat(t) = STATS.tstat;
+    p(t)  = P;
+end
+
+stat(88)
+p(88)
+

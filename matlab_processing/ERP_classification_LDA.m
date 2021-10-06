@@ -1,17 +1,17 @@
 % run BCI using Matlab2014a
 
 % add downloaded analyses code to the path
-addpath(genpath('P:\Lukas_Gehrke\studies\Prediction_Error\publications\2019-PE-Sensory-motor-integration-in-ACC-overleaf\matlab_processing'));
+addpath(genpath('/Users/lukasgehrke/Documents/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/matlab_processing'));
 % TODO add to path bemobil_pipeline repository download folder
 % TODO add to path custom scripts repository Lukas Gehrke folder
 
 % add path BCILAB
-addpath(genpath('P:\Lukas_Gehrke\studies\Prediction_Error\BCILAB'));
+addpath(genpath('/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/BCILAB'));
 
 % BIDS data download folder
-bemobil_config.BIDS_folder = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\BIDS';
+bemobil_config.BIDS_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/ds003552/';
 % Results output folder -> external drive
-bemobil_config.study_folder = fullfile('P:\Lukas_Gehrke\studies\Prediction_Error\data', 'derivatives');
+bemobil_config.study_folder = fullfile('/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data', 'derivatives');
 
 % init
 config_processing_pe;
@@ -20,8 +20,8 @@ subjects = 1:19;
 %% Run LDA
 
 bcilab;
-
-threshs = [0, .5, .7, .8, .9];
+%%
+threshs = .7 %[0, .5, .7, .8, .9];
 for t = threshs
     
     bemobil_config.lda.brain_threshold = t;
@@ -48,7 +48,11 @@ for t = threshs
             EEG.event(1:min(find(ismember({EEG.event.hedTag}, 'n/a')))) = [];
         end
         
-        EEG.event = renamefields(EEG.event, 'trial_type', 'type');
+        
+        EEG.event = renamefield(EEG.event, 'trial_type', 'type');
+        %         EEG.event = renamefields(EEG.event, 'trial_type', 'type');
+        
+        
         [EEG.etc.analysis.design, touch_event_ixs] = pe_build_dmatrix(EEG, bemobil_config);
         EEG.etc.analysis.design.bad_touch_epochs = sort([EEG.etc.analysis.design.slow_rt_spawn_touch_events_ixs, pe_clean_epochs(EEG, touch_event_ixs, bemobil_config)]); % combine noisy epochs with epochs of long reaction times
         touch_event_ixs(EEG.etc.analysis.design.bad_touch_epochs) = [];
@@ -60,13 +64,13 @@ for t = threshs
 
         %% select classes and match the number of epochs in classes
 
-        % make event classes: synchronous and asynchronous
-        async_ixs = find(strcmp({EEG.event.normal_or_conflict}, 'conflict'));
-        sync_ixs = find(strcmp({EEG.event.normal_or_conflict}, 'normal'));
-
-        % match class size
-        sync_ixs = randsample(sync_ixs, size(async_ixs,2));
-        EEG.event = EEG.event(union(async_ixs, sync_ixs));
+%         % make event classes: synchronous and asynchronous
+%         async_ixs = find(strcmp({EEG.event.normal_or_conflict}, 'conflict'));
+%         sync_ixs = find(strcmp({EEG.event.normal_or_conflict}, 'normal'));
+% 
+%         % match class size
+%         sync_ixs = randsample(sync_ixs, size(async_ixs,2));
+%         EEG.event = EEG.event(union(async_ixs, sync_ixs));
 
         % targetmarkers to type field
         [EEG.event.type] = EEG.event.normal_or_conflict;
@@ -155,7 +159,7 @@ for t = threshs
     lda_results.ttest.stats = STATS;
 
     fname = ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_base_removal-' num2str(bemobil_config.lda.approach{3}{4}(1)) '-'  num2str(bemobil_config.lda.approach{3}{4}(2))];
-    save(fullfile(bemobil_config.study_folder, ['lda_results-' fname '.mat']), 'lda_results');
+%     save(fullfile(bemobil_config.study_folder, ['lda_results-' fname '.mat']), 'lda_results');
 
 end
 
@@ -165,7 +169,7 @@ bemobil_config.lda.brain_threshold = .7;
 fname = ['brain_thresh-' num2str(bemobil_config.lda.brain_threshold) '_base_removal-' num2str(bemobil_config.lda.approach{3}{4}(1)) '-'  num2str(bemobil_config.lda.approach{3}{4}(2))];
 load(fullfile(bemobil_config.study_folder, ['lda_results-' fname '.mat']));
 
-save_path = '/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/figures/lda/';
+save_path = '/Users/lukasgehrke/Documents/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/figures/lda/';
 mkdir(save_path);
 normal;
 
@@ -180,40 +184,73 @@ for i = 1:8
     % wrong electrode loc CP2s7?
     mean_pattern(:,7) = [];
     
-    figure;topoplot(mean(normalize(mean_pattern, 1), 2), locs, ...
+    figure;topoplot(mean(mean_pattern, 2), locs, ...
         'electrodes', 'on'); cbar;
+    
+%     figure;topoplot(mean(normalize(mean_pattern, 1), 2), locs, ...
+%         'electrodes', 'on'); cbar;
     print(gcf, [save_path fname '_lda_pattern_win_' num2str(i) '.eps'], '-depsc');     
     close(gcf);
 end
+
+%% plot grand average pattern (DONE & PLOTTED)
+mean_pattern = mean(lda_results.patterns,2);
+mean_pattern = reshape(mean_pattern, [65,19]);
+
+% wrong electrode loc CP2s7?
+mean_pattern(:,7) = [];
+
+figure;topoplot(mean(mean_pattern, 2), locs, ...
+    'electrodes', 'on'); cbar;
+
+% figure;topoplot(mean(normalize(mean_pattern, 1), 2), locs, ...
+%     'electrodes', 'on'); cbar;
+print(gcf, [save_path fname '_lda_mean_pattern.eps'], '-depsc');     
+close(gcf);
+
+%% plot weighted dipoles averaged over all timepoints (DONE & PLOTTED)
+
+plot_weighteddipoledensity(lda_results.dipoles,mean(lda_results.weights,2));
 
 %% plot weighted dipoles at all timepoints (DONE & PLOTTED)
 
 for i = 1:8
     plot_weighteddipoledensity(lda_results.dipoles,lda_results.weights(:,i));
-    print(gcf, [save_path fname '_dipdensity_win_' num2str(i) '.eps'], '-depsc');     
+    print(gcf, [save_path fname '_dipdensity_win_' num2str(i) '_50-50-11.eps'], '-depsc');     
     close(gcf);
 end
 
 %% plot control signal ERP style: mark 2 classes (DONE & PLOTTED)
     
+event_zero = 63;
+
 for i = 1:8 
     
-    figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 300 200]);
+    figure('visible','on', 'Renderer', 'painters', 'Position', [10 10 600 400]);
     title(['Control Signal ' num2str(i) 'th Window']);
 
     % plot condition 1
     colors = brewermap(5, 'Spectral');
     colors1 = colors(2, :);
     sync = squeeze(lda_results.control_signal(:,1,i,:));
-    ploterp_lg(sync, [], [], 50, 1, 'norm. \muV', '', '', colors1, '-');
+    
+    base_sync = mean(sync(:,event_zero-13:event_zero),2);
+    sync = sync - base_sync;
+    
+    ploterp_lg(sync, [], [], event_zero, 1, 'norm. \muV', '', '', colors1, '-');
     hold on
 
     % plot condition 2
     colors2 = colors(5, :);
     async = squeeze(lda_results.control_signal(:,2,i,:));
-    ploterp_lg(async, [], [], 50, 1, 'norm. \muV', '', '', colors2, '-.');
     
-    print(gcf, [save_path fname '_lda_control_signal_win_' num2str(i) '.eps'], '-depsc');     
+    base_async = mean(async(:,event_zero-13:event_zero),2);
+    async = async - base_async;
+    
+    ploterp_lg(async, [], [], event_zero, 1, 'norm. \muV', '', '', colors2, '-.');
+    legend({'', 'sync', '', '', 'async'});
+    
+    print(gcf, [save_path fname '_lda_control_signal_win_' num2str(i) '.eps'], '-depsc');
     close(gcf);
 end
 
