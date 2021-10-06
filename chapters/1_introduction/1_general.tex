@@ -1,111 +1,31 @@
-\section{Introduction}
-% aim for 500-700 Words
-% What is the problem?
-Neural interface technology enables low-friction and fast interaction and therefore, finds increasing application in virtual and augmented reality (VR/AR). However, for the user to feel in control of the interaction, the neural signal employed for classification must be reliable. Hence, it is beneficial to directly target the signal's cortical origin, efficiently separating signal from noise~\cite{Zander2016}.
+\section{Introduction} 
+% aim for 500-700 Words -> currently 738 (ok)
 
-% BLUF -> bottom line up first section: How did we approach the problem?
-In this work, we show an ~80 percent single-trial classification rate detecting visual and haptic glitches in a VR hand reaching task. We classified event-related potentials measured at the scalp using Linear Discriminant Analysis and localized the source origin of the classification signal. Midline cingulate and a distributed network of parietal EEG sources enabled the classification success. Inspecting the time-frequency decomposition in frontal midline sources, we found theta-band activity to be affected by haptic \textit{immersion}, potentially modulating the detection of visuo-haptic glitches in VR.
+% Situation 1
+One of the key challenges in virtual reality (VR) is to create a user experience that mimics the natural, real-world, experience as closely as possible. We strive to design for users to "treat what they perceive as real" and feel present in the virtual world~\cite{Slater2009-au}. This requires a high degree of visual and haptic synchronization, for example for successful tele-operated surgeries, VR simulations and experiences.
 
-% now close with a bold claim that targeting prediction error signals originating from in frontal midline sources can be leveraged for control purposes in VR applications. Additionally this can be supplemenented by movement adaptation markers (and others of course)
+% Complication 1
+Unfortunately, the most established metric to assess the effectiveness of VR simulations relies on the user’s subjective interpretation of unspecific, yet standardized, questions~\cites{Schubert2003-sq, Witmer1998-ew}. Subjectivity in the answers and discrete sampling due to the need to break the user’s immersion to collect data about the previous interaction are problematic~\cite{Slater1999-dm}. We and others have previously proposed the use of the frontal `prediction error' negativity (PEN) as a feature for fast, online, detection of VR system errors which may, in turn, cause a loss in the sense of physical immersion~\cites{Gehrke2019-og, Si-mohammed2020-ru, Singh2018-qi}. Based on the idea that the brain has evolved to optimize motor behavior by detecting sensory mismatches, these studies promoted the usage of PENs to approach a continuous measure of a perceived loss in physical immersion, potentially impacting presence experience.
 
-\subsection{Prediction Errors} % just for organizing writing -> can be removed pre-submission
+Closely related to the experience of presence, a dynamic and precise interaction requires the ability to learn the causal structures in the (virtual) world and to develop strategies to deal with uncertainties of a dynamically changing environment~\cite{Knill2004-sz}. Today, the brain is frequently conceived of as a model of its environment, in the constant game of predicting the causes of its available sensory data~\cites{Clark2013-ah, Friston2010-hy, Rao1999-zr}. In this predictive coding conception, the probabilistic analyses of previous experiences drives inferences about which actions and perceptual events are causally related. This is inherently tied to the body’s capacity to act on the environment, rendering the action-perception cycle of cognition into an embodied process~\cite{Friston2012-gq}. When all movement-related sensory data (i.e., sensorimotor data) are consistent with the predicted outcome of an action, the action is regarded as successful. However, when a discrepancy between the predicted and the actual sensorimotor data is detected, a prediction error occurs, and attention will be directed to this discrepancy to correct an erroneous action in real-time~\cite{Savoie2018-ad}. Therefore, the fast and accurate detection of such discrepancies is crucial to perform precise interactions, in the real as well as in virtual worlds.
 
-% rate of change in action time as a measure of previous prediction error, argument that the experimental manipulation was indeed perceived and prediction errors caused behavioral adaptation -> need to have hypothesis about that!!! why would this change -> this must go into the intro
+% Situation 2
+The underlying mechanisms and neural foundations of predictive coding have been extensively studied, see for example~\cite{Holroyd2002-in, Clark2013-ah, Bendixen2012-jx}. The frontal mismatch negativity paradigm (MNN, an event-related potential (ERP)) using stationary experimental setups has often been employed to probe the predictive brain hypothesis, see~\citet{Stefanics2014-vk} for a review.~\citet{Lieder2013-dl} show that the best fitting explanation of MMN activity are computations of a Bayes-optimal generative model, i.e., prediction errors. Recently,~\citet{Zander2016-ed} demonstrated a passive brain-computer interface (pBCI) relying on frontal MMN generated by prediction errors. In their work, the pBCI decoded a user's intended cursor movement direction on a 6x6 grid. The system regularly probed the user by observing the EEG response to random cursor movements. How severely the random dot movement violated the user's intention was directly reflected in anterior cingulate EEG activity. 
 
-% Big question: What is to be gained from solving the problem? -> How can this type of prediction error signal be best put to use in the future/scaling to other scenarios? -> check CHI paper again
+% Complication 2 and Questions
+However, such stationary EEG protocols largely neglect the embodied cognitive aspects of goal-directed behavior. As a consequence, the cortical activity patterns underlying predictive embodied processes during goal-directed movement are not established. How these electrocortical features reflect a perceived loss in physical immersion when interacting with VR/AR is yet to be established. With this paper we address the following two questions: (1) is the frontal MMN, originating in ACC, a robust signal reflecting visuo-tactile prediction errors in \textit{naturalistic} interaction with virtual worlds? And (2) Can movement adaptation, such as post-error slowing, provide supplementary information about the ongoing experience?
 
-% Who is BCI for neuroscience useful for? Why is the presented pipeline useful?
-% {this could be used to determine optimal collider configurations in terms of minimizing prediction error response}
-
-% 1. (small question) What type of prediction error where we measuring? -> what types are there and how can they be separated?
-% - (bayesian) prediction errors, reward prediction error, visuomotor prediction error (use literature in folder '2021')
-
-% [] merge the below sections to one short and good one addressing the big question.
-
-The predictive brain hypothesis posits that brains sample their environment through motor action to confirm predictions of prior hypotheses~\cites{Clark2013, Friston2010, Rao1999}. Through predictive processing, we learn to accurately infer what variables govern action in our environment, for example the effects of gravity. This active inference is inherently tied to the body's capacity to act on the environment, rendering the action-perception cycle of cognition into a deeply embodied process~\cite{Friston2012}. Evidence on how the brain computes this function is converging on hierarchical Bayesian models updating predictions about what is about to happen, taking into account sensory \textit{evidence}, or what is currently perceived as an action outcome \cite{Knill2004, Shams2010}. Here, individual senses each excel in specific sensory domains with a combination of reliability-weighted sensory cues providing a holistic sensory sample \cite{Fetsch2012, Cao2019}. Such samples gain their "significance through the meaning about their causes" \cite{Kording2007}. Thus, in order to efficiently infer what causes certain sensory events, a multisensory perceptual experience is preferable with temporal correlations and spatio-temporal congruency serving as causal binding cues \cite{Robertson2003}.
-
-\subsection{EEG source origin of Prediction Error signaling} % just for organizing writing -> can be removed pre-submission
-
-% add a section here about ACC, what type of prediction errors are there and where we measuring?
-
-A parietal-frontal hierarchy binding sensory signals to a common source while segregating those from diverging and guiding future adaptation. 
-
-Within this hierarchical inference network, evidence abounds that primary sensory areas operate under the assumption of separate signal sources whereas parietal areas appear to compute under the assumption of common causes with precision-weighted modality-specific inputs.
-
-Minimising prediction error, the objective function of predictive processing, has been extensively studied with regards to perception in motor control. In neuroscientific experiments, engaged viewing as reflected in saccadic eye movements is a frequently studied observable manifestation of how the brain directs motor output during active sampling of the environment. However, environmental affordances surpass the visual domain. Particularly in humans and apes, a proclivity to use both hands to act on the environment has emerged and is greatly trusted upon. In fact, many tasks can be completed without concurrently consulting the visual domain, such as typewriting or even reaching for a cup; these typically rely heavily on the tactile and proprioceptive sense and as such are denoted as eyes-free interactions.
+% Answer (short) - What we did | Hypotheses
+Recently, the Mobile Brain/Body Imaging (MoBI) paradigm has opened new possibilities to investigate multimodal predictors of user behavior and experience~\cites{Makeig2009-je, Gramann2011-fr, Gramann2014-qo, Jungnickel2019-mv}. We leveraged MoBI to record synchronous EEG and motion capture data during an interactive VR experience in which we purposefully introduced visuo-haptic mismatches (please see~\cite{Gehrke2019-og} for details). In the current work, we classified trials into two categories: following predicted VR feedback (match) and following visuo-tactile glitches (mismatch). We hypothesized a high classification accuracy employing PENs for this two-class separation. Crucially, we hypothesized that the classification would strongly rely on (anterior) midline cingulate EEG source activity~\cite{Zander2016-ed, Tollner2017-rm}. Furthermore, we explored whether post-error movement adaptation can supplement the classification scheme and motivate a multimodal classification approach in the future. 
 
 
-%%%%% LG writing resources below
+%%% writing resources: removed following Klaus last revision (26.08.2021)
+% to avoid technical delays in XR interactions to interfer with fast-paced sensory-motor processes that might impact the feeling of presence, neural interfaces allow for....
 
+% Neural interface technology enables low-friction and fast interaction. Today, it finds increasing application in VR/AR. Besides direct control through Brain-Computer Interfaces (BCI), implicit adaptation through neural interfaces has significant potential. 
 
-%Individual senses each excel in specific sensory domains with a combination of reliability-weighted sensory cues providing a holistic sample \cite{Fetsch2012, Cao2019}. Such sample gain their "significance through the meaning about their causes" \cite{Kording2007}. Thus, in order to efficiently infer what causes certain sensory events, a multisensory perceptual experience is preferable with temporal correlations and spatio-temporal congruency serving as causal binding cues \cite{Robertson2003}. 
+% While first physiological evidence of presence experience has been reported, these metrics suffer in reliability due to imprecise definitions of the psychological phenomenon as well as non-standardized data processing pipelines, see~\citet{Grassini2020-ip} for a review. 
 
-% move into computation now to adress the signal we measure(d)
-% Taken together, model evidence is scored by an accuracy or surprise metric, for example, prediction errors. Importantly, in order to make predictions in a stable environment, where inference on the latent variables governing sensory events is useful, the brain must be a good model of this environment, grounded in causality \cite{Friston2016a}.
-% On the modelling level, a "bidirectional cascade of cortical processing" arguably underlies such inferential processing \cite{Clark2013}. A hierarchical generative model of the environment, or forward model, is assumed that is trained to minimize prediction errors from elicited actions that test this forward model, or in other words "actively constructing explanations" \cites{Wolpert2011, Friston2018}.
+% To consistently obtain meaningful samples, it is crucial that the neural signal employed for classification is reliable. Hence, it is beneficial to directly target the signal’s cortical origin, efficiently separating signal from noise.
 
-% Now questions what the cortical origin of such a signal might be and why? In which networks is it rooted?
-
-% \subsection{EEG source origin of Prediction Error signaling} % just for organizing writing -> can be removed pre-submission
-
-% A parietal-frontal hierarchy binding sensory signals to a common source while segregating those from diverging and guiding future adaptation. 
-
-% Within this hierarchical inference network, evidence abounds that primary sensory areas operate under the assumption of separate signal sources whereas parietal areas appear to compute under the assumption of common causes with precision-weighted modality-specific inputs.
-
-
-% The minimisation of surprise, or prediction error, as the objective function of active inference, has been extensively studied with regards to perception in motor control. Here, active inference typically considers engaged viewing as reflected in saccadic eye movements as an observable manifestation of how the brain directs motor output during active sampling of the environment. However, environmental affordances surpass the visual domain. Particularly in humans and apes, a proclivity to use both hands to act on the environment has emerged and is greatly trusted upon. In fact, many tasks can be completed without concurrently consulting the visual domain, such as typewriting or even reaching for a cup; these typically rely heavily on the tactile and proprioceptive sense and as such are denoted as eyes-free interactions.
-
-% % 2. What are there neural origins of the different prediction error signals and what functions do they possible fulfill (in terms of prediction error hierarchy)?
-
-% On a neuroanatomical level, recent evidence points towards a parietal-frontal hierarchy binding sensory signals to a common source while segregating those from diverging and guiding future adaptation. Within this hierarchical causal inference, evidence abounds that primary sensory areas operate under the assumption of separate signal sources whereas parietal areas appear to compute under the assumption of common causes with precision-weighted modality-specific inputs. 
-
-% Further, anterior parietal areas then add a reliability-weighting term to the holistic causal structure \cite{Cao2019, Rohe2019, Cohen2013a}. Ultimately, adaptation of future behavior is thought to be driven by parietal and/or frontal areas. Presumably depending on the broader context, for example valence assessments, behavioral adaptation and policy selection invoke frontal or parietal areas \cite{Pearson2011, Kolling2016, Holroyd2002}. {Our work emphasizes signals operating under the assumption of a causal fusion model}.
-
-% this can all be moved to the discussion!
-% Prominently, theta- and alpha-band activity have been implicated in cognitive processing. \citet{VanRullen2016} argued for the notion of \textit{perceptual cycles} alluding to these frequencies as the impulse generators of perception. \citet{Rohe2019} implicate prestimulus alpha frequencies in \textit{rhythmic perception} modulating the tendency whether following spatio-temporal binding challenges are more likely to resolve in binding or segregation. Parietal areas, as a location of arising alpha rhythms have been frequently linked to anchoring the bodily self during action-perception being ideally located for integration of spatial reference frames \cite{Blanke2015, Guterstam2015a, Halgren2019}. Further, connections to the hippocampus via retrosplenial cortices implicate a role in spatio-temporal context situating and reproduction \cite{Pearson2011, Clark2018, Gramann2009, Friston2016a}. The extensive research on theta frequencies, with a frequent localization to frontal source origin, have concluded a role in cognitive control \cite{Cavanagh2014}. Recently, \citet{Duprez2020} have demonstrated theta frequencies as a messenger directing behavioral adaptation through cognitive control. Following a cognitive demand for adaption, theta motivates rich behavioral policy changes exceeding simple reaction time measures \cite{Cooper2019}.
-
-% [x] merge this section with the 2_spatio-temporal file
-% [] check and add mendeley folder '2021'
-% [] move the rest of the intro text to the discussion
-
-% extra:
-% - haptics increase realism, link to  Legaspi Sense of Agency paper and link that back to prediction error?
-
-% \subsection{Summary and Hypotheses} % just for organizing writing -> can be removed pre-submission
-
-% return to big question: % Big question: What is to be gained from solving the problem? -> How can this type of prediction error signal be best put to use in the future/scaling to other scenarios? -> check CHI paper again
-
-% ok we have different kinds of PEs and learnt a bit about their neural origins -> now specifically targeting certain kinds to design interface for HCI is useful.
-
-% Hypotheses
-% - classification success was assumed based on previous descriptive ERP inspection and Si-Mohammed work
-% - acc generator of PEN -> cite Holroyd, Zander, Singh, Cohen, Cavanagh?
-% - any hypotheses on acc theta?
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-%%%%% writing ressources
-%Mobile Brain/Body Imaging (MoBI; \cites{Gramann2011a, Gramann2014, Makeig2009} provides a well situated approach to assess both, the physical realisation propagating prediction errors in response to all afforded actions as well as the behavior preceding the currently propagated sample and ultimately, the ensuing behavioral adaptation. This allows for observing how the brain organizes behavior, including motor planning and control and how prediction errors resulting from actions are propagated back to inform the generative model. Sampling the context in which prediction errors occur during action-perception and directly map these to the subject's real-time context allows to understand \textit{natural} movement behavior such as reaching tasks, much in the vein of the aforementioned eyes-free tasks. As such, a direct mapping from behavior space to brain space converges to the bidirectional evidence-integration being computed, i.e. action-oriented predictive processing \cite{Clark2013}. This however, requires a statistical foundation to address the many-to-many mapping challenge in cognitive neuroscience through single-trials analysis \cites{Pernet2011, Bridwell2018, Friston1994a, Blankertz2011}.
+% Taken together, we hypothesize that `PEs' correlate with a violation of the predicted action outcome and in turn may indicate a disrupted presence experience.
