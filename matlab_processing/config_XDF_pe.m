@@ -3,7 +3,7 @@
 clear bemobil_config
 
 %% General Setup
-bemobil_config.study_folder = 'P:\Lukas_Gehrke\studies\Prediction_Error\data\';
+bemobil_config.study_folder = '/Volumes/work/studies/Prediction_Error/data/';
 bemobil_config.filename_prefix = 's';
 
 % custom scripts can be applied to the datasets right before splitting the complete MOBI set up. e.g. for parsing
@@ -31,13 +31,13 @@ bemobil_config.event_streams = {'unity_markers_prederror_BPN-C043'};
 bemobil_config.rigidbody_streams = {'rigid_handr_BPN-C043','rigid_head_BPN-C043'};
 
 % foldernames (NEED to have a filesep at the end, sorry!) and filenames
-bemobil_config.raw_data_folder = '0_raw-data\';
-bemobil_config.mobilab_data_folder = '1_mobilab-data\';
-bemobil_config.raw_EEGLAB_data_folder = '2_basic-EEGLAB\';
-bemobil_config.spatial_filters_folder = '3_spatial-filters\';
-bemobil_config.spatial_filters_folder_AMICA = '3-1_AMICA\';
-bemobil_config.spatial_filters_folder_SSD = '3-2_SSD\';
-bemobil_config.single_subject_analysis_folder = '4_single-subject-analysis\';
+bemobil_config.raw_data_folder = '0_raw-data/';
+bemobil_config.mobilab_data_folder = '1_mobilab-data/';
+bemobil_config.raw_EEGLAB_data_folder = '2_basic-EEGLAB/';
+bemobil_config.spatial_filters_folder = '3_spatial-filters/';
+bemobil_config.spatial_filters_folder_AMICA = '3-1_AMICA/';
+bemobil_config.spatial_filters_folder_SSD = '3-2_SSD/';
+bemobil_config.single_subject_analysis_folder = '4_single-subject-analysis/';
 
 bemobil_config.merged_filename = 'merged.set';
 bemobil_config.preprocessed_filename = 'preprocessed.set';
