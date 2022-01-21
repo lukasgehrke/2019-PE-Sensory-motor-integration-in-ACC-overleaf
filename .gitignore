@@ -16,3 +16,5 @@ chapters/.DS_Store
 data.nosync/ds003552/
 *.csv
 *.fig
+*.webarchive
+*.cls
