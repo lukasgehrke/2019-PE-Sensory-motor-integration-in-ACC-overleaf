@@ -17,6 +17,3 @@ data.nosync/ds003552/
 *.csv
 *.fig
 *.webarchive
-*.cls
-*.sty
-*.clo
