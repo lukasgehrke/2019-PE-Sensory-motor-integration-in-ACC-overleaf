@@ -1,0 +1,32 @@
+% \subsection{Neural signatures of multisensory context during spatio-temporal asynchrony}
+% summary of discussion part: dissociating alpha and theta band activity
+% - alpha: baseline and reaction time
+% - theta: haptics and interaction velXhap / theta - (what about potential theta-gamma coupling?)
+% - why velocity not impacting ersp: little variation, highly automated task other mobi challenges
+% - reference back to intro part: %Prominently, theta- and alpha-band activity, as well as their finer granularities, have been implicated in cognitive processing. \citet{VanRullen2016} argued for the notion of \textit{perceptual cycles} alluding to these frequencies as the impulse generators of perception. \citet{Rohe2019} implicate prestimulus alpha frequencies in \textit{rhythmic perception} modulating the tendency whether following spatio-temporal binding challenges are more likely to resolve in binding or segregation. The extensive research on theta frequencies, with a frequent localized to frontal areas, have concluded a role in cognitive control \cite{Cavanagh2014}. Recently, \citet{Duprez2020} have demonstrated theta frequencies as a messenger directing behavioral adaptation through cognitive control. Following a cognitive demand for adaption, theta motivates rich behavioral policy changes exceeding simple reaction time measures \cite{Cooper2019}.
+
+% then summarize results as below paper claim:
+%(touch epochs)
+%1. LDA location: Central-parietal EEG source activity discriminates between predicted and perturbed visuo-haptic perceptual experiences, in our case the touching of a cube on a desk, baring similarities to a classical simon task.
+%(full epochs)
+%2.1. ICs clustered to the centroid of the weighted ICs contributing the strongest to the LDA classifier were located to an area between precuneus and posterior cingulate cortex.
+%2.2. Hand velocity characteristics, an event-related potential as well as an event-related spectral signature were explained by adding a haptic channel, increasing the level of immersion in the perceptual experience.
+%2.3. Further, we observed responses locked to the feedback onset independent of differences in ongoing motor behavior between matching and mismatching classes. (description-level)
+%(touch epochs)
+%3.1. IC source dynamics following a visuo-haptic perturbation differ from predicted perceptual experiences (see 1., show difference erp and ersp)
+%3.2. Following a visuo-haptic perturbation, the context of said perturbation operationalized by hand velocity, haptic feedback and their interaction, impact IC source dynamics only faintly.
+%(next trial epochs)
+%4. Post perturbation behavioral adaptation is in line with previous findings and may be explainable through reinforcement learning like computations in the brain.
+
+% In this work, we present evidence for neural signatures originating in central-parietal EEG sources during a spatio-temporal multisensory binding challenge. In order to carve out a signal separating cases of spatio-temporal synchrony from asynchronous cases we employed brain-computer interface technology. Through localization of the classifier weights we gained access to a node in the hierarchical inference network. Subsequent single-trial analysis on the spectral signatures exhibited a separation of alpha- and theta-band characteristics. In the time-domain, the signature can be employed for human-computer interaction purposes as we have shown it is accurately classifiable in two classes. Further, we functionally distinguished theta-band activity from alpha-band activity using single-trial regression. Alpha-band activity following spatio-temporal asynchrony was predicted by baseline activity as well as reaction time, the time elapsed to reach for the target. Both predictors allude to the general temporal task structure and hence may be separated from instantaneous processing. On the other hand, theta-band burst succeeding a binding challenge referred to the multisensory context, that is rendered physics and its interaction with the instantaneous hand velocity.
+
+% - is proprioceptive feedback important in our task: I'd argue against that because I consider vibration on the fingertip to be an exteroceptive sensation and do not consider it relevant where the hand was and how my joints were angled etc. during the mismatch event, therefore i stick to exteroceptive prediction errors only!
+
+% - On world stability: designing visuo-haptic mismatches in virtual worlds means further complicating the action-perception cycle understood as hypothesis testing. By pseudo-randomizing when one of the 25 percent chance oddballs appears, hypothesis testing and subsequent evaluation of the latent variables causing the oddball to appear becomes meaningless.
+
+% - how does erp and ersp correlate. gamma and n200 occipital etc. filtering low frequency for erp does not mean higher ERSP frequency burst might not add to slow cortical ERPs -> therefore, approach is valid
+
+% - single-trial regression challenges in mobile brain body imaging studies: energy of stimulus, Time-locked vs. continuous regressors/stimuli, EEG artifacts due to movement, Contrast desktop stimulation vs. wide FOV in VR, Higher cortical noise, Saliency of stimulus, necessary attention on stimulus %in terms of predictive coding,
+% - Study specific shortcomings: low N, both in subjects and in trials due to oddball paradigm
+
+% - IC sources located near posterior cingulate cortex may anchor the self in the afforded reference frame, providing grounds for spatial predictions during ongoing perceptual experience.

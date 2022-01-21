@@ -1,0 +1,30 @@
+% to keep or not to keep?
+
+
+
+% \subsection{Mismatch processing in midcingulate independent components}
+% % TODO
+% % [x] localization seed region
+% % [x] adapt clustering solution here
+% % [x] add epoch removal info and modeling, mcc approach
+
+% % \textit{highest relevance for classification} voxel via visual inspection at $[0, 0, 40]$ (in MNI space, reflecting a source located in or near the superior parietal, BA40) used as a seed region of interest (ROI) for targeted optimization of group-level IC clustering.
+
+% We established a frontal midline voxel of interest by visual inspection of the dipoleDensity plots weighted by relevance for classification. A voxel at $[0, 0, 40]$ was selected as a seed region of interest (ROI) for targeted optimization of group-level IC clustering~\cite{Gramann2018}.
+
+% \subsubsection{Clustering Independent Components}
+% To allow for group-level analyses across independent components, we clustered components based \textit{only} on their equivalent dipole locations using a region of interest (ROI) driven repetitive k-means clustering approach \cite{Gramann2018, Kriegeskorte2010}. ICs were clustered by applying the k-means algorithm with k equals 14, the median number of ICs retained across participants. ICs with a distance of more than three standard deviations from any final centroid mean were considered outliers. After applying desirable weights (number of participants: 2, ICs/participants: -2, spread: -1, RV: -1, distance from ROI: -2, Mahalanobis distance from the median: -1) the optimal target cluster solution contained 17 ICs from 14 participants, that is a ratio of ~1.2 ICs per participant. Three participants exhibited two ICs contained in the optimized cluster. Following the assumptions of our clustering approach we chose to average their activity for analysis purposes.
+
+% % , a normalized spread (mean squared distances from individual dipoles to cluster centroid) of 371.8 $mm^2$, a mean RV of 5.8\%, and a distance of 5.1$mm$ to the ROI. 
+
+% \subsubsection{Modeling Event-related Spectral Perturbations}
+% To keep all task events from cube spawn to touch, data were epoched -3 to +2 seconds around the 600 cube touches and trials were removed if (a) the reaction time between cube \textit{spawn} and touch exceeded two seconds or (b) large voltage fluctuations in the channels were detected via EEGLABs \textit{autorej} function with default settings. On average 80.7 (sd = 32.6) trials were removed. For the clean single trials we computed event-related time-frequency decompositions (event-related spectral perturbation, ERSP) of each independent component time course. Time-frequency decomposition were computed via the \textit{newtimef} function in EEGLAB for 3 to 80 Hz in logarithmic scale, using a wavelet transformation with 3 cycles for the lowest frequency and a linear increase with frequency of 0.5 cycles. Subsequently, phase was discarded, the output squared and resulting raw power values kept (3-40 Hz) for further analysis.
+
+% % [x] adapt the model fitting
+
+% Mass-univariate multiple regression was computed across all mismatch trials to obtain per participant summaries of ERSP. A linear model was estimated at each time-frequency pixel of participants independent component(s) present in the ROI cluster. The linear model was defined as $tf_pixels ~ match/mismatch * haptic/no_haptic + baseline$. To infer whether components of the event-related response could be explained by baseline activity, average power per frequency bin in the -200 to 0 ms window preceding cube \textit{spawns} was entered as a predictor.
+
+% % [x] sample size in ROI cluster(s)
+
+% For inference, a permutation T-test using EEGlab's \textit{statcond} function with 1000 permutations was employed on the regression betas. Due to the small sample size in the ROI cluster (N = 14) we chose the permutation-t approach over a cluster statistic with constrained resampling for multiple comparison correction~\cite{Pernet2015}. First, for each permutation the betas map of t-scores was transformed to a map of tfce-scores. Next, for each tfce-map the maximum was extracted and the true tfce-map was thresholded at the 95th percentile of the max-tfce distribution from the 1000 permutations.
+
