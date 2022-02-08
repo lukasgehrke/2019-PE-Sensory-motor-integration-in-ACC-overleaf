@@ -47,11 +47,14 @@
 \usepackage{graphicx}
 
 \usepackage{lineno}
-\usepackage{draftwatermark}
+% \usepackage{draftwatermark}
+\usepackage{soul}
+\usepackage{xcolor}
+\definecolor{n}{cmyk}{.7, .0, .51, .34}
 
 \begin{document}
 
-\title[Neural Sources Detect Unrealistic VR Interactions]{Neural Sources of Prediction Errors Detect Unrealistic VR Interactions}
+\title[Neural Sources Detecting Unrealistic VR Interactions]{Neural Sources of Prediction Errors Detect Unrealistic VR Interactions}
 
 % Other titles:
 % Leveraging Prediction Errors originating in Midline Cingulate and Parieto-occipital EEG Sources to Classify User Experience Disruptions in AR/VR
@@ -102,24 +105,24 @@
 %
 
 \linenumbers
-\SetWatermarkText{DRAFT}
-\SetWatermarkScale{7}
+% \SetWatermarkText{DRAFT}
+% \SetWatermarkScale{7}
 
 % add main content
 % introduction
-\input{chapters/1_introduction/1_general}
+\input{chapters_rev1/1_introduction/1_general}
 
 % methods
-\input{chapters/2_methods/1_general.tex}
-\input{chapters/2_methods/2_recordings}
-\input{chapters/2_methods/3_processing.tex}
+\input{chapters_rev1/2_methods/1_general.tex}
+\input{chapters_rev1/2_methods/2_recordings}
+\input{chapters_rev1/2_methods/3_processing.tex}
 
 % % results
-\input{chapters/3_results/1_behavior}
-\input{chapters/3_results/2_eeg}
+\input{chapters_rev1/3_results/1_behavior}
+\input{chapters_rev1/3_results/2_eeg}
 
 % discussion
-\input{chapters/4_discussion/1_intro}
+\input{chapters_rev1/4_discussion/1_intro}
 
 \ack
 This research was supported by a grant from the German Federal Ministry of Education and Research (01GQ1511) to KG
