@@ -1,27 +1,30 @@
 
 \section{Results}
 
-Participants reached towards the target object after it appeared on the table. In the match trials without visuo-tactile VR glitches, participants took on average 1.04s (SD = .19) to complete the reach-to-tap. In the mismatch trials with visuo-tactile VR glitches, the target feedback was presented prematurely and triggered on average after .73s (SD = .12) following object spawn, see figure 1b. Hence, increasing the (bounding) object volume for collision detection led to a spatio-temporal mismatch of approximately 300 ms as compared to the congruent, match, condition. The velocity profile in both conditions exhibited a narrow peak during outward reaching with a peak magnitude of ~.6 m/s and a broader and lower peak when the hand was retracted back to its origin, see figure \ref{setup_and_behavior}b bottom.
+Participants reached towards the target object after it appeared on the table. In the match trials without visuo-tactile VR glitches, participants took on average 1.04s (SD = .19) to complete the reach-to-tap. \textcolor{red}{\st{In the mismatch trials with visuo-tactile VR glitches, the target feedback was presented prematurely and triggered on average after .73s (SD = .12) following object spawn, see figure 1b.}}
+
+\textcolor{n}{We created visuo-tactile VR glitches by increasing the (bounding) object volume of the target. Hence, the collision detection registered prematurely. In these mismatch trials, participants took on average .73s (SD = .12) to complete the reach-to-tap, see figure~\ref{setup_and_behavior}b.} Hence, increasing the (bounding) object volume for collision detection led to a spatio-temporal mismatch of approximately 300 ms as compared to the congruent, match, condition. The velocity profile in both conditions exhibited a narrow peak during outward reaching with a peak magnitude of ~.6 m/s and a broader and lower peak when the hand was retracted back to its origin, see figure \ref{setup_and_behavior}b bottom.
 
 \begin{figure}[!h]
-  \includegraphics[width=\textwidth]{figures/task_behavior.jpg}
-  \caption{Task Structure and hand velocity profile. \textbf{a} Participants were instructed to reach to an appearing cube on a desk in front of them and tap it. They were equipped with a VR headset, a 64 channel EEG cap, electrode spacers and rigid body tracker on the hand. The vibration motor was placed under the fingertip of the index finger. \textbf{b} Top: Inside VR view of experimental scene. Bottom: Grand-average velocity with 95\% confidence interval of both, match and mismatch conditions with event markers for object `spawn', tap time start and end as well as moments of object tap in match and mismatch conditions. \textbf{c} Distribution of \textit{rate of change} in tap time between two subsequent match trials and following a VR glitch. A dot represents the average per participant per condition.}
+  \includegraphics[width=\textwidth]{figures/task_behavior_new.pdf}
+  \caption{Task Structure and hand velocity profile. \textbf{a} Participants were instructed to reach to an appearing cube on a desk in front of them and tap it. They were equipped with a VR headset, a 64 channel EEG cap, electrode spacers and rigid body tracker on the hand. The vibration motor was placed under the fingertip of the index finger. \textbf{b} Top: Inside VR view of experimental scene. Bottom: Grand-average velocity with 95\% confidence interval of both, match and mismatch conditions with event markers for object `spawn', tap time start and end as well as moments of object tap in match and mismatch conditions. \textbf{c} Distribution of \textit{rate of change} in tap time \textcolor{n}{for the three trial change categories `match to match', `mismatch to match' and `match to mismatch'.}\textcolor{red}{\st{between two subsequent match trials and following a VR glitch.}} A dot represents the average per participant per condition.}
   \label{setup_and_behavior}
 \end{figure}
 
 \subsection{Prolonged Tap Time Following VR Glitches}
 
+% add a sentence that we now look at the corrected behavior computed on the velocity time series
+\textcolor{n}{}
+
 `Tap time', the hand movement period from movement start to reaching the object, lasted on average .74s (SD = .15) in match- and .69s (SD = .15) in mismatch trials. 
 
-% Adding vibrotactile stimulation did not affect hand movement profiles ($b=-.01, t=-1.7, p=.1$) and neither did the interaction of congruity and vibrotactile stimulation ($b=.02, t=1.8, p=.07$). Hence, as with the EEG analysis we pooled trials ignoring the feedback modulation.
+We calculated the \textit{rate of change} in `tap time' as a metric of post-error slowing \textcolor{n}{and observed that trial change categories impacted `tap time' ($F_{(2)} = 53.7, p < .001, R^2 = .66$). Following match trials, `tap time' in the subsequent trial did not change, i.e. 0 ms (SD = 20 ms). However, following mismatch trials, `tap time' was increased in the subsequent trial on average by} \textcolor{red}{\st{.05s (SD = .04)}}\textcolor{n}{47 ms (SD = 37 ms, $t_{18} = 5, p < .001$)}. \textcolor{n}{For completeness, `tap time' decreased from match to mismatch trials on average by 50 ms (SD = 33 ms, $t_{18} = -5.4, p < .001$).}
 
-We calculated the \textit{rate of change} in tap time as a metric of post-error slowing. Following match trials, tap time in the subsequent trial did not change, i.e. 0s (SD = .02). However, following mismatch trials, tap time was increased in the subsequent trial on average by .05s (SD = .04); this modulation was about 48 times more likely to occur under the model considering mismatch modulation than the null model (equivalent ${\chi}^2_{(1)} = 48.1, p<.001$), see figure \ref{setup_and_behavior}c. 
+\textcolor{red}{\st{this modulation was about 48 times more likely to occur under the model considering mismatch modulation than the null model (equivalent ${\chi}^2_{(1)} = 48.1, p<.001$), see figure}~\ref{setup_and_behavior}c.}
 
-% Adding vibrotactile feedback did not affect post-error slowing significantly ($b=-.02, t=-1.4, p=.15$). 
+% Using the trial-to-trial adaptation in tap time, trial classes (match/mismatch) were classified with an average within-subject classification accuracy across folds of 55.4\% (SD = 4.8), remaining below the significance threshold of the simulated chance level at 63.4\% (SD = 0.6).
 
-Using the trial-to-trial adaptation in tap time, trial classes (match/mismatch) were classified with an average within-subject classification accuracy across folds of 55.4\% (SD = 4.8), remaining below the significance threshold of the simulated chance level at 63.4\% (SD = 0.6).
-
-\footnote{For completeness, we also report a classification scheme using behavioral data of all trials, maintaining unequal trial numbers per match and mismatch condition. We found that using data from all trials and maintaining unequal class sizes increased the classification to $\sim$67\% accuracy. See the supplementary material for more detail.}
+% \footnote{For completeness, we also report a classification scheme using behavioral data of all trials, maintaining unequal trial numbers per match and mismatch condition. We found that using data from all trials and maintaining unequal class sizes increased the classification to $\sim$67\% accuracy. See the supplementary material for more detail.}
 
 
 
