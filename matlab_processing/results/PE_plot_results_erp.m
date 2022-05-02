@@ -11,9 +11,10 @@ addpath(genpath('/Users/lukasgehrke/Documents/publications/2019-PE-Sensory-motor
 % TODO add to path custom scripts repository Lukas Gehrke folder
 
 % BIDS data download folder
-bemobil_config.BIDS_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/ds003552';
+% bemobil_config.BIDS_folder = '/Volumes/work/studies/Prediction_Error/data/ds003552';
+bemobil_config.BIDS_folder = '/Volumes/work/studies/Prediction_Error/data/DFA/';
 % Results output folder -> external drive
-bemobil_config.study_folder = fullfile('/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error', 'derivatives');
+bemobil_config.study_folder = fullfile('/Volumes/work/studies/Prediction_Error', 'derivatives');
 
 % init
 config_processing_pe;
@@ -260,7 +261,7 @@ for i = chans
     end
 end
 
-c%% plot channel ERP with sig. test
+%% plot channel ERP with sig. test
 
 cond1 = {};
 cond2 = {};
@@ -300,7 +301,7 @@ for subject = subjects
     cond2{subject}.data = cond2{subject}.data - base_cond2;
     
     % select time window of interest
-    s = 725; % (-50 samples / 250) -> -200 ms
+    s = 725; % (-25 samples / 250) -> -100 ms
     e = s + 175; % 600ms post event
     
     cond1{subject}.data = cond1{subject}.data(:,s:e,:);
@@ -316,6 +317,8 @@ end
 %%
 channels = {'FCz', 'Fz', 'Cz', 'Pz'};
 delay = .05; % 'delaycorrection', delay, ...
+
+addpath(genpath('/Users/lukasgehrke/Documents/documents.nosync/tools/utils_LG/plot_erp_LG'));
 
 for channel = channels
     f = plot_erp_LG({cond1, cond2}, channel{1}, ...
@@ -349,4 +352,84 @@ end
 
 stat(88)
 p(88)
+
+%% for revision1: scalp map with siginificant different
+win_t = 87:88; %75:75+12;
+
+for c = 1:65
+    for subject=subjects
+        a(subject) = mean(squeezemean(cond1{subject}.data(c,win_t,:),3));
+        b(subject) = mean(squeezemean(cond2{subject}.data(c,win_t,:),3));
+    end
+    [H,P,CI,STATS] = ttest(a,b);
+    stat(c,1) = STATS.tstat;
+    p(c,1)  = P;
+end
+
+[p_fdr, p_masked] = fdr( p, .05);
+
+%%
+
+tmp_markers = 0:1/(size(find(p_masked),1)-1):1;
+% myCmap1 = diverging_map(tmp_markers', [0.230, 0.299, 0.754],[0.706, 0.016, 0.150]);
+% myCmap1 = diverging_map(tmp_markers', [1.0, 1.0, 1.0],[0.706, 0.016, 0.150]);
+% myCmap1 = diverging_map(tmp_markers', [1.0, 1.0, 1.0],[0.05, 0.05, 0.05]);
+% myCmap1 = jet(size(tmp_markers,2));
+myCmap1 = jet(size(tmp_markers,2)*2);
+myCmap1 = myCmap1(1:size(tmp_markers,2),:);
+myCmap1 = flipud(myCmap1);
+
+in = p(find(p_masked)); % abs(p(find(p_masked)) - max(p(find(p_masked))));
+in = abs(in - max(in));
+figure;hist(in)
+
+vals = [in, find(p_masked)];
+vals_sort = sortrows(vals,1);
+vals_col = [vals_sort, myCmap1];
+vals_col_sort_chan = sortrows(vals_col, 2);
+
+f = figure;
+set(gcf, 'renderer', 'painter');
+topoplot(vals_col_sort_chan(:,1),EEG.chanlocs(vals_col_sort_chan(:,2)), ...
+    'maplimits', 'maxmin', ...
+    'style','blank', ...
+    'electrodes','labels', ...
+    'plotdisk', 'on', ...
+    'emarkercolors', num2cell(vals_col_sort_chan(:,3:end),2), ...
+    'chaninfo',EEG.chaninfo);
+f.CurrentAxes.FontSize = 30;
+colormap(myCmap1);
+colorbar;
+f.CurrentAxes.FontSize = 30;
+
+f = figure;
+set(gcf, 'renderer', 'painter');
+topoplot(vals_col_sort_chan(:,1),EEG.chanlocs(vals_col_sort_chan(:,2)), ...
+    'maplimits', 'maxmin', ...
+    'style','map', ...
+    'electrodes','labels', ...
+    'plotdisk', 'on', ...
+    'emarkercolors', num2cell(vals_col_sort_chan(:,3:end),2), ...
+    'chaninfo',EEG.chaninfo);
+f.CurrentAxes.FontSize = 30;
+colormap(myCmap1);
+colorbar;
+f.CurrentAxes.FontSize = 30;
+% 
+
+%% number of rejected epochs
+
+for subject = subjects
+    bad_eps(subject) = size(ALLEEG(subject).etc.analysis.design.bad_touch_epochs,2);
+end
+
+mean(bad_eps)
+std(bad_eps)
+
+
+
+
+
+
+
 

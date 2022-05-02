@@ -11,9 +11,10 @@ addpath(genpath('/Users/lukasgehrke/Documents/bpn_work/publications/2019-PE-Sens
 % TODO add to path custom scripts repository Lukas Gehrke folder
 
 % BIDS data download folder
-bemobil_config.BIDS_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/ds003552';
+% bemobil_config.BIDS_folder = '/Volumes/work/studies/Prediction_Error/data/ds003552';
+bemobil_config.BIDS_folder = '/Volumes/work/studies/Prediction_Error/data/DFA/';
 % Results output folder -> external drive
-bemobil_config.study_folder = fullfile('/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error', 'derivatives');
+bemobil_config.study_folder = fullfile('/Volumes/work/studies/Prediction_Error', 'derivatives');
 
 % init
 config_processing_pe;
@@ -22,7 +23,7 @@ subjects = 1:19;
 %% load study
 
 if ~exist('ALLEEG','var'); eeglab; end
-pop_editoptions( 'option_storedisk', 1, 'option_savetwofiles', 1, 'option_saveversion6', 0, 'option_single', 0, 'option_memmapdata', 0, 'option_eegobject', 0, 'option_computeica', 1, 'option_scaleicarms', 1, 'option_rememberfolder', 1, 'option_donotusetoolboxes', 0, 'option_checkversion', 1, 'option_chat', 1);
+pop_editoptions( 'option_storedisk', 1, 'option_savetwofiles', 1, 'option_saveversion6', 0, 'option_single', 0, 'option_memmapdata', 0, 'option_eegobject', 0, 'option_computeica', 1, 'option_scaleicarms', 1, 'option_rememberfolder', 1, 'option_donotusetoolboxes', 0, 'option_checkversion', 1);
 
 if isempty(STUDY)
     [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
@@ -90,6 +91,7 @@ for subject = subjects
     oddball = double((ALLEEG(subject).etc.analysis.design.oddball=='true'))';
     pre_error = [oddball(2:end); 0] * 2;
     post_error = [0; oddball(1:end-1)] * 3;
+    pre_odd = sum([pre_error, oddball],2);
     pre_odd_post = sum([pre_error, oddball, post_error],2);
     pre_odd_post(pre_odd_post==5)=3;
     
@@ -100,101 +102,147 @@ for subject = subjects
     direction = categorical(ALLEEG(subject).etc.analysis.design.direction');
     pID = repmat(subject,size(direction,1),1);
     
-    reg_t = table(pID, isitime, sequence, haptics, trial_number, direction, oddball, ...
-        post_error, pre_error, pre_odd_post, ...
-        at, rt, ct, peak_vel_reach, vel_event, acc, decel, decel_stop, ...
-        diff_at, diff_rt, diff_ct, diff_acc, diff_decel, diff_decel_stop, ...
-        diff2_at);
+%     reg_t = table(pID, isitime, sequence, haptics, trial_number, direction, oddball, ...
+%         post_error, pre_error, pre_odd_post, pre_odd, ...
+%         at, rt, ct, peak_vel_reach, vel_event, acc, decel, decel_stop, ...
+%         diff_at, diff_rt, diff_ct, diff_acc, diff_decel, diff_decel_stop, ...
+%         diff2_at);
+
+    reg_t = table(pID, sequence, oddball, pre_odd, post_error, at, diff_at, isitime);
     
-    reg_t(ALLEEG(subject).etc.analysis.design.bad_touch_epochs,:)= [];
+    % remove trials that are both mismatch -> match & match -> mismatch
+    c = 1;
+    for i = 1:size(reg_t,1)
+        if reg_t(i,:).sequence == 0 && reg_t(i+1,:).oddball == 1
+            reg_t(i,:).pre_odd = 2;
+            match_mismatch_p(subject, c) = i;
+            match_mismatch(c) = i;
+            c = c+1;
+        end
+
+%         if i>1 && reg_t(i,:).sequence == 0 && reg_t(i-1,:).oddball == 1
+%             reg_t(i,:).sequence = reg_t(i-1,:).sequence;
+%         end
+    end
+% 
+    bad_ixs = union(match_mismatch, ALLEEG(subject).etc.analysis.design.bad_touch_epochs);
+%     bad_ixs = ALLEEG(subject).etc.analysis.design.bad_touch_epochs;
+    reg_t(bad_ixs,:)= [];
     all_subjects_reg_t = [all_subjects_reg_t; reg_t]; 
 end
 
 %% inspect full table
-head(all_subjects_reg_t,10)
+head(all_subjects_reg_t,20)
+size(all_subjects_reg_t)
 
 %% action time differs between oddball and no oddball trials
 
-% remove preerror trials
-dmatrix = all_subjects_reg_t;
-dmatrix.pre_error = [dmatrix.oddball(2:end); 0];
-dmatrix(dmatrix.pre_error==1,:)=[];
-
-% % match trial count
-% match_ixs = find(dmatrix.oddball==0);
-% mismatch_ixs = find(dmatrix.oddball==1);
-% match_ixs = randsample(match_ixs, numel(mismatch_ixs));
-% dmatrix = dmatrix(union(match_ixs, mismatch_ixs),:);
-
-% save this dmatrix where results where reported from
-% save(fullfile(bemobil_config.study_folder, 'dmatrix'), 'dmatrix');
-
-% seq_1 = find(dmatrix.sequence==1);
-% match_ixs_seq_1 = intersect(match_ixs, seq_1);
-% mismatch_ixs = randsample(mismatch_ixs, numel(match_ixs_seq_1));
+% % remove preerror trials
+% dmatrix = all_subjects_reg_t;
+% dmatrix.pre_error = [dmatrix.oddball(2:end); 0];
+% dmatrix(dmatrix.pre_error==1,:)=[];
 % 
-% dmatrix = dmatrix(union(match_ixs_seq_1, mismatch_ixs),:);
-
-% {'at', 'rt', 'acc', 'decel', 'decel_stop', ...
-%         'diff_at', 'diff_rt', 'diff_acc', 'diff_decel', 'diff_decel_stop'}
-
-% for dv = {'diff_at'}
+% % % match trial count
+% % match_ixs = find(dmatrix.oddball==0);
+% % mismatch_ixs = find(dmatrix.oddball==1);
+% % match_ixs = randsample(match_ixs, numel(mismatch_ixs));
+% % dmatrix = dmatrix(union(match_ixs, mismatch_ixs),:);
 % 
-%     modelfit_full = fitlme(dmatrix, [dv{1} ' ~ oddball*sequence + (1|pID)']);
-%     modelfit_null = fitlme(dmatrix, [dv{1} ' ~ 1 + (1|pID)']);
-%     compare(modelfit_null, modelfit_full)
-%     
-%     disp([dv{1} ' t_stat: ' num2str(modelfit_full.Coefficients.tStat(3))]);
-% end
+% % save this dmatrix where results where reported from
+% % save(fullfile(bemobil_config.study_folder, 'dmatrix'), 'dmatrix');
+% 
+% % seq_1 = find(dmatrix.sequence==1);
+% % match_ixs_seq_1 = intersect(match_ixs, seq_1);
+% % mismatch_ixs = randsample(mismatch_ixs, numel(match_ixs_seq_1));
+% % 
+% % dmatrix = dmatrix(union(match_ixs_seq_1, mismatch_ixs),:);
+% 
+% % {'at', 'rt', 'acc', 'decel', 'decel_stop', ...
+% %         'diff_at', 'diff_rt', 'diff_acc', 'diff_decel', 'diff_decel_stop'}
+% 
+% % for dv = {'diff_at'}
+% % 
+% %     modelfit_full = fitlme(dmatrix, [dv{1} ' ~ oddball*sequence + (1|pID)']);
+% %     modelfit_null = fitlme(dmatrix, [dv{1} ' ~ 1 + (1|pID)']);
+% %     compare(modelfit_null, modelfit_full)
+% %     
+% %     disp([dv{1} ' t_stat: ' num2str(modelfit_full.Coefficients.tStat(3))]);
+% % end
+% 
+% % summary stats and raincloud plot
+% summary_diff_at = groupsummary(dmatrix,{'pID','oddball'},'mean','at');
+% a = summary_diff_at(summary_diff_at.oddball==0,:);
+% b = summary_diff_at(summary_diff_at.oddball==1,:);
+% to_plot = [a.mean_at, b.mean_at];
+% mean(to_plot)
+% std(to_plot)
+% % ans =
+% % 
+% %     0.7418    0.6940
+% % 
+% % 
+% % ans =
+% % 
+% %     0.1495    0.1532
+% 
+% % summary stats and raincloud plot
+% summary_diff_at = groupsummary(dmatrix,{'pID','oddball'},'mean','diff_at');
+% a = summary_diff_at(summary_diff_at.oddball==0,:);
+% b = summary_diff_at(summary_diff_at.oddball==1,:);
+% to_plot = [a.mean_diff_at, b.mean_diff_at];
+% mean(to_plot)
+% std(to_plot)
+% % ans =
+% % 
+% %     0.0007    0.0468
+% % 
+% % 
+% % ans =
+% % 
+% %     0.0153    0.0362
 
-% summary stats and raincloud plot
-summary_diff_at = groupsummary(dmatrix,{'pID','oddball'},'mean','at');
-a = summary_diff_at(summary_diff_at.oddball==0,:);
-b = summary_diff_at(summary_diff_at.oddball==1,:);
-to_plot = [a.mean_at, b.mean_at];
+summary_diff_at = groupsummary(all_subjects_reg_t,{'pID','pre_odd'},'mean','diff_at');
+a = summary_diff_at(double(summary_diff_at.pre_odd)==0,:);
+b = summary_diff_at(double(summary_diff_at.pre_odd)==1,:);
+c = summary_diff_at(double(summary_diff_at.pre_odd)==2,:);
+to_plot = [a.mean_diff_at, b.mean_diff_at, c.mean_diff_at];
 mean(to_plot)
 std(to_plot)
-% ans =
-% 
-%     0.7418    0.6940
-% 
-% 
-% ans =
-% 
-%     0.1495    0.1532
 
-% summary stats and raincloud plot
-summary_diff_at = groupsummary(dmatrix,{'pID','oddball'},'mean','diff_at');
-a = summary_diff_at(summary_diff_at.oddball==0,:);
-b = summary_diff_at(summary_diff_at.oddball==1,:);
-to_plot = [a.mean_diff_at, b.mean_diff_at];
-mean(to_plot)
-std(to_plot)
-% ans =
-% 
-%     0.0007    0.0468
-% 
-% 
-% ans =
-% 
-%     0.0153    0.0362
+% summary_at = groupsummary(all_subjects_reg_t,{'pID','oddball'},'mean','at');
+% a = summary_at(double(summary_at.oddball)==0,:);
+% b = summary_at(double(summary_at.oddball)==1,:);
+% to_plot = [a.mean_at, b.mean_at];
+% mean(to_plot)
+% std(to_plot)
+
+
+
+% to_plot = abs(to_plot)
 
 colors = brewermap(5, 'Spectral');
 colors1 = colors(2, :);
-colors2 = colors(5, :);
+colors2 = colors(1, :);
 
 fig_position = [200 200 600 400]; % coordinates for figures
 alpha = .4;
 fig_dir = '/Users/lukasgehrke/Documents/publications/2019-PE-Sensory-motor-integration-in-ACC-overleaf/figures/behavior/';% fullfile(bemobil_config.study_folder, 'results', 'behavior');
 fig_name = 'rate_of_change_action_time';
 
+set(0, 'DefaultFigureRenderer', 'painters');
 f7 = figure('Position', fig_position);
 h1 = raincloud_plot(to_plot(:,1), 'box_on', 1, 'color', colors1, 'alpha', alpha,...
      'box_dodge', 1, 'box_dodge_amount', .15, 'dot_dodge_amount', .15,...
      'box_col_match', 0);
 h2 = raincloud_plot(to_plot(:,2), 'box_on', 1, 'color', colors2, 'alpha', alpha,...
      'box_dodge', 1, 'box_dodge_amount', .35, 'dot_dodge_amount', .35, 'box_col_match', 0);
-l = legend([h1{1} h2{1}], {'Match to Match Trial', 'Following Mismatch Trial'});
+
+colors3 = colors(5, :);
+h3 = raincloud_plot(to_plot(:,3), 'box_on', 1, 'color', colors3, 'alpha', alpha,...
+     'box_dodge', 1, 'box_dodge_amount', .55, 'dot_dodge_amount', .55, 'box_col_match', 0);
+
+% l = legend([h1{1} h2{1}], {'Match to Match Trial', 'Following Mismatch Trial'});
+l = legend([h1{1} h2{1} h3{1}], {'Match to Match', 'Mismatch to Match', 'Match to Mismatch'});
 l.FontSize = 20;
 
 h1{2}.SizeData = 40;
@@ -207,37 +255,93 @@ h2{2}.MarkerEdgeColor = 'k';
 h2{2}.MarkerEdgeAlpha = alpha;
 h2{3}.FaceColor = [colors2, alpha];
 
-t = title(['Rate of Change in Action Time']);
+h3{2}.SizeData = 40;
+h3{2}.MarkerEdgeColor = 'k';
+h3{2}.MarkerEdgeAlpha = alpha;
+h3{3}.FaceColor = [colors3, alpha];
+
+t = title(['Rate of Change in Tap Time']);
 t.FontSize = 20;
 
-xlabel('change in action time (s)')
+xlabel('change in tap time (s)')
 ylabel('density')
 
-set(gca,'XLim', [-.1 .2], 'YLim', [-35 45]);
+% set(gca,'XLim', [-.1 .2], 'YLim', [-35 45]);
 set(gca,'FontSize',22)
 box off
 grid on
 
-% save
-if ~exist(fig_dir)
-    mkdir(fig_dir);
-end
-print(f7, fullfile(fig_dir, [fig_name, '_all_trials_.eps']), '-depsc');
-close(gcf);
+% % save
+% if ~exist(fig_dir)
+%     mkdir(fig_dir);
+% end
+% print(f7, fullfile(fig_dir, [fig_name, '_all_trials_new.eps']), '-depsc');
+% close(gcf);
 
 %% model rate of change in action time
+
+% head(all_subjects_reg_t(all_subjects_reg_t.oddball==1),20)
 
 % modelfit_full = fitlme(dmatrix, 'diff_at ~ haptics + sequence + (1|pID)')
 % modelfit_full = fitlme(dmatrix, 'diff_at ~ oddball*haptics + (1|pID)')
 % 
 % summary_diff_at = groupsummary(dmatrix,{'pID','oddball','haptics'},'mean','diff_at');
 % modelfit = fitlme(summary_diff_at, 'mean_diff_at ~ oddball*haptics + (1|pID)')
-
 % modelfit = fitlme(dmatrix, 'at ~ oddball*sequence + (1|pID)')
 
-modelfit = fitlme(dmatrix, 'diff_at ~ oddball + (1|pID)')
-modelfit_oddball = fitlme(dmatrix, 'diff_at ~ 1 + (1|pID)');
-compare(modelfit_oddball, modelfit)
+% all_subjects_reg_t(all_subjects_reg_t.pre_odd==1,:) = [];
+% all_subjects_reg_t.pre_odd = categorical(all_subjects_reg_t.pre_odd);
+% all_subjects_reg_t.post_error = categorical(all_subjects_reg_t.post_error);
+% all_subjects_reg_t.diff_at = abs(all_subjects_reg_t.diff_at);
+
+% remove trials where sequence == 0
+
+% ix = find(all_subjects_reg_t.oddball==1);
+% seq = all_subjects_reg_t(ix,:);
+% summary = groupsummary(seq,{'pID','sequence'},'mean','diff_at');
+% 
+% % summary.pre_odd = categorical(summary.pre_odd);
+% modelfit = fitlm(summary, 'mean_diff_at ~ sequence')
+% anova(modelfit)
+
+% ix = find(all_subjects_reg_t.oddball==0 & all_subjects_reg_t.sequence<4);
+
+% ix = find(all_subjects_reg_t.pre_odd==0);
+% seq = all_subjects_reg_t(ix,:);
+% summary = groupsummary(seq,{'sequence'},'mean','diff_at')
+% modelfit = fitlm(summary, 'mean_diff_at ~ sequence')
+% anova(modelfit)
+
+summary = groupsummary(all_subjects_reg_t,{'pID','pre_odd'},'mean','diff_at');
+summary.pre_odd = categorical(summary.pre_odd);
+modelfit = fitlm(summary, 'mean_diff_at ~ pre_odd')
+anova(modelfit)
+
+% modelfit = fitlme(summary, 'mean_diff_at ~ pre_odd + (1|pID)')
+% modelfit2 = fitlme(summary, 'mean_diff_at ~ 1 + (1|pID)');
+% compare(modelfit, modelfit2)
+
+% 0 = match to match
+% 1 = mismatch to match
+% 2 = match to mismatch
+
+% modelfit = fitlme(all_subjects_reg_t, 'diff_at ~ pre_odd*sequence + (1|pID)')
+% modelfit2 = fitlme(all_subjects_reg_t, 'diff_at ~ 1 + (1|pID)')
+% compare(modelfit, modelfit2)
+
+% modelfit = fitlm(all_subjects_reg_t, 'diff_at ~ oddball*sequence')
+% anova(modelfit)
+
+% modelfit = fitlm(all_subjects_reg_t, 'diff_at ~ pre_odd*sequence')
+% anova(modelfit)
+
+% modelfit = fitlme(all_subjects_reg_t, 'at ~ oddball + (1|pID)')
+% modelfit2 = fitlme(all_subjects_reg_t, 'at ~ oddball+sequence + (1|pID)')
+% compare(modelfit, modelfit2)
+
+% modelfit = fitlme(dmatrix, 'diff_at ~ oddball + (1|pID)')
+% modelfit_oddball = fitlme(dmatrix, 'diff_at ~ 1 + (1|pID)');
+% compare(modelfit_oddball, modelfit)
 
 % why this model?
 % to check whether the introduction of vibrotactile feedback altered
@@ -247,29 +351,49 @@ compare(modelfit_oddball, modelfit)
  
 %% cross validate across participants
 
+dmatrix = all_subjects_reg_t;
+dmatrix.pre_odd(dmatrix.pre_odd==2) = 1;
+
 k = 10;
 indices = crossvalind('Kfold',dmatrix.oddball,k);
 for i = 1:k
     test = indices==i;
     train = ~test;
     
-    modelfit = fitglme(dmatrix(train,:), 'oddball ~ diff_at + (1|pID)');
+    modelfit = fitglme(dmatrix(train,:), 'pre_odd ~ diff_at + (1|pID)');
 %     modelfit = fitglme(dmatrix(train,:), 'oddball ~ diff_at*sequence + (1|pID)', 'Distribution','binomial');
 %     modelfit = fitglme(dmatrix(train,:), 'oddball ~ diff_at + haptics + (1|pID)', 'Distribution','binomial');
 %     modelfit = fitlme(dmatrix(train,:), 'diff_at ~ vel_event + (1|pID)');
+
+%     MdlLinear = fitcdiscr(dmatrix(train,:).diff_at, 'oddball');
     
     ypred = predict(modelfit, dmatrix(test,:));
     ypred(ypred>=.5) = 1;
     ypred(ypred<.5) = 0;
     accuracy(i) = sum(ypred==dmatrix(test,:).oddball) / size(dmatrix(test,:).oddball,1);
     
-    pconf = simulateChance(round(sum(test)/2) * [1 1], .05);
+    size_c1 = sum(dmatrix(train,:).oddball==1);
+    size_c2 = sum(dmatrix(train,:).oddball==0);
+    pconf = simulateChance([size_c1, size_c2], .05);
     sim_chance(i) = pconf(3);
 
     disp(['accuracy: ' num2str(accuracy(i))])
 end
 
 [H,P,CI,STATS] = ttest(accuracy,sim_chance)
+
+
+
+% c = cvpartition(size(classes,1),'Holdout',0.3);
+% idxTrain = training(c);
+% idxNew = test(c);
+% 
+% MdlLinear = fitcdiscr(meas(idxTrain), classes(idxTrain));
+% 
+% cvMdl = crossval(MdlLinear); % Performs stratified 10-fold cross-validation
+% cvtrainError = kfoldLoss(cvMdl)
+% cvtrainAccuracy = 1-cvtrainError
+
 
 %% cv within participants
 
@@ -283,14 +407,19 @@ for subject = subjects
         test = indices==i;
         train = ~test;
         
-        modelfit = fitglme(dmatrix_s(train,:), 'oddball ~ diff_at + (1|pID)', 'Distribution','binomial'); 
+        modelfit = fitglme(dmatrix_s(train,:), 'oddball ~ diff_at + (1|pID)', 'Distribution','binomial','link','logit'); 
         ypred = predict(modelfit, dmatrix_s(test,:));
         
         ypred(ypred>=.5) = 1;
         ypred(ypred<.5) = 0;        
 
         acc(i) = sum(ypred==dmatrix_s(test,:).oddball) / size(dmatrix_s(test,:).oddball,1);
-        pconf = simulateChance(round(sum(test)/2) * [1 1], .05);
+        
+        
+        size_c1 = sum(dmatrix(train,:).oddball==1);
+        size_c2 = sum(dmatrix(train,:).oddball==0);
+        pconf = simulateChance([size_c1, size_c2], .05);
+%         pconf = simulateChance(round(sum(test)/2) * [1 1], .05);
         sim_chance(i) = pconf(3);
 %         disp(['accuracy: ' num2str(acc(i))])
 

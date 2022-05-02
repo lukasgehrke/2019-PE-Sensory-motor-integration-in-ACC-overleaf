@@ -6,12 +6,12 @@ addpath(genpath('/Users/lukasgehrke/Documents/publications/2019-PE-Sensory-motor
 % TODO add to path custom scripts repository Lukas Gehrke folder
 
 % add path BCILAB
-addpath(genpath('/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/BCILAB'));
+addpath('/Volumes/work/studies/Prediction_Error/BCILAB');
 
 % BIDS data download folder
-bemobil_config.BIDS_folder = '/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data/ds003552/';
+bemobil_config.BIDS_folder = '/Volumes/work/studies/Prediction_Error/data/DFA/';
 % Results output folder -> external drive
-bemobil_config.study_folder = fullfile('/Volumes/Seagate Expansion Drive/work/studies/Prediction_Error/data', 'derivatives');
+bemobil_config.study_folder = fullfile('/Volumes/work/studies/Prediction_Error/data', 'derivatives');
 
 % init
 config_processing_pe;
@@ -36,8 +36,10 @@ for t = threshs
 
         %% load BIDS (with AMICA results) set
 
-        EEG = pop_loadset(fullfile(bemobil_config.BIDS_folder, ['sub-', sprintf('%03d', subject)], modality,...
-            ['sub-', sprintf('%03d', subject), '_task-', bemobil_config.task, '_', modality '.set']));
+%         EEG = pop_loadset(fullfile(bemobil_config.BIDS_folder, ['sub-', sprintf('%03d', subject)], modality,...
+%             ['sub-', sprintf('%03d', subject), '_task-', bemobil_config.task, '_', modality '.set']));
+
+        EEG = pop_loadset(fullfile(bemobil_config.BIDS_folder, ['sub-', sprintf('%03d', subject+1) '.set']));
 
         %% make design matrix, exclude training trials and EMS condition, clean up, find bad epochs
 
